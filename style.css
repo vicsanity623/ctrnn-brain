@@ -153,3 +153,111 @@ button, .touch-manipulation, .cursor-pointer {
     transform: none;
     filter: grayscale(0.6);
 }
+
+/* Interactive Elemental Attack & Move Theming */
+
+/* Elemental Move Buttons with Interactive Auras */
+.btn-type-fire {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    border: 1px solid #f87171;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+.btn-type-fire:not(:disabled):hover {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.75), inset 0 0 10px rgba(254, 202, 202, 0.4);
+}
+
+.btn-type-water {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: 1px solid #60a5fa;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+}
+.btn-type-water:not(:disabled):hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.75), inset 0 0 10px rgba(191, 219, 254, 0.4);
+}
+
+.btn-type-grass {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    border: 1px solid #4ade80;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+}
+.btn-type-grass:not(:disabled):hover {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.75), inset 0 0 10px rgba(187, 247, 208, 0.4);
+}
+
+.btn-type-electric {
+    background: linear-gradient(135deg, #eab308, #ca8a04);
+    border: 1px solid #fde047;
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.35);
+}
+.btn-type-electric:not(:disabled):hover {
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.75), inset 0 0 10px rgba(254, 240, 138, 0.4);
+}
+
+/* Turn Cooldown / Lock Spinner Overlay */
+.turn-lock-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 0.75rem;
+    color: #e2e8f0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    pointer-events: all;
+    animation: fadeInLock 0.2s ease forwards;
+}
+
+@keyframes fadeInLock {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.turn-spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: turnSpin 0.7s linear infinite;
+}
+
+@keyframes turnSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Super Effective Elemental Slash FX on Target */
+@keyframes elementalSlash {
+    0% {
+        opacity: 1;
+        transform: scale(0.4) rotate(-30deg);
+        filter: brightness(3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3) rotate(0deg);
+        filter: brightness(2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.6) rotate(20deg);
+        filter: brightness(1);
+    }
+}
+
+.elemental-slash-fx {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 40;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 10%, rgba(251, 191, 36, 0.7) 45%, transparent 70%);
+    animation: elementalSlash 0.45s ease-out forwards;
+}
