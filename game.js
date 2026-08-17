@@ -253,10 +253,24 @@ function gainHeart() {
         effect.classList.add('animate-swirl');
         sprite.classList.add('flash-white');
         
+        // Give 0.5% XP for gaining a heart! (Minimum of 1 XP)
+        let heartXp = Math.max(1, Math.floor(gameState.maxXp * 0.005));
+        gameState.xp += heartXp;
+        
         setTimeout(() => {
             effect.classList.remove('animate-swirl');
             sprite.classList.remove('flash-white');
-            updateHub();
+            
+            // Check if this tiny XP boost pushed us to a level up!
+            if (gameState.xp >= gameState.maxXp) {
+                document.getElementById('xp-bar').style.width = '100%';
+                setTimeout(() => {
+                    let leftoverXp = gameState.xp - gameState.maxXp;
+                    levelUp(leftoverXp);
+                }, 600);
+            } else {
+                updateHub();
+            }
         }, 1000);
     }
 }
