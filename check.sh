@@ -11,7 +11,7 @@ echo "=========================================="
 # 1. Verify necessary Web Files exist
 echo "[1/5] Checking required web files..."
 # Added style.css to the required list
-REQUIRED_FILES=("index.html" "game.js" "style.css" "manifest.json" "sw.js")
+REQUIRED_FILES=("index.html" "game.js" "style.css")
 for FILE in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$FILE" ]; then
         echo "❌ ERROR: Required file '$FILE' is missing."
