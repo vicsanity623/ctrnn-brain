@@ -2,7 +2,8 @@
 let gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 50,
-    berries: 5, lastInteraction: Date.now()
+    berries: 5, lastInteraction: Date.now(),
+    pokedex: [1]
 };
 
 // Heart Depletion Interval (Loses 1 heart every 60 seconds)
@@ -15,7 +16,7 @@ setInterval(() => {
 }, 60000);
 
 // UI Elements
-const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen'];
+const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen', 'pokedex-screen'];
 function showScreen(id) {
     screens.forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -128,6 +129,18 @@ function openStats() {
 
 function openInventory() {
     showModal("Inventory", "Pockets: Berries (" + gameState.berries + ")");
+}
+
+function openPokedex() {
+    const list = document.getElementById('pokedex-list');
+    list.innerHTML = '';
+    gameState.pokedex.forEach(id => {
+        const img = document.createElement('img');
+        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        img.className = 'w-16 h-16 m-2 border rounded';
+        list.appendChild(img);
+    });
+    showScreen('pokedex-screen');
 }
 
 function closeModal() {
@@ -339,6 +352,11 @@ function updateHealthBars() {
 function endBattle(won) {
     clearInterval(battleInterval);
     if(won) {
+        // Track encounter
+        const wildId = parseInt(document.getElementById('enemy-sprite').src.split('/').pop().split('_')[0]);
+        if (!isNaN(wildId) && !gameState.pokedex.includes(wildId)) {
+            gameState.pokedex.push(wildId);
+        }
         let lootMsg = "You won!";
         if (Math.random() < 0.40) {
             let foundBerries = Math.floor(Math.random() * 2) + 1; 
@@ -360,6 +378,9 @@ function endBattle(won) {
 
 // --- EVOLUTION SYSTEM ---
 function triggerEvolution(newId, newName) {
+    if (!gameState.pokedex.includes(newId)) {
+        gameState.pokedex.push(newId);
+    }
     showScreen('evo-screen');
     document.getElementById('evo-old-name').innerText = gameState.name;
     document.getElementById('evo-sprite').src = document.getElementById('hub-sprite').src;
