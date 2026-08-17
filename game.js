@@ -447,7 +447,7 @@ function enterBattle() {
 function playerAttack(moveType = 'tackle') {
     setAttackButtonsDisabled(true);
 
-    ifif (moveType === 'growl') {
+    if (moveType === 'growl') {
         // Growl shreds enemy defense AND attack!
         enemyAttack = Math.max(1, enemyAttack - 2);
         enemyDefense = Math.max(0, enemyDefense - 4);
