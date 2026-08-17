@@ -2,8 +2,7 @@
 let gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 50,
-    berries: 5, lastInteraction: Date.now(),
-    pokedex: [1]
+    berries: 5, lastInteraction: Date.now()
 };
 
 // Heart Depletion Interval (Loses 1 heart every 60 seconds)
@@ -16,7 +15,7 @@ setInterval(() => {
 }, 60000);
 
 // UI Elements
-const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen', 'pokedex-screen'];
+const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen'];
 function showScreen(id) {
     screens.forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -78,10 +77,7 @@ function nextStory() {
 
 // Update Hub UI
 function updateHub() {
-    const nameEl = document.getElementById('hub-name');
-    nameEl.innerText = gameState.name;
-    nameEl.onclick = openStats;
-    nameEl.style.cursor = 'pointer';
+    document.getElementById('hub-name').innerText = gameState.name;
     document.getElementById('hub-level').innerText = gameState.level;
     document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
     document.getElementById('hub-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif`;
@@ -123,26 +119,6 @@ function showModal(title, text, vibratePattern = [50]) {
     }
 }
 
-function openStats() {
-    showModal("Stats", `Level: ${gameState.level} | HP: ${gameState.maxHp} | Atk: ${gameState.attack} | Def: ${gameState.defense}`);
-}
-
-function openInventory() {
-    showModal("Inventory", "Pockets: Berries (" + gameState.berries + ")");
-}
-
-function openPokedex() {
-    const list = document.getElementById('pokedex-list');
-    list.innerHTML = '';
-    gameState.pokedex.forEach(id => {
-        const img = document.createElement('img');
-        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-        img.className = 'w-16 h-16 m-2 border rounded';
-        list.appendChild(img);
-    });
-    showScreen('pokedex-screen');
-}
-
 function closeModal() {
     const modal = document.getElementById('custom-modal');
     const content = document.getElementById('modal-content');
@@ -164,11 +140,7 @@ const hubSprite = document.getElementById('hub-sprite');
 
 // Prevent image dragging which breaks touch on mobile
 hubSprite.ondragstart = () => false;
-spriteContainer.style.touchAction = 'manipulation';
-document.querySelectorAll('button, .clickable').forEach(el => {
-    el.style.touchAction = 'manipulation';
-    el.style.userSelect = 'none';
-});
+spriteContainer.style.touchAction = 'none'; // Prevents page scrolling while swirling
 
 function startSwirl(e) {
     e.preventDefault();
@@ -255,15 +227,11 @@ function levelUp(leftoverXp = 0) {
     gameState.level++;
     gameState.xp = leftoverXp; // Keep the extra XP earned
     gameState.maxXp = Math.floor(gameState.maxXp * 1.5);
-    if (gameState.xp >= gameState.maxXp) {
-        gameState.xp = gameState.maxXp - 1;
-    }
-
+    
     // Stat gains based on mood
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
     gameState.attack = Math.floor(gameState.attack * statBuff);
     gameState.defense = Math.floor(gameState.defense * statBuff);
-    gameState.maxHp = Math.floor(gameState.maxHp * statBuff);
 
     // Instantly snap XP bar back to 0 without animation
     let xpBar = document.getElementById('xp-bar');
@@ -352,11 +320,6 @@ function updateHealthBars() {
 function endBattle(won) {
     clearInterval(battleInterval);
     if(won) {
-        // Track encounter
-        const wildId = parseInt(document.getElementById('enemy-sprite').src.split('/').pop().split('_')[0]);
-        if (!isNaN(wildId) && !gameState.pokedex.includes(wildId)) {
-            gameState.pokedex.push(wildId);
-        }
         let lootMsg = "You won!";
         if (Math.random() < 0.40) {
             let foundBerries = Math.floor(Math.random() * 2) + 1; 
@@ -378,9 +341,6 @@ function endBattle(won) {
 
 // --- EVOLUTION SYSTEM ---
 function triggerEvolution(newId, newName) {
-    if (!gameState.pokedex.includes(newId)) {
-        gameState.pokedex.push(newId);
-    }
     showScreen('evo-screen');
     document.getElementById('evo-old-name').innerText = gameState.name;
     document.getElementById('evo-sprite').src = document.getElementById('hub-sprite').src;
