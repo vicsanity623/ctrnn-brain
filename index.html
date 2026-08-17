@@ -135,11 +135,18 @@
                 <h3 class="text-2xl font-black text-blue-400">UNIT STATS</h3>
                 <button onclick="closeStats()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
             </div>
-            <div class="grid grid-cols-2 gap-4 text-sm bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-inner">
+            <div class="grid grid-cols-2 gap-3 text-sm bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-inner">
                 <div class="flex flex-col"><span class="text-gray-400 font-bold">MAX HP</span><span id="stat-hp" class="font-black text-green-400 text-xl">0</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">SPEED</span><span id="stat-spd" class="font-black text-yellow-400 text-xl">0</span></div>
+                
                 <div class="flex flex-col"><span class="text-gray-400 font-bold">ATTACK</span><span id="stat-atk" class="font-black text-red-400 text-xl">0</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">SP. ATK</span><span id="stat-spatk" class="font-black text-purple-400 text-xl">0</span></div>
+                
                 <div class="flex flex-col"><span class="text-gray-400 font-bold">DEFENSE</span><span id="stat-def" class="font-black text-blue-400 text-xl">0</span></div>
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">MOOD</span><span id="stat-mood" class="font-black text-pink-400 text-xl">0/10</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">SP. DEF</span><span id="stat-spdef" class="font-black text-indigo-400 text-xl">0</span></div>
+                
+                <div class="flex flex-col mt-2 pt-2 border-t border-gray-600"><span class="text-gray-400 font-bold">MOOD</span><span id="stat-mood" class="font-black text-pink-400 text-xl">0/10</span></div>
+                <div class="flex flex-col mt-2 pt-2 border-t border-gray-600"><span class="text-gray-400 font-bold">TOTAL POWER</span><span id="stat-cp" class="font-black text-orange-400 text-xl drop-shadow-md">0</span></div>
             </div>
             <div class="mt-4 text-center text-xs text-gray-500 italic">Stats scale dynamically with level-ups!</div>
         </div>
