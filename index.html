@@ -138,7 +138,12 @@
                 if (this.items[id]) {
                     this.items[id].count = Math.min(this.items[id].count + 1, item.stackLimit || 99);
                 } else {
-                    this.items[id] = { ...item, count: 1 };
+                    this.items[id] = { 
+                        ...item, 
+                        count: 1,
+                        effectHandler: item.effectHandler || null,
+                        usableInBattle: !!item.usableInBattle
+                    };
                 }
             },
             getPocket(type) { return Object.values(this.items).filter(i => i.pocketType === type); }
