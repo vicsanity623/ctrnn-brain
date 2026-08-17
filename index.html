@@ -130,6 +130,13 @@
 
     <script src="game.js"></script>
     <script>
+        // Initialize Inventory System
+        const inventory = {
+            items: [],
+            add(item) { this.items.push(item); },
+            getPocket(type) { return this.items.filter(i => i.pocketType === type); }
+        };
+
         function updateEnvironment() {
             const hour = new Date().getHours();
             const overlay = document.getElementById('time-overlay');
