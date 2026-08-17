@@ -1,5 +1,5 @@
 /* Glassmorphism panel for 2026 UI */
-.glass-panel, button {
+.glass-panel, button, .stat-row {
     touch-action: manipulation;
     user-select: none;
 }
