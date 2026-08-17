@@ -235,6 +235,7 @@ function levelUp(leftoverXp = 0) {
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
     gameState.attack = Math.floor(gameState.attack * statBuff);
     gameState.defense = Math.floor(gameState.defense * statBuff);
+    gameState.maxHp = Math.floor(gameState.maxHp * statBuff);
 
     // Instantly snap XP bar back to 0 without animation
     let xpBar = document.getElementById('xp-bar');
