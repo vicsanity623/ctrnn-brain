@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Strict testing suite for PyOB safety",
   "scripts": {
+    "start": "jest",
     "test": "jest"
   },
   "devDependencies": {

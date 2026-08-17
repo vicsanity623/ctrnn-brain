@@ -98,9 +98,9 @@ function updateHub() {
 }
 
 // Custom Native-feeling Modal & Vibration System
-function showModal(title, text, vibratePattern = [50]) {
+function showModal(title, text = '', vibratePattern = [50]) {
     document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-desc').innerText = text;
+    document.getElementById('modal-desc').innerText = text || '';
     
     const modal = document.getElementById('custom-modal');
     const content = document.getElementById('modal-content');
