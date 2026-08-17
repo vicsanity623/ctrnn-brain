@@ -1,8 +1,4 @@
 /* Glassmorphism panel for 2026 UI */
-.glass-panel, button, .stat-row {
-    touch-action: manipulation;
-    user-select: none;
-}
 .glass-panel {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -40,63 +36,10 @@
 
 .screen { transition: opacity 0.3s ease; }
 
-@keyframes pulseEffect {
-    0% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.05); filter: brightness(1.5); }
-    100% { transform: scale(1); filter: brightness(1); }
-}
-
-.pulse-update {
-    animation: pulseEffect 0.4s ease-out;
-}
-
-.xp-bar-container {
-    transition: transform 0.2s ease;
-    transform-origin: left center;
-}
-
 /* Add to style.css */
 .pixel-perfect {
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
-}
-
-/* Interactive stat inspection */
-.stat-row {
-    position: relative;
-    cursor: help;
-    transition: background 0.2s ease;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.stat-row:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.stat-tooltip {
-    position: absolute;
-    left: 105%;
-    top: 0;
-    width: 150px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #555;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 100;
-}
-
-.stat-row:hover .stat-tooltip {
-    opacity: 1;
-}
-
-.growth-indicator {
-    font-size: 0.8rem;
-    color: #34d399;
-    font-weight: bold;
 }
