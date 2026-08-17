@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
     e.waitUntil(
-      caches.open('poke-cache').then((cache) => cache.addAll([
+      caches.open('poke-cache-v1.1').then((cache) => cache.addAll([
         './index.html',
         './style.css',
         './game.js'
