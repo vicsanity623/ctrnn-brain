@@ -49,12 +49,12 @@
         <div id="time-overlay" class="absolute inset-0 pointer-events-none z-20 transition-colors duration-1000"></div>
         <!-- Stats Top Bar -->
         <div class="flex justify-between items-center p-6 glass-panel m-4 rounded-2xl">
-            <div onclick="openStats()" class="cursor-pointer touch-manipulation select-none">
-                <h2 id="hub-name" class="text-2xl font-black uppercase underline decoration-blue-500">Bulbasaur</h2>
+            <div>
+                <h2 id="hub-name" class="text-2xl font-black uppercase">Bulbasaur</h2>
                 <p class="text-sm text-gray-300">Level <span id="hub-level">5</span></p>
             </div>
-            <div class="flex flex-col gap-2">
-                <button onclick="openInventory()" class="bg-gray-700 px-4 py-2 rounded-lg text-sm font-bold touch-manipulation select-none">Bag</button>
+            <div class="flex gap-1 flex-wrap justify-end max-w-[50%]" id="heart-container">
+                <!-- Hearts injected here -->
             </div>
         </div>
 
@@ -119,15 +119,6 @@
         </div>
     </div>
 
-    <!-- INVENTORY MODAL -->
-    <div id="inventory-modal" class="fixed inset-0 bg-gray-900 z-[90] hidden p-6 overflow-y-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-3xl font-black">Inventory</h2>
-            <button onclick="closeInventory()" class="text-xl font-bold bg-gray-700 px-4 py-2 rounded-lg">Close</button>
-        </div>
-        <div id="inventory-list" class="grid grid-cols-2 gap-4"></div>
-    </div>
-
     <!-- CUSTOM ALERT MODAL -->
     <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
         <div class="bg-gray-800 border border-gray-600 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
@@ -139,25 +130,6 @@
 
     <script src="game.js"></script>
     <script>
-        // Initialize Inventory System
-        const inventory = {
-            items: {},
-            addItem(item) {
-                const id = item.id;
-                if (this.items[id]) {
-                    this.items[id].count = Math.min(this.items[id].count + 1, item.stackLimit || 99);
-                } else {
-                    this.items[id] = { 
-                        ...item, 
-                        count: 1,
-                        effectHandler: item.effectHandler || null,
-                        usableInBattle: !!item.usableInBattle
-                    };
-                }
-            },
-            getPocket(type) { return Object.values(this.items).filter(i => i.pocketType === type); }
-        };
-
         function updateEnvironment() {
             const hour = new Date().getHours();
             const overlay = document.getElementById('time-overlay');
@@ -172,19 +144,6 @@
         }
         updateEnvironment();
         setInterval(updateEnvironment, 60000);
-
-        function openStats() {
-            document.getElementById('modal-title').innerText = 'Player Stats';
-            document.getElementById('modal-desc').innerText = 'Level: 5 | HP: 20/20 | Atk: 10 | Def: 10';
-            document.getElementById('custom-modal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('custom-modal').classList.remove('opacity-0'), 10);
-        }
-        function openInventory() { document.getElementById('inventory-modal').classList.remove('hidden'); }
-        function closeInventory() { document.getElementById('inventory-modal').classList.add('hidden'); }
-        function closeModal() {
-            document.getElementById('custom-modal').classList.add('opacity-0');
-            setTimeout(() => document.getElementById('custom-modal').classList.add('hidden'), 300);
-        }
 
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('sw.js').catch(() => console.warn('Service Worker registration failed.'));
