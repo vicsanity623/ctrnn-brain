@@ -43,3 +43,38 @@
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
+
+/* Interactive stat inspection */
+.stat-row {
+    position: relative;
+    cursor: help;
+    transition: background 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.stat-row:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.stat-tooltip {
+    position: absolute;
+    left: 105%;
+    top: 0;
+    width: 150px;
+    padding: 10px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+}
+
+.stat-row:hover .stat-tooltip {
+    opacity: 1;
+}
+
+.growth-indicator {
+    font-size: 0.8rem;
+    color: #34d399;
+    font-weight: bold;
+}
