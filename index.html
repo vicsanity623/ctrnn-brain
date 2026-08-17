@@ -173,6 +173,19 @@
         updateEnvironment();
         setInterval(updateEnvironment, 60000);
 
+        function openStats() {
+            document.getElementById('modal-title').innerText = 'Player Stats';
+            document.getElementById('modal-desc').innerText = 'Level: 5 | HP: 20/20 | Atk: 10 | Def: 10';
+            document.getElementById('custom-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('custom-modal').classList.remove('opacity-0'), 10);
+        }
+        function openInventory() { document.getElementById('inventory-modal').classList.remove('hidden'); }
+        function closeInventory() { document.getElementById('inventory-modal').classList.add('hidden'); }
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('opacity-0');
+            setTimeout(() => document.getElementById('custom-modal').classList.add('hidden'), 300);
+        }
+
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('sw.js').catch(() => console.warn('Service Worker registration failed.'));
       }
