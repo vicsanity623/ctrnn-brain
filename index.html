@@ -49,12 +49,12 @@
         <div id="time-overlay" class="absolute inset-0 pointer-events-none z-20 transition-colors duration-1000"></div>
         <!-- Stats Top Bar -->
         <div class="flex justify-between items-center p-6 glass-panel m-4 rounded-2xl">
-            <div>
-                <h2 id="hub-name" class="text-2xl font-black uppercase">Bulbasaur</h2>
+            <div onclick="openStats()" class="cursor-pointer touch-manipulation select-none">
+                <h2 id="hub-name" class="text-2xl font-black uppercase underline decoration-blue-500">Bulbasaur</h2>
                 <p class="text-sm text-gray-300">Level <span id="hub-level">5</span></p>
             </div>
-            <div class="flex gap-1 flex-wrap justify-end max-w-[50%]" id="heart-container">
-                <!-- Hearts injected here -->
+            <div class="flex flex-col gap-2">
+                <button onclick="openInventory()" class="bg-gray-700 px-4 py-2 rounded-lg text-sm font-bold touch-manipulation select-none">Bag</button>
             </div>
         </div>
 
