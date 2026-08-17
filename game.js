@@ -499,8 +499,13 @@ function triggerEvolution(newId, newName) {
     setTimeout(() => {
         gameState.id = newId;
         gameState.name = newName;
+        gameState.maxHp += 30;
         gameState.attack += 20;
         gameState.defense += 20;
+        gameState.spAtk += 20;
+        gameState.spDef += 20;
+        gameState.speed += 15;
+        
         document.getElementById('evo-sprite').classList.remove('brightness-0', 'animate-pulse');
         document.getElementById('evo-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${newId}.gif`;
         
