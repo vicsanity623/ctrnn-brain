@@ -1,27 +1,23 @@
-# HUMAN DIRECTIVES (CRITICAL PRIORITY: COMBAT OVERHAUL)
+# HUMAN DIRECTIVES (CRITICAL PRIORITY: BATTLE PROGRESSION)
 
-The current battle system is too basic. Players can spam the "Tackle" button to win instantly, enemies don't scale, and the UI lacks crucial battle information. 
+Currently, wild enemy Pokémon scale dynamically based on the player's level. We need to change this to an independent "Stage Progression" system where enemies only get harder when the player actually wins.
 
-For your next iterations, you MUST overhaul the battle system by implementing the following features in `game.js`, `index.html`, and updating `game.test.js`:
+Please update `game.js` and `game.test.js` to implement the following:
 
-### 1. Strict Turn-Based Combat (Anti-Spam)
-- When the player clicks an attack (e.g., Tackle), instantly **disable all attack buttons** so they cannot be spammed.
-- Execute the player's attack, then trigger a `setTimeout` (e.g., 1000ms) for the Enemy's turn.
-- After the Enemy attacks, **re-enable the attack buttons** for the player's next turn.
+### 1. Independent Enemy Level State
+- Add a new property to the `gameState` object called `enemyLevel` and initialize it to `3`.
+- In the `startGame()` function, add backward compatibility for old saves: `if (gameState.enemyLevel === undefined) gameState.enemyLevel = 3;`
 
-### 2. Dynamic Enemy Scaling & Levels
-- When a battle starts, calculate a dynamic level for the Wild Pokémon based on the player's level (e.g., `enemyLevel = Math.max(1, gameState.level + Math.floor(Math.random() * 3) - 1)`).
-- Scale the enemy's Max HP and Attack damage based on this new `enemyLevel`.
-- **UI Update:** Update the battle screen nameplates to display the levels. (e.g., `Wild Grimer (Lv. 5)` and `Bulbasaur (Lv. 6)`).
+### 2. Update Battle Initialization
+- In `enterBattle()`, completely remove the math that calculates the wild Pokémon's level based on the player's level.
+- The wild Pokémon's level MUST now equal `gameState.enemyLevel`. 
+- Continue to scale the enemy's Max HP and Attack damage based on this new `gameState.enemyLevel` property.
 
-### 3. Battle Log / Narration Text
-- Add a text container `<div>` inside the battle screen UI (perhaps above the attack buttons).
-- Update this text during turns (e.g., "Bulbasaur used Tackle!", "Wild Grimer hit you for 12 damage!", "Wild Grimer fainted!").
+### 3. Progressive Difficulty (Win Streak)
+- Inside the `endBattle(won)` function, if the player wins (`won === true`), increment `gameState.enemyLevel` by 1.
+- If the player loses, do NOT increment `gameState.enemyLevel`. This forces the player to grind hearts/berries to get stronger before they can pass this specific stage.
+- Call `updateHub()` at the end of the battle to ensure the new `enemyLevel` is saved to `localStorage`.
 
-### 4. Meaningful Moves
-- "Tackle" should deal standard damage based on the `gameState.attack` stat.
-- Make "Growl" actually do something strategic. For example, it deals 0 damage but reduces the enemy's attack power for the rest of the battle, or it heals the player slightly.
-
-### 5. UPDATE THE JEST TESTS
-- Because you are changing how `playerAttack()` works (it might now require async/timeouts or handle enemy turns differently), you **MUST** update `game.test.js`.
-- If you don't update the tests to reflect the new turn-based logic and enemy scaling, the `check.sh` validation suite will fail, and your PR will be rejected.
+### 4. UPDATE THE JEST TESTS
+- You MUST update `game.test.js` to expect this new behavior. 
+- Write or update tests to prove that `gameState.enemyLevel` starts at 3, increases by 1 when `endBattle(true)` is called, and remains unchanged when `endBattle(false)` is called.
