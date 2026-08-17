@@ -365,12 +365,14 @@ function levelUp(leftoverXp = 0) {
     }, 50);
 }
 
-// --- BATTLE SYSTEM ---
+//// --- BATTLE SYSTEM ---
 var eHp = 100;
 var eMaxHp = 100;
 var pHp = gameState.maxHp;
 var enemyLevel = 1;
 var enemyAttack = 10;
+var enemyDefense = 0;
+var isBoss = false;
 var enemyBaseName = "Wild Pokemon";
 
 function setAttackButtonsDisabled(disabled) {
@@ -393,9 +395,26 @@ function enterBattle() {
 
     showScreen('battle-screen');
     enemyLevel = gameState.enemyLevel;
-    eMaxHp = 40 + enemyLevel * 10;
+
+    // --- BOSS CHECK (Every 5 Levels) ---
+    isBoss = (enemyLevel % 5 === 0);
+
+    // --- COMPOUND EXPONENTIAL ENEMY SCALING ---
+    let levelDiff = Math.max(0, enemyLevel - 3);
+    eMaxHp = Math.floor(60 * Math.pow(1.085, levelDiff));
+    enemyAttack = Math.floor(6 * Math.pow(1.07, levelDiff));
+    
+    // --- ENEMY DEFENSE SCALING ---
+    enemyDefense = Math.floor(4 * Math.pow(1.06, levelDiff));
+
+    // Apply Boss Multipliers
+    if (isBoss) {
+        eMaxHp = Math.floor(eMaxHp * 2.5);
+        enemyAttack = Math.floor(enemyAttack * 1.3);
+        enemyDefense = Math.floor(enemyDefense * 1.5);
+    }
+
     eHp = eMaxHp;
-    enemyAttack = 5 + enemyLevel * 2;
     pHp = gameState.maxHp;
     setAttackButtonsDisabled(false);
 
@@ -406,13 +425,14 @@ function enterBattle() {
         this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
     };
 
-    enemyBaseName = "Wild Pokemon";
+    enemyBaseName = isBoss ? "👑 BOSS" : "Wild Pokemon";
     document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
+    
     fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
         .then(res => res.json())
         .then(data => {
             let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-            enemyBaseName = "Wild " + capitalized;
+            enemyBaseName = isBoss ? `👑 BOSS ${capitalized}` : `Wild ${capitalized}`;
             document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
         })
         .catch(err => console.log(err));
@@ -427,11 +447,16 @@ function enterBattle() {
 function playerAttack(moveType = 'tackle') {
     setAttackButtonsDisabled(true);
 
-    if (moveType === 'growl') {
-        enemyAttack = Math.max(1, enemyAttack - 3);
-        setBattleLog(`${gameState.name} used Growl! Enemy's attack dropped!`);
+    ifif (moveType === 'growl') {
+        // Growl shreds enemy defense AND attack!
+        enemyAttack = Math.max(1, enemyAttack - 2);
+        enemyDefense = Math.max(0, enemyDefense - 4);
+        setBattleLog(`${gameState.name} used Growl! Enemy's stats dropped!`);
     } else {
-        let damage = Math.max(1, gameState.attack);
+        // --- Armor reduction against Player Attack ---
+        let defenseMitigation = Math.floor(enemyDefense / 4);
+        let damage = Math.max(1, gameState.attack - defenseMitigation);
+        
         eHp -= damage;
         setBattleLog(`${gameState.name} used Tackle for ${damage} damage!`);
         document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
@@ -472,7 +497,13 @@ function endBattle(won) {
         gameState.enemyLevel++;
         updateHub();
         let lootMsg = "You won!";
-        if (Math.random() < 0.40) {
+        
+        // --- Boss Guaranteed Huge Loot ---
+        if (isBoss) {
+            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3 to 5 Berries!
+            gameState.berries += bossBerries;
+            lootMsg = `🎉 DEFEATED THE BOSS! Received ${bossBerries} 🍓 Berries!`;
+        } else if (Math.random() < 0.40) {
             let foundBerries = Math.floor(Math.random() * 2) + 1; 
             gameState.berries += foundBerries;
             lootMsg += ` And found ${foundBerries} 🍓 Berry!`;
