@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Strict Repository Validation Pipeline (V2 - Web + Python)
+# Strict Repository Validation Pipeline (V3 - Jest Tests)
 
 set -e 
 set -u 
@@ -9,9 +9,8 @@ echo " Starting Strict Quality Checks..."
 echo "=========================================="
 
 # 1. Verify necessary Web Files exist
-echo "[1/5] Checking required web files..."
-# Added style.css to the required list
-REQUIRED_FILES=("index.html" "game.js" "style.css")
+echo "[1/4] Checking required web files..."
+REQUIRED_FILES=("index.html" "game.js" "style.css" "package.json" "game.test.js")
 for FILE in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$FILE" ]; then
         echo "❌ ERROR: Required file '$FILE' is missing."
@@ -19,48 +18,44 @@ for FILE in "${REQUIRED_FILES[@]}"; do
     fi
 done
 
-# 2. Verify Internal Links (Catches the "missing file but linked" error)
-echo "[2/5] Validating internal file references..."
-# This looks for href="file.css" or src="file.js" and checks if those files exist
+# 2. Verify Internal Links 
+echo "[2/4] Validating internal file references..."
 links=$(grep -oE '(href|src)="([^"#]+)"' index.html | cut -d'"' -f2)
 for link in $links; do
-    if [[ $link == http* ]] || [[ $link == \$\{* ]]; then continue; fi # Skip external URLs
+    if [[ $link == http* ]] || [[ $link == \$\{* ]]; then continue; fi 
     if [ ! -f "$link" ]; then
         echo "❌ ERROR: index.html references '$link', but the file does not exist."
         exit 1
     fi
 done
 
-# 3. HTML/CSS Syntax Check (Optional but recommended)
-echo "[3/5] Checking HTML/CSS Integrity..."
-# Verify Quick-Slot UI exists
-if ! grep -q "quick-slot-bar" index.html; then
-    echo "â ERROR: Quick-slot-bar container missing in index.html."
+# 3. HTML Integrity
+echo "[3/4] Checking HTML/CSS Integrity..."
+if ! grep -q "inventory-modal" index.html; then
+    echo "❌ ERROR: Inventory Modal missing from index.html."
+    exit 1
+fi
+if ! grep -q "stats-modal" index.html; then
+    echo "❌ ERROR: Stats Modal missing from index.html."
     exit 1
 fi
 
-if command -v htmlhint &> /dev/null; then
-    htmlhint index.html
-else
-    # Fallback: Basic check to ensure no dangling CSS variables in raw HTML
-    if grep -q "--bg-color" index.html; then
-        # If we see CSS variables in HTML but no <style> tag, it's likely a bot error
-        if ! grep -q "<style>" index.html; then
-            echo "❌ ERROR: Detected raw CSS variables in index.html without a <style> tag."
-            exit 1
-        fi
-    fi
+# 4. Strict JavaScript Logic & DOM Tests
+echo "[4/4] Running Jest Game Logic Tests..."
+# Install testing tools if they aren't downloaded yet
+if [ ! -d "node_modules" ]; then
+    echo "Installing test dependencies (Jest)..."
+    npm install --silent
 fi
 
-# 4. Python Strict Linting via Ruff
-echo "[4/5] Running Ruff (Strict Python Linter)..."
-if command -v ruff &> /dev/null; then
-    ruff check .
-    echo "✅ Ruff checks passed."
+# Run the test suite!
+if npm test; then
+    echo "✅ JavaScript Unit Tests passed perfectly."
 else
-    echo "⚠️  Ruff not installed. Skipping."
+    echo "❌ ERROR: Game Logic tests failed! Check test output above."
+    exit 1
 fi
 
 echo "=========================================="
-echo "🎉 ALL CHECKS PASSED. Ready for Deployment!"
+echo "🎉 ALL CHECKS PASSED. Code is completely stable!"
 echo "=========================================="
