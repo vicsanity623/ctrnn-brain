@@ -77,7 +77,10 @@ function nextStory() {
 
 // Update Hub UI
 function updateHub() {
-    document.getElementById('hub-name').innerText = gameState.name;
+    const nameEl = document.getElementById('hub-name');
+    nameEl.innerText = gameState.name;
+    nameEl.onclick = openStats;
+    nameEl.style.cursor = 'pointer';
     document.getElementById('hub-level').innerText = gameState.level;
     document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
     document.getElementById('hub-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif`;
@@ -119,6 +122,14 @@ function showModal(title, text, vibratePattern = [50]) {
     }
 }
 
+function openStats() {
+    showModal("Stats", `Level: ${gameState.level} | HP: ${gameState.maxHp} | Atk: ${gameState.attack} | Def: ${gameState.defense}`);
+}
+
+function openInventory() {
+    showModal("Inventory", "Pockets: Berries (" + gameState.berries + ")");
+}
+
 function closeModal() {
     const modal = document.getElementById('custom-modal');
     const content = document.getElementById('modal-content');
@@ -140,7 +151,11 @@ const hubSprite = document.getElementById('hub-sprite');
 
 // Prevent image dragging which breaks touch on mobile
 hubSprite.ondragstart = () => false;
-spriteContainer.style.touchAction = 'none'; // Prevents page scrolling while swirling
+spriteContainer.style.touchAction = 'manipulation';
+document.querySelectorAll('button, .clickable').forEach(el => {
+    el.style.touchAction = 'manipulation';
+    el.style.userSelect = 'none';
+});
 
 function startSwirl(e) {
     e.preventDefault();
