@@ -2,6 +2,7 @@
 var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 50,
+    spAtk: 12, spDef: 12, speed: 9,
     berries: 5, lastInteraction: Date.now(), enemyLevel: 3
 };
 
@@ -47,6 +48,9 @@ function startGame(isNew) {
         // Backward compatibility for old saves
         if (gameState.berries === undefined) gameState.berries = 5;
         if (gameState.enemyLevel === undefined) gameState.enemyLevel = 3;
+        if (gameState.spAtk === undefined) gameState.spAtk = 12;
+        if (gameState.spDef === undefined) gameState.spDef = 12;
+        if (gameState.speed === undefined) gameState.speed = 9;
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
 
         // Calculate offline heart depletion (1 heart lost per minute offline)
@@ -142,7 +146,14 @@ function openStats() {
     document.getElementById('stat-hp').innerText = gameState.maxHp;
     document.getElementById('stat-atk').innerText = gameState.attack;
     document.getElementById('stat-def').innerText = gameState.defense;
+    document.getElementById('stat-spatk').innerText = gameState.spAtk;
+    document.getElementById('stat-spdef').innerText = gameState.spDef;
+    document.getElementById('stat-spd').innerText = gameState.speed;
     document.getElementById('stat-mood').innerText = `${gameState.hearts}/10`;
+    
+    // Calculate and display Total Power
+    let totalPower = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
+    document.getElementById('stat-cp').innerText = totalPower;
     
     const modal = document.getElementById('stats-modal');
     const content = document.getElementById('stats-content');
@@ -329,9 +340,12 @@ function levelUp(leftoverXp = 0) {
     
     // Stat gains based on mood
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
+    gameState.maxHp = Math.floor(gameState.maxHp * statBuff);
     gameState.attack = Math.floor(gameState.attack * statBuff);
     gameState.defense = Math.floor(gameState.defense * statBuff);
-    gameState.maxHp = Math.floor(gameState.maxHp * statBuff);
+    gameState.spAtk = Math.floor(gameState.spAtk * statBuff);
+    gameState.spDef = Math.floor(gameState.spDef * statBuff);
+    gameState.speed = Math.floor(gameState.speed * statBuff);
 
     // Instantly snap XP bar back to 0 without animation
     let xpBar = document.getElementById('xp-bar');
