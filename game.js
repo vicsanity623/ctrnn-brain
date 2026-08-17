@@ -132,6 +132,86 @@ function closeModal() {
     }, 300);
 }
 
+// --- STATS PANEL SYSTEM ---
+function openStats() {
+    document.getElementById('stat-hp').innerText = gameState.maxHp;
+    document.getElementById('stat-atk').innerText = gameState.attack;
+    document.getElementById('stat-def').innerText = gameState.defense;
+    document.getElementById('stat-mood').innerText = `${gameState.hearts}/10`;
+    
+    const modal = document.getElementById('stats-modal');
+    const content = document.getElementById('stats-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function closeStats() {
+    const modal = document.getElementById('stats-modal');
+    const content = document.getElementById('stats-content');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+// --- INVENTORY BAG SYSTEM ---
+function openInventory() {
+    renderInventory();
+    const modal = document.getElementById('inventory-modal');
+    const content = document.getElementById('inventory-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('translate-y-full');
+        content.classList.add('translate-y-0');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function closeInventory() {
+    const modal = document.getElementById('inventory-modal');
+    const content = document.getElementById('inventory-content');
+    modal.classList.add('opacity-0');
+    content.classList.remove('translate-y-0');
+    content.classList.add('translate-y-full');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function renderInventory() {
+    const list = document.getElementById('inventory-list');
+    list.innerHTML = ''; 
+    
+    if (gameState.berries > 0) {
+        list.innerHTML += `
+            <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl drop-shadow-md">🍓</span>
+                    <div>
+                        <h4 class="font-bold text-lg text-pink-300">Oran Berry</h4>
+                        <p class="text-[10px] text-gray-400">Restores mood & grants XP.</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="font-black text-xl text-yellow-400">x${gameState.berries}</span>
+                    <button onclick="feedBerry(); renderInventory();" class="mt-1 bg-pink-600 px-4 py-1 rounded-lg text-xs font-bold active:scale-90 transition-transform shadow-lg">Use</button>
+                </div>
+            </div>
+        `;
+    } else {
+        list.innerHTML = `
+            <div class="text-center text-gray-500 mt-10 p-6 bg-gray-800/50 rounded-xl border border-dashed border-gray-700">
+                <span class="text-4xl opacity-50 block mb-2">🕸️</span>
+                Your bag is empty.<br>Win battles to find items!
+            </div>
+        `;
+    }
+}
+
 // --- PETTING SWIRL MECHANIC ---
 let touchTimer;
 let isSwirling = false;
