@@ -1,5 +1,5 @@
 // Game State
-let gameState = {
+var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 50,
     berries: 5, lastInteraction: Date.now()
@@ -332,9 +332,9 @@ function levelUp(leftoverXp = 0) {
 }
 
 // --- BATTLE SYSTEM ---
-let battleInterval;
-let eHp = 100;
-let pHp = gameState.maxHp;
+var battleInterval;
+var eHp = 100;
+var pHp = gameState.maxHp;
 
 function enterBattle() {
     if(gameState.hearts <= 1) {
