@@ -31,12 +31,17 @@ describe('Strict Game Logic & UI Verification', () => {
         expect(window.gameState.level).toBe(5);
         expect(window.gameState.attack).toBeDefined();
         expect(window.gameState.maxHp).toBeDefined();
+        expect(window.gameState.speed).toBeDefined();
+        expect(window.gameState.spAtk).toBeDefined();
+        expect(window.gameState.enemyLevel).toBe(3); // Ensures stage progression exists
     });
 
     test('2. Required UI Elements & Modals Exist in HTML', () => {
         // Stats Panel
         expect(document.getElementById('stats-modal')).not.toBeNull();
         expect(document.getElementById('stat-hp')).not.toBeNull();
+        expect(document.getElementById('stat-cp')).not.toBeNull(); // Total Power
+        expect(document.getElementById('stat-spd')).not.toBeNull(); // Speed
         
         // Inventory Bag
         expect(document.getElementById('inventory-modal')).not.toBeNull();
@@ -78,5 +83,17 @@ describe('Strict Game Logic & UI Verification', () => {
 
         // Enemy should only take 10 damage, proving the 999 1-hit KO bug is gone!
         expect(window.eHp).toBe(90); 
+    });
+
+    test('6. Logic Check: Winning a battle increases enemyLevel (Stage Progression)', () => {
+        window.gameState.enemyLevel = 3;
+        
+        // Simulate a loss
+        window.endBattle(false);
+        expect(window.gameState.enemyLevel).toBe(3); // Should not increase
+
+        // Simulate a win
+        window.endBattle(true);
+        expect(window.gameState.enemyLevel).toBe(4); // Stage should progress!
     });
 });
