@@ -332,11 +332,109 @@ function levelUp(leftoverXp = 0) {
 }
 
 // --- BATTLE SYSTEM ---
-var battleInterval;
 var eHp = 100;
+var eMaxHp = 100;
 var pHp = gameState.maxHp;
+var enemyLevel = 1;
+var enemyAttack = 10;
+var enemyBaseName = "Wild Pokemon";
+
+function setAttackButtonsDisabled(disabled) {
+    const btns = document.querySelectorAll('#battle-screen button');
+    btns.forEach(btn => { btn.disabled = disabled; });
+}
+
+function setBattleLog(msg) {
+    const logEl = document.getElementById('battle-log');
+    if (logEl) logEl.innerText = msg;
+}
 
 function enterBattle() {
+    if(gameState.hearts <= 1) {
+        showModal(`${gameState.name} is too sad to battle!`); return;
+    }
+    if(gameState.hearts <= 3 && Math.random() > 0.5) {
+        showModal(`${gameState.name} refused to battle!`); return;
+    }
+
+    showScreen('battle-screen');
+    enemyLevel = Math.max(1, gameState.level + Math.floor(Math.random() * 3) - 1);
+    eMaxHp = 40 + enemyLevel * 10;
+    eHp = eMaxHp;
+    enemyAttack = 5 + enemyLevel * 2;
+    pHp = gameState.maxHp;
+    setAttackButtonsDisabled(false);
+
+    // Load Wild Pokemon
+    let wildId = Math.floor(Math.random() * 150) + 1;
+    document.getElementById('enemy-sprite').src = `assets/sprites/${wildId}_animated.gif`;
+    document.getElementById('enemy-sprite').onerror = function() {
+        this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
+    };
+
+    enemyBaseName = "Wild Pokemon";
+    document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
+    fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
+        .then(res => res.json())
+        .then(data => {
+            let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+            enemyBaseName = "Wild " + capitalized;
+            document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
+        })
+        .catch(err => console.log(err));
+
+    document.getElementById('battle-player-sprite').src = document.getElementById('hub-sprite').src;
+    document.getElementById('battle-player-name').innerText = `${gameState.name} (Lv. ${gameState.level})`;
+
+    setBattleLog(`A wild foe appeared!`);
+    updateHealthBars();
+}
+
+function playerAttack(moveType = 'tackle') {
+    setAttackButtonsDisabled(true);
+
+    if (moveType === 'growl') {
+        enemyAttack = Math.max(1, enemyAttack - 3);
+        setBattleLog(`${gameState.name} used Growl! Enemy's attack dropped!`);
+    } else {
+        let damage = Math.max(1, gameState.attack);
+        eHp -= damage;
+        setBattleLog(`${gameState.name} used Tackle for ${damage} damage!`);
+        document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
+        setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
+    }
+    updateHealthBars();
+
+    if (eHp <= 0) {
+        setBattleLog(`${enemyBaseName} fainted!`);
+        setTimeout(() => endBattle(true), 800);
+        return;
+    }
+
+    setTimeout(enemyTurn, 1000);
+}
+
+function enemyTurn() {
+    let damage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
+    pHp -= damage;
+    setBattleLog(`${enemyBaseName} attacked for ${damage} damage!`);
+    updateHealthBars();
+
+    if (pHp <= 0) {
+        setBattleLog(`${gameState.name} fainted!`);
+        setTimeout(() => endBattle(false), 800);
+    } else {
+        setAttackButtonsDisabled(false);
+    }
+}
+
+function updateHealthBars() {
+    document.getElementById('player-hp').style.width = `${Math.max(0, (pHp/gameState.maxHp)*100)}%`;
+    document.getElementById('enemy-hp').style.width = `${Math.max(0, (eHp/eMaxHp)*100)}%`;
+}
+
+function endBattle(won) {
+    setAttackButtonsDisabled(false);
     if(gameState.hearts <= 1) {
         showModal(`${gameState.name} is too sad to battle!`); return;
     }
