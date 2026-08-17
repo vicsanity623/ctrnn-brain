@@ -261,3 +261,127 @@ button, .touch-manipulation, .cursor-pointer {
     background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 10%, rgba(251, 191, 36, 0.7) 45%, transparent 70%);
     animation: elementalSlash 0.45s ease-out forwards;
 }
+
+/* Combat Replay Timeline Indicator */
+@keyframes replayTimeline {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+.replay-timeline {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    height: 6px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+    background-size: 200% 200%;
+    animation: replayTimeline 4s ease-in-out infinite;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+.replay-marker {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fbbf24;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 191, 36, 0.8);
+    animation: pulseMarker 1.5s infinite;
+}
+
+@keyframes pulseMarker {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.4); opacity: 1; }
+}
+
+/* Battle Replay Modal Overlay */
+.replay-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.replay-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.replay-container {
+    position: relative;
+    width: 400px;
+    max-width: 90vw;
+    margin-top: 40px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+.replay-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-replay {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-replay:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-replay:active {
+    transform: translateY(1px) scale(0.97);
+}
+
+/* Interactive Turn Highlight During Replay */
+.turn-highlight {
+    position: absolute;
+    background: rgba(59, 130, 246, 0.2);
+    border: 2px dashed rgba(59, 130, 246, 0.8);
+    border-radius: 12px;
+    animation: highlightPulse 1.2s infinite alternate;
+}
+
+@keyframes highlightPulse {
+    from { opacity: 0.3; }
+    to { opacity: 0.7; }
+}
+
+/* Damage Flash Effect for Replay */
+.replay-damage-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(239, 68, 68, 0.4);
+    border-radius: inherit;
+    animation: damageFlash 0.5s ease-out;
+    pointer-events: none;
+}
+
+@keyframes damageFlash {
+    0% { opacity: 0.6; }
+    50% { opacity: 0; }
+    100% { opacity: 0; }
+}
