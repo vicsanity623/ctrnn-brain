@@ -379,9 +379,6 @@ function enterBattle() {
 
 function playerAttack() {
     let damage = gameState.attack;
-    // Great mood 1-hit KO chance
-    if(gameState.hearts >= 5 && Math.random() < 0.1) damage = 999;
-    
     eHp -= damage;
     updateHealthBars();
     
