@@ -338,14 +338,14 @@ function levelUp(leftoverXp = 0) {
     gameState.xp = leftoverXp; // Keep the extra XP earned
     gameState.maxXp = Math.floor(gameState.maxXp * 1.5);
     
-    // Stat gains based on mood
+    // Stat gains based on mood (Guaranteed minimum of +1 per stat)
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
-    gameState.maxHp = Math.floor(gameState.maxHp * statBuff);
-    gameState.attack = Math.floor(gameState.attack * statBuff);
-    gameState.defense = Math.floor(gameState.defense * statBuff);
-    gameState.spAtk = Math.floor(gameState.spAtk * statBuff);
-    gameState.spDef = Math.floor(gameState.spDef * statBuff);
-    gameState.speed = Math.floor(gameState.speed * statBuff);
+    gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
+    gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * statBuff));
+    gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * statBuff));
+    gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
+    gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
+    gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
 
     // Instantly snap XP bar back to 0 without animation
     let xpBar = document.getElementById('xp-bar');
