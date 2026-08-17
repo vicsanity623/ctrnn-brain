@@ -36,6 +36,22 @@
 
 .screen { transition: opacity 0.3s ease; }
 
+/* Mobile Tap Fixes - Prevents Double Tap Zoom */
+button, .touch-manipulation, .cursor-pointer {
+    touch-action: manipulation !important;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Modal specific scrollbar hide */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
 /* Add to style.css */
 .pixel-perfect {
     image-rendering: -moz-crisp-edges;
