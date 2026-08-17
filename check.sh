@@ -33,6 +33,12 @@ done
 
 # 3. HTML/CSS Syntax Check (Optional but recommended)
 echo "[3/5] Checking HTML/CSS Integrity..."
+# Verify Quick-Slot UI exists
+if ! grep -q "quick-slot-bar" index.html; then
+    echo "â ERROR: Quick-slot-bar container missing in index.html."
+    exit 1
+fi
+
 if command -v htmlhint &> /dev/null; then
     htmlhint index.html
 else
