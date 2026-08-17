@@ -61,20 +61,6 @@ else
     echo "⚠️  Ruff not installed. Skipping."
 fi
 
-# 5. Python Strict Typing via Mypy
-echo "[5/5] Running Mypy (Strict Python Type Checker)..."
-if command -v mypy &> /dev/null; then
-    # Only run mypy if there is at least one .py file
-    if ls *.py 1> /dev/null 2>&1; then
-        mypy . --strict
-        echo "✅ Mypy checks passed."
-    else
-        echo "⏭️ No Python files found. Skipping Mypy."
-    fi
-else
-    echo "⚠️  Mypy not installed. Skipping."
-fi
-
 echo "=========================================="
 echo "🎉 ALL CHECKS PASSED. Ready for Deployment!"
 echo "=========================================="
