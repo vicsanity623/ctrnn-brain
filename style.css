@@ -59,3 +59,97 @@ button, .touch-manipulation, .cursor-pointer {
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
+
+/* Interactive Combat & Battle Feedback Styles */
+
+/* Hit Shake Reactions */
+@keyframes hitShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px) rotate(-2deg); }
+    40% { transform: translateX(8px) rotate(2deg); }
+    60% { transform: translateX(-5px) rotate(-1deg); }
+    80% { transform: translateX(5px) rotate(1deg); }
+}
+
+.sprite-hit-shake {
+    animation: hitShake 0.4s ease-in-out;
+}
+
+@keyframes critImpact {
+    0% { transform: scale(1); filter: brightness(1); }
+    30% { transform: scale(1.25); filter: brightness(2.5) drop-shadow(0 0 15px rgba(239, 68, 68, 0.9)); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.sprite-crit-impact {
+    animation: critImpact 0.5s ease-out;
+}
+
+/* Floating Combat Text (Damage / Healing / Status) */
+@keyframes floatCombatText {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(0.6);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(-12px) scale(1.15);
+    }
+    70% {
+        opacity: 1;
+        transform: translateY(-28px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-42px) scale(0.9);
+    }
+}
+
+.floating-combat-text {
+    position: absolute;
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 50;
+    animation: floatCombatText 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.floating-damage { color: #f87171; }
+.floating-crit { color: #fbbf24; font-size: 1.25rem; }
+.floating-heal { color: #4ade80; }
+
+/* Danger Low-HP Warning Pulse */
+@keyframes dangerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.9); }
+}
+
+.danger-hp-pulse {
+    animation: dangerPulse 1.2s infinite ease-in-out;
+    border-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Tactile Battle Move Buttons */
+.btn-move-action {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-move-action:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.btn-move-action:active {
+    transform: translateY(1px) scale(0.97);
+    filter: brightness(0.95);
+}
+
+.btn-move-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    filter: grayscale(0.6);
+}
