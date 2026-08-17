@@ -237,11 +237,12 @@ function levelUp(leftoverXp = 0) {
     let xpBar = document.getElementById('xp-bar');
     xpBar.style.transition = 'none';
     xpBar.style.width = '0%';
+    gameState.xp = leftoverXp;
 
     // Wait 50ms, then turn animations back on and apply the new stats/leftover XP
     setTimeout(() => {
         xpBar.style.transition = 'all 0.5s ease';
-        updateHub(); // This animates the bar to the leftover XP amount
+        updateHub();
         
         if (gameState.level > 10 && Math.random() > 0.5 && gameState.id === 1) {
             triggerEvolution(2, 'Ivysaur');
