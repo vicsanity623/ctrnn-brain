@@ -74,7 +74,7 @@ describe('Strict Game Logic & UI Verification', () => {
         window.gameState.attack = 10;
         window.gameState.hearts = 10; // Even with max mood...
 
-        window.playerAttack();
+        window.playerAttack('tackle');
 
         // Enemy should only take 10 damage, proving the 999 1-hit KO bug is gone!
         expect(window.eHp).toBe(90); 
