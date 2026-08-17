@@ -49,9 +49,12 @@
         <div id="time-overlay" class="absolute inset-0 pointer-events-none z-20 transition-colors duration-1000"></div>
         <!-- Stats Top Bar -->
         <div class="flex justify-between items-center p-6 glass-panel m-4 rounded-2xl">
-            <div>
-                <h2 id="hub-name" class="text-2xl font-black uppercase">Bulbasaur</h2>
-                <p class="text-sm text-gray-300">Level <span id="hub-level">5</span></p>
+            <div onclick="openStats()" class="cursor-pointer active:scale-95 transition-transform bg-white/10 p-2 pr-4 rounded-xl border border-white/20 shadow-md">
+                <div class="flex items-center gap-2">
+                    <h2 id="hub-name" class="text-2xl font-black uppercase">Bulbasaur</h2>
+                    <span class="text-[10px] bg-blue-500 px-2 py-1 rounded-full font-bold shadow-inner">STATS 📊</span>
+                </div>
+                <p class="text-sm text-gray-300 ml-1">Level <span id="hub-level">5</span></p>
             </div>
             <div class="flex gap-1 flex-wrap justify-end max-w-[50%]" id="heart-container">
                 <!-- Hearts injected here -->
@@ -73,11 +76,14 @@
                     <div id="xp-bar" class="h-full shiny-gradient w-0 transition-all duration-500"></div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="feedBerry()" class="py-4 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform">
-                    <span class="text-2xl">🍓</span> Feed Berry (<span id="berry-count">5</span>)
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="feedBerry()" class="py-3 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm">
+                    <span class="text-2xl">🍓</span> Feed (<span id="berry-count">5</span>)
                 </button>
-                <button onclick="enterBattle()" class="py-4 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform">
+                <button onclick="openInventory()" class="py-3 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm text-yellow-100">
+                    <span class="text-2xl">🎒</span> Bag
+                </button>
+                <button onclick="enterBattle()" class="py-3 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm">
                     <span class="text-2xl">⚔️</span> Battle
                 </button>
             </div>
@@ -116,6 +122,40 @@
         <div class="text-center">
             <h1 class="text-black text-3xl font-black mb-10">What? <span id="evo-old-name">Bulbasaur</span> is evolving!</h1>
             <img id="evo-sprite" src="" class="w-64 h-64 object-contain mx-auto mix-blend-multiply animate-pulse filter contrast-200 brightness-0">
+        </div>
+    </div>
+
+    <!-- STATS MODAL -->
+    <div id="stats-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+        <div class="bg-gray-900 border-2 border-blue-500 p-6 rounded-2xl w-10/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white" id="stats-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-black text-blue-400">UNIT STATS</h3>
+                <button onclick="closeStats()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-inner">
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">MAX HP</span><span id="stat-hp" class="font-black text-green-400 text-xl">0</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">ATTACK</span><span id="stat-atk" class="font-black text-red-400 text-xl">0</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">DEFENSE</span><span id="stat-def" class="font-black text-blue-400 text-xl">0</span></div>
+                <div class="flex flex-col"><span class="text-gray-400 font-bold">MOOD</span><span id="stat-mood" class="font-black text-pink-400 text-xl">0/10</span></div>
+            </div>
+            <div class="mt-4 text-center text-xs text-gray-500 italic">Stats scale dynamically with level-ups!</div>
+        </div>
+    </div>
+
+    <!-- INVENTORY MODAL -->
+    <div id="inventory-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+        <div class="bg-gray-900 border-t-2 border-yellow-500 p-6 rounded-t-3xl w-full max-w-md shadow-2xl transform translate-y-full transition-transform duration-300 text-white h-2/3 flex flex-col" id="inventory-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-black text-yellow-400">🎒 INVENTORY</h3>
+                <button onclick="closeInventory()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            <div class="flex gap-2 mb-4 border-b border-gray-700 pb-4">
+                <button class="bg-yellow-600 text-black px-4 py-1 rounded-full text-xs font-bold shadow-md">Berries / Meds</button>
+                <button class="bg-gray-800 text-gray-500 px-4 py-1 rounded-full text-xs font-bold">Key Items</button>
+            </div>
+            <div id="inventory-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-3">
+                <!-- Items injected here by JS -->
+            </div>
         </div>
     </div>
 
