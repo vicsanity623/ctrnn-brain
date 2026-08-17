@@ -227,7 +227,10 @@ function levelUp(leftoverXp = 0) {
     gameState.level++;
     gameState.xp = leftoverXp; // Keep the extra XP earned
     gameState.maxXp = Math.floor(gameState.maxXp * 1.5);
-    
+    if (gameState.xp >= gameState.maxXp) {
+        gameState.xp = gameState.maxXp - 1;
+    }
+
     // Stat gains based on mood
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
     gameState.attack = Math.floor(gameState.attack * statBuff);
