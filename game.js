@@ -434,66 +434,6 @@ function updateHealthBars() {
 }
 
 function endBattle(won) {
-    setAttackButtonsDisabled(false);
-    if(gameState.hearts <= 1) {
-        showModal(`${gameState.name} is too sad to battle!`); return;
-    }
-    if(gameState.hearts <= 3 && Math.random() > 0.5) {
-        showModal(`${gameState.name} refused to battle!`); return;
-    }
-
-    showScreen('battle-screen');
-    eHp = 100; pHp = gameState.maxHp;
-    
-    // Load Wild Pokemon
-    let wildId = Math.floor(Math.random() * 150) + 1;
-    document.getElementById('enemy-sprite').src = `assets/sprites/${wildId}_animated.gif`;
-    document.getElementById('enemy-sprite').onerror = function() {
-        this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
-    };
-    
-    // Fetch Correct Name Dynamically
-    document.getElementById('enemy-name').innerText = "Wild Pokemon"; // Temp fallback
-    fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
-        .then(res => res.json())
-        .then(data => {
-            let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-            document.getElementById('enemy-name').innerText = "Wild " + capitalized;
-        })
-        .catch(err => console.log(err));
-    
-    document.getElementById('battle-player-sprite').src = document.getElementById('hub-sprite').src;
-    document.getElementById('battle-player-name').innerText = gameState.name;
-    
-    updateHealthBars();
-
-    // AI Enemy Spamming Attacks
-    battleInterval = setInterval(() => {
-        pHp -= Math.floor(Math.random() * 5) + 2;
-        updateHealthBars();
-        if(pHp <= 0) endBattle(false);
-    }, 1200);
-}
-
-function playerAttack() {
-    let damage = gameState.attack;
-    eHp -= damage;
-    updateHealthBars();
-    
-    // Anime attack effect
-    document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
-    setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
-
-    if(eHp <= 0) endBattle(true);
-}
-
-function updateHealthBars() {
-    document.getElementById('player-hp').style.width = `${Math.max(0, (pHp/gameState.maxHp)*100)}%`;
-    document.getElementById('enemy-hp').style.width = `${Math.max(0, (eHp/100)*100)}%`;
-}
-
-function endBattle(won) {
-    clearInterval(battleInterval);
     if(won) {
         let lootMsg = "You won!";
         if (Math.random() < 0.40) {
