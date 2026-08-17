@@ -132,9 +132,16 @@
     <script>
         // Initialize Inventory System
         const inventory = {
-            items: [],
-            add(item) { this.items.push(item); },
-            getPocket(type) { return this.items.filter(i => i.pocketType === type); }
+            items: {},
+            addItem(item) {
+                const id = item.id;
+                if (this.items[id]) {
+                    this.items[id].count = Math.min(this.items[id].count + 1, item.stackLimit || 99);
+                } else {
+                    this.items[id] = { ...item, count: 1 };
+                }
+            },
+            getPocket(type) { return Object.values(this.items).filter(i => i.pocketType === type); }
         };
 
         function updateEnvironment() {
