@@ -1,4 +1,8 @@
 /* Glassmorphism panel for 2026 UI */
+.glass-panel, button {
+    touch-action: manipulation;
+    user-select: none;
+}
 .glass-panel {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
