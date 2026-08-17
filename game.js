@@ -2,7 +2,7 @@
 var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 50,
-    berries: 5, lastInteraction: Date.now()
+    berries: 5, lastInteraction: Date.now(), enemyLevel: 3
 };
 
 // Heart Depletion Interval (Loses 1 heart every 60 seconds)
@@ -46,6 +46,7 @@ function startGame(isNew) {
         
         // Backward compatibility for old saves
         if (gameState.berries === undefined) gameState.berries = 5;
+        if (gameState.enemyLevel === undefined) gameState.enemyLevel = 3;
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
 
         // Calculate offline heart depletion (1 heart lost per minute offline)
@@ -376,7 +377,7 @@ function enterBattle() {
     }
 
     showScreen('battle-screen');
-    enemyLevel = Math.max(1, gameState.level + Math.floor(Math.random() * 3) - 1);
+    enemyLevel = gameState.enemyLevel;
     eMaxHp = 40 + enemyLevel * 10;
     eHp = eMaxHp;
     enemyAttack = 5 + enemyLevel * 2;
@@ -453,6 +454,8 @@ function updateHealthBars() {
 
 function endBattle(won) {
     if(won) {
+        gameState.enemyLevel++;
+        updateHub();
         let lootMsg = "You won!";
         if (Math.random() < 0.40) {
             let foundBerries = Math.floor(Math.random() * 2) + 1; 
