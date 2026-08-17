@@ -1,15 +1,37 @@
+const CACHE_NAME = 'poke-cache-v1.1';
+const ASSETS_TO_CACHE = [
+    './',
+    './index.html',
+    './style.css',
+    './game.js'
+];
 self.addEventListener('install', (e) => {
     e.waitUntil(
-      caches.open('poke-cache-v1.1').then((cache) => cache.addAll([
-        './index.html',
-        './style.css',
-        './game.js'
-      ]))
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(ASSETS_TO_CACHE);
+        })
     );
+    self.skipWaiting();
 });
-  
+self.addEventListener('activate', (e) => {
+    e.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((oldCache) => {
+                    if (oldCache !== CACHE_NAME) {
+                        console.log(`Deleting old cache: ${oldCache}`);
+                        return caches.delete(oldCache);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
 self.addEventListener('fetch', (e) => {
     e.respondWith(
-      caches.match(e.request).then((response) => response || fetch(e.request))
+        caches.match(e.request).then((response) => {
+            return response || fetch(e.request);
+        })
     );
 });
