@@ -6,8 +6,12 @@ var gameState = {
 };
 
 // Heart Depletion Interval (Loses 1 heart every 60 seconds)
+// Only deplete hearts if the tab is active and player is on the hub screen
 setInterval(() => {
-    if (gameState.hearts > 0 && !document.getElementById('hub-screen').classList.contains('hidden')) {
+    const isHubVisible =!document.getElementById('hub-screen').classList.contains('hidden');
+    const isTabActive = document.visibilityState === 'visible';
+
+    if (gameState.hearts > 0 && isHubVisible && isTabActive) {
         gameState.hearts--;
         gameState.lastInteraction = Date.now();
         updateHub();
