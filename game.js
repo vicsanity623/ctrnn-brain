@@ -3,8 +3,9 @@ var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 80,
     spAtk: 12, spDef: 12, speed: 9,
-    berries: 5, lastInteraction: Date.now(), enemyLevel: 3,
-    gardenBerries: 1, lastGardenHarvest: Date.now() // <-- Idle Berry Bush State
+    berries: 5, lastInteraction: Date.now(),
+    currentStage: 3, maxStage: 3, // <-- Stage Navigator State
+    gardenBerries: 1, lastGardenHarvest: Date.now()
 };
 
 // Background Interval: Handles Heart Loss & Berry Bush Growth (1 berry every 2 minutes)
@@ -55,7 +56,8 @@ function startGame(isNew) {
         
         // Backward compatibility for old saves
         if (gameState.berries === undefined) gameState.berries = 5;
-        if (gameState.enemyLevel === undefined) gameState.enemyLevel = 3;
+        if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 3;
+        if (gameState.maxStage === undefined) gameState.maxStage = gameState.currentStage;
         if (gameState.spAtk === undefined) gameState.spAtk = 12;
         if (gameState.spDef === undefined) gameState.spDef = 12;
         if (gameState.speed === undefined) gameState.speed = 9;
@@ -526,6 +528,34 @@ function setBattleLog(msg) {
     if (logEl) logEl.innerText = msg;
 }
 
+// --- STAGE NAVIGATOR FUNCTION ---
+function changeStage(delta) {
+    let targetStage = gameState.currentStage + delta;
+    if (targetStage >= 1 && targetStage <= gameState.maxStage) {
+        gameState.currentStage = targetStage;
+        updateHub();
+        enterBattle(); // Re-rolls an enemy matching the chosen stage!
+    }
+}
+
+function updateStageNavigatorUI() {
+    const stageText = document.getElementById('stage-indicator');
+    const stageMax = document.getElementById('stage-max-indicator');
+    const btnPrev = document.getElementById('btn-prev-stage');
+    const btnNext = document.getElementById('btn-next-stage');
+
+    if (stageText && stageMax) {
+        let isBossStage = (gameState.currentStage % 5 === 0);
+        stageText.innerText = isBossStage ? `👑 BOSS STAGE ${gameState.currentStage}` : `STAGE ${gameState.currentStage}`;
+        stageText.className = isBossStage ? "text-xs font-black text-pink-400 animate-pulse tracking-wider" : "text-xs font-black text-yellow-400 tracking-wider";
+        stageMax.innerText = `(Max: ${gameState.maxStage})`;
+        
+        // Disable buttons at boundaries
+        if (btnPrev) btnPrev.disabled = (gameState.currentStage <= 1);
+        if (btnNext) btnNext.disabled = (gameState.currentStage >= gameState.maxStage);
+    }
+}
+
 function enterBattle() {
     if(gameState.hearts <= 1) {
         showModal(`${gameState.name} is too sad to battle!`); return;
@@ -535,7 +565,8 @@ function enterBattle() {
     }
 
     showScreen('battle-screen');
-    enemyLevel = gameState.enemyLevel;
+    enemyLevel = gameState.currentStage; // Uses the selected stage!
+    updateStageNavigatorUI();
 
     // --- BOSS CHECK (Every 5 Levels) ---
     isBoss = (enemyLevel % 5 === 0);
@@ -696,7 +727,11 @@ function updateHealthBars() {
 
 function endBattle(won) {
     if(won) {
-        gameState.enemyLevel++;
+        // Only increase max stage if we beat our highest unlocked stage!
+        if (gameState.currentStage === gameState.maxStage) {
+            gameState.maxStage++;
+            gameState.currentStage++; // Auto-advance to the next stage!
+        }
         updateHub();
         let lootMsg = "You won!";
         
