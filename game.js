@@ -1037,6 +1037,34 @@ function throwPokeBall() {
     }, 1200);
 }
 
+// --- FLOATING COMBAT TEXT & HIT REACTION ENGINE ---
+function spawnFloatingText(targetWrapperId, text, type = 'damage') {
+    const container = document.getElementById(targetWrapperId);
+    if (!container) return;
+
+    const el = document.createElement('div');
+    let colorClass = (type === 'heal') ? 'floating-heal' : ((type === 'crit' || type === 'super') ? 'floating-crit text-base' : 'floating-damage text-lg');
+    el.className = `floating-combat-text ${colorClass}`;
+    el.innerText = text;
+    
+    // Slight random offset so multi-hits don't stack directly on top of each other
+    let randX = Math.floor(Math.random() * 24) - 12;
+    el.style.left = `calc(50% + ${randX}px)`;
+    el.style.top = '10%';
+
+    container.appendChild(el);
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 950);
+}
+
+function triggerHitReaction(spriteId) {
+    const sprite = document.getElementById(spriteId);
+    if (!sprite) return;
+    sprite.classList.remove('hit-flash-effect');
+    void sprite.offsetWidth; // Trigger DOM reflow to restart animation
+    sprite.classList.add('hit-flash-effect');
+    setTimeout(() => sprite.classList.remove('hit-flash-effect'), 450);
+}
+
 function playerAttack(slot = 0) {
     setAttackButtonsDisabled(true);
 
@@ -1101,9 +1129,26 @@ function playerAttack(slot = 0) {
         setBattleLog(`${gameState.name} used ${move.name} for ${damage} damage!`);
     }
 
-    // Shake Animation
-    document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
-    setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
+    // --- TRIGGER FLOATING COMBAT TEXT & STROBE HIT REACTION ---
+    if (move.type !== 'status') {
+        triggerHitReaction('enemy-sprite');
+        spawnFloatingText('enemy-sprite-wrapper', `-${damage}`, (multiplier === 2.0) ? 'super' : 'damage');
+
+        if (multiplier === 2.0) {
+            setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '🔥 SUPER EFFECTIVE!', 'super'), 120);
+        } else if (multiplier === 0.5) {
+            setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '💧 RESISTED (0.5x)', 'damage'), 120);
+        }
+
+        // Floating heal numbers for Leech Seed
+        if (move.type === 'ultimate' && (pType === 'grass' || pType === 'poison')) {
+            let healAmt = Math.max(1, Math.floor(damage * 0.5));
+            spawnFloatingText('player-sprite-wrapper', `+${healAmt} HP`, 'heal');
+        }
+    } else {
+        // Status debuff floating text
+        spawnFloatingText('enemy-sprite-wrapper', '🔻 STATS DROP', 'crit');
+    }
 
     updateHealthBars();
 
@@ -1132,6 +1177,16 @@ function enemyTurn() {
 
     pHp -= damage;
     setBattleLog(`${enemyBaseName} attacked for ${damage} damage!${enemyEffectText}`);
+    
+    // --- PLAYER HIT REACTION & FLOATING TEXT ---
+    triggerHitReaction('battle-player-sprite');
+    spawnFloatingText('player-sprite-wrapper', `-${damage}`, (enemyType === 'fire') ? 'super' : 'damage');
+    if (enemyType === 'fire') {
+        setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🔥 SUPER EFFECTIVE!', 'super'), 120);
+    } else if (enemyType === 'water') {
+        setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🛡️ RESISTED!', 'heal'), 120);
+    }
+
     updateHealthBars();
 
     if (pHp <= 0) {
