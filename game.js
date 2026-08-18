@@ -3,9 +3,11 @@ var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
     hearts: 2, attack: 10, defense: 10, maxHp: 80,
     spAtk: 12, spDef: 12, speed: 9,
-    berries: 5, lastInteraction: Date.now(),
-    currentStage: 3, maxStage: 3, // <-- Stage Navigator State
-    gardenBerries: 1, lastGardenHarvest: Date.now()
+    berries: 5, pokeballs: 3,
+    lastInteraction: Date.now(),
+    currentStage: 3, maxStage: 3,
+    gardenBerries: 1, lastGardenHarvest: Date.now(),
+    roster: []
 };
 
 // Background Interval: Handles Heart Loss & Berry Bush Growth (1 berry every 2 minutes)
@@ -56,6 +58,7 @@ function startGame(isNew) {
         
         // Backward compatibility for old saves
         if (gameState.berries === undefined) gameState.berries = 5;
+        if (gameState.pokeballs === undefined) gameState.pokeballs = 3;
         if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 3;
         if (gameState.maxStage === undefined) gameState.maxStage = gameState.currentStage;
         if (gameState.spAtk === undefined) gameState.spAtk = 12;
@@ -64,6 +67,22 @@ function startGame(isNew) {
         if (gameState.gardenBerries === undefined) gameState.gardenBerries = 1;
         if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
+        if (!gameState.roster || gameState.roster.length === 0) {
+            // Add starter to roster if empty
+            gameState.roster = [{
+                id: gameState.id,
+                name: gameState.name,
+                level: gameState.level,
+                maxHp: gameState.maxHp,
+                attack: gameState.attack,
+                defense: gameState.defense,
+                spAtk: gameState.spAtk,
+                spDef: gameState.spDef,
+                speed: gameState.speed,
+                xp: gameState.xp,
+                maxXp: gameState.maxXp
+            }];
+        }
 
         // Calculate offline Berry Bush growth (1 berry per 2 minutes offline, max 5)
         let gardenMins = Math.floor((Date.now() - gameState.lastGardenHarvest) / 120000);
@@ -117,9 +136,12 @@ function updateHub() {
     }
     document.getElementById('heart-container').innerHTML = heartsHtml;
     
-    // Update Berries
+    // Update Berries & Pokéballs
     if(document.getElementById('berry-count')) {
         document.getElementById('berry-count').innerText = gameState.berries;
+    }
+    if(document.getElementById('party-count-badge')) {
+        document.getElementById('party-count-badge').innerText = (gameState.roster && gameState.roster.length) || 1;
     }
 
     // Update Idle Berry Bush UI
@@ -247,6 +269,120 @@ function closeInventory() {
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
     setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+// --- PARTY / ROSTER SYSTEM ---
+function openParty() {
+    renderPartyList();
+    const modal = document.getElementById('party-modal');
+    const content = document.getElementById('party-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function closeParty() {
+    const modal = document.getElementById('party-modal');
+    const content = document.getElementById('party-content');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function renderPartyList() {
+    const list = document.getElementById('party-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    // Update active roster slot stats with live gameState
+    syncCurrentPokemonToRoster();
+
+    gameState.roster.forEach((p, index) => {
+        let isActive = (p.id === gameState.id && p.name === gameState.name);
+        list.innerHTML += `
+            <div onclick="switchActivePokemon(${index})" class="flex items-center justify-between p-3 rounded-xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-md' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center gap-3">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-12 h-12 object-contain pixel-perfect drop-shadow">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                            ${isActive ? '<span class="text-[9px] bg-green-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVE</span>' : ''}
+                        </div>
+                        <p class="text-xs text-gray-400">Lv. ${p.level} • HP: ${p.maxHp} • Atk: ${p.attack}</p>
+                    </div>
+                </div>
+                <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
+                    ${isActive ? '✓ Ready' : 'Swap 🔁'}
+                </span>
+            </div>
+        `;
+    });
+}
+
+function syncCurrentPokemonToRoster() {
+    let found = false;
+    for (let i = 0; i < gameState.roster.length; i++) {
+        if (gameState.roster[i].id === gameState.id) {
+            gameState.roster[i] = {
+                id: gameState.id,
+                name: gameState.name,
+                level: gameState.level,
+                maxHp: gameState.maxHp,
+                attack: gameState.attack,
+                defense: gameState.defense,
+                spAtk: gameState.spAtk,
+                spDef: gameState.spDef,
+                speed: gameState.speed,
+                xp: gameState.xp,
+                maxXp: gameState.maxXp
+            };
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        gameState.roster.push({
+            id: gameState.id,
+            name: gameState.name,
+            level: gameState.level,
+            maxHp: gameState.maxHp,
+            attack: gameState.attack,
+            defense: gameState.defense,
+            spAtk: gameState.spAtk,
+            spDef: gameState.spDef,
+            speed: gameState.speed,
+            xp: gameState.xp,
+            maxXp: gameState.maxXp
+        });
+    }
+}
+
+function switchActivePokemon(index) {
+    if (index < 0 || index >= gameState.roster.length) return;
+    syncCurrentPokemonToRoster();
+
+    let target = gameState.roster[index];
+    gameState.id = target.id;
+    gameState.name = target.name;
+    gameState.level = target.level;
+    gameState.maxHp = target.maxHp;
+    gameState.attack = target.attack;
+    gameState.defense = target.defense;
+    gameState.spAtk = target.spAtk;
+    gameState.spDef = target.spDef;
+    gameState.speed = target.speed;
+    gameState.xp = target.xp;
+    gameState.maxXp = target.maxXp;
+
+    updateHub();
+    renderPartyList();
+    closeParty();
+    showModal("Partner Swapped! 🔄", `You are now adventuring with ${gameState.name}!`);
 }
 
 function renderInventory() {
@@ -603,12 +739,14 @@ function enterBattle() {
     enemyBaseName = isBoss ? "👑 BOSS" : "Wild Pokemon";
     document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
     
-    // Fetch Real Canonical Type from PokeAPI
+    currentWildData = { id: wildId, name: "Wild Pokemon", level: enemyLevel };
+
     fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
         .then(res => res.json())
         .then(data => {
             let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
             enemyBaseName = isBoss ? `👑 BOSS ${capitalized}` : `Wild ${capitalized}`;
+            currentWildData.name = capitalized;
             document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
             
             if (data.types && data.types[0]) {
@@ -621,8 +759,69 @@ function enterBattle() {
     document.getElementById('battle-player-sprite').src = document.getElementById('hub-sprite').src;
     document.getElementById('battle-player-name').innerText = `${gameState.name} (Lv. ${gameState.level})`;
 
+    // Update Pokeball badge in battle
+    const pbBadge = document.getElementById('pokeball-count-badge');
+    if (pbBadge) pbBadge.innerText = gameState.pokeballs || 0;
+
     setBattleLog(isBoss ? `⚠️ WARNING: A POWERFUL BOSS APPEARED!` : `A wild foe appeared!`);
     updateHealthBars();
+}
+
+// --- CATCH MECHANIC ---
+var currentWildData = { id: 1, name: "Wild Pokemon", level: 1 };
+
+function throwPokeBall() {
+    if (!gameState.pokeballs || gameState.pokeballs <= 0) {
+        showModal("Out of Pokéballs!", "You don't have any Pokéballs left! Win boss battles to find more.");
+        return;
+    }
+
+    setAttackButtonsDisabled(true);
+    gameState.pokeballs--;
+    const pbBadge = document.getElementById('pokeball-count-badge');
+    if (pbBadge) pbBadge.innerText = gameState.pokeballs;
+
+    setBattleLog(`You threw a Pokéball at ${enemyBaseName}!`);
+    if (navigator.vibrate) navigator.vibrate([30, 100, 30]);
+
+    setTimeout(() => {
+        // Higher catch rate when enemy HP is low! (Up to 85% chance)
+        let hpMissingPercent = (eMaxHp - eHp) / eMaxHp;
+        let catchChance = 0.25 + (hpMissingPercent * 0.60);
+        if (isBoss) catchChance *= 0.6; // Bosses are harder to catch
+
+        if (Math.random() < catchChance) {
+            // SUCCESSFUL CATCH!
+            setBattleLog(`Gotcha! ${enemyBaseName} was caught! 🎉`);
+            
+            // Generate clean stats for caught Pokemon based on its stage level
+            let caughtPokemon = {
+                id: currentWildData.id,
+                name: currentWildData.name.replace('Wild ', '').replace('👑 BOSS ', ''),
+                level: enemyLevel,
+                maxHp: Math.floor(60 + (enemyLevel * 6)),
+                attack: Math.floor(8 + (enemyLevel * 1.5)),
+                defense: Math.floor(8 + (enemyLevel * 1.5)),
+                spAtk: Math.floor(10 + (enemyLevel * 1.8)),
+                spDef: Math.floor(10 + (enemyLevel * 1.8)),
+                speed: Math.floor(7 + (enemyLevel * 1.2)),
+                xp: 0,
+                maxXp: Math.floor(100 * Math.pow(1.3, enemyLevel - 5))
+            };
+
+            if (!gameState.roster) gameState.roster = [];
+            gameState.roster.push(caughtPokemon);
+
+            setTimeout(() => {
+                showModal("🎉 POKÉMON CAUGHT!", `You successfully caught a Lv. ${enemyLevel} ${caughtPokemon.name}! It has been added to your Party roster.`);
+                endBattle(true);
+            }, 1000);
+        } else {
+            // FAILED CATCH
+            setBattleLog(`Oh no! ${enemyBaseName} broke free!`);
+            setTimeout(enemyTurn, 1000);
+        }
+    }, 1200);
 }
 
 function playerAttack(moveType = 'tackle') {
