@@ -10,25 +10,27 @@ var gameState = {
     roster: []
 };
 
-// Background Interval: Handles Heart Loss & Berry Bush Growth (1 berry every 2 minutes)
+// Background Interval: Handles Live Heart Loss & Berry Bush Growth
 setInterval(() => {
     const isHubVisible = !document.getElementById('hub-screen').classList.contains('hidden');
     const isTabActive = document.visibilityState === 'visible';
 
-    // Heart Depletion
+    // Live Heart Depletion (Loses 1 heart every 5 minutes while app is open)
     if (gameState.hearts > 0 && isHubVisible && isTabActive) {
-        gameState.hearts--;
-        gameState.lastInteraction = Date.now();
+        if ((Date.now() - gameState.lastInteraction) >= 300000) {
+            gameState.hearts--;
+            gameState.lastInteraction = Date.now();
+        }
     }
 
-    // Berry Garden Growth (Grows up to 5 berries max)
-    if (gameState.gardenBerries < 5 && (Date.now() - gameState.lastGardenHarvest) >= 120000) {
-        gameState.gardenBerries = Math.min(5, gameState.gardenBerries + 1);
+    // Berry Garden Growth (Now accumulates up to 20 Berries max!)
+    if (gameState.gardenBerries < 20 && (Date.now() - gameState.lastGardenHarvest) >= 120000) {
+        gameState.gardenBerries = Math.min(20, gameState.gardenBerries + 1);
         gameState.lastGardenHarvest = Date.now();
     }
 
     if (isHubVisible) updateHub();
-}, 30000);
+}, 15000); // Checks every 15 seconds
 
 // UI Elements
 const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen'];
@@ -91,11 +93,18 @@ function startGame(isNew) {
             gameState.lastGardenHarvest = Date.now();
         }
 
-        // Calculate offline heart depletion (1 heart lost per minute offline)
-        let minutesOffline = Math.floor((Date.now() - gameState.lastInteraction) / 60000);
-        if (minutesOffline > 0) {
-            gameState.hearts = Math.max(0, gameState.hearts - minutesOffline);
+        // Gentle Offline Heart Decay (1 heart lost every 30 minutes offline)
+        let offlinePeriods = Math.floor((Date.now() - gameState.lastInteraction) / (30 * 60000));
+        if (offlinePeriods > 0) {
+            gameState.hearts = Math.max(1, gameState.hearts - offlinePeriods); // Never drops below 1 heart!
             gameState.lastInteraction = Date.now();
+        }
+
+        // Offline Berry Bush Growth (1 berry per 2 minutes offline, accumulates up to 20!)
+        let gardenBerriesGrown = Math.floor((Date.now() - gameState.lastGardenHarvest) / 120000);
+        if (gardenBerriesGrown > 0) {
+            gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + gardenBerriesGrown);
+            gameState.lastGardenHarvest = Date.now();
         }
 
         updateHub();
