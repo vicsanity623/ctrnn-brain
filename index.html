@@ -136,8 +136,11 @@
         
         <!-- Player Area -->
         <div class="flex-1 flex flex-col justify-center items-start p-8 relative">
-            <div class="glass-panel p-3 rounded-xl absolute top-0 right-6 w-48">
-                <h3 id="battle-player-name" class="font-bold">Bulbasaur</h3>
+            <div class="glass-panel p-3 rounded-xl absolute top-0 right-6 min-w-[13rem]">
+                <div class="flex items-center justify-between gap-1">
+                    <h3 id="battle-player-name" class="font-bold text-sm truncate">Bulbasaur</h3>
+                    <span id="player-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-green-600 text-white shadow-sm shrink-0">Grass 🌿</span>
+                </div>
                 <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="player-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
             </div>
             <img id="battle-player-sprite" src="" class="w-48 h-48 object-contain -translate-x-10 pixel-perfect">
@@ -152,29 +155,30 @@
                     <span id="pokeball-count-badge" class="bg-black/40 px-1.5 py-0.5 rounded-full text-[10px]">3</span>
                 </button>
             </div>
+            <!-- Universal 4-Move Battle Grid -->
             <div class="grid grid-cols-2 gap-2" id="move-grid">
-                <!-- Move 1: Tackle -->
-                <button id="btn-move-tackle" onclick="playerAttack('tackle')" class="battle-btn bg-blue-600 rounded-xl font-bold text-sm active:bg-blue-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
-                    <span>💥 Tackle</span>
-                    <span class="text-[9px] text-blue-200 uppercase font-semibold">Physical</span>
+                <!-- Slot 0: Basic Attack (Lv. 1) -->
+                <button id="btn-move-0" onclick="playerAttack(0)" class="battle-btn bg-blue-600 rounded-xl font-bold text-sm active:bg-blue-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
+                    <span id="move-name-0">💥 Attack</span>
+                    <span id="move-type-0" class="text-[9px] text-blue-200 uppercase font-semibold">Physical</span>
                 </button>
                 
-                <!-- Move 2: Growl -->
-                <button id="btn-move-growl" onclick="playerAttack('growl')" class="battle-btn bg-indigo-600 rounded-xl font-bold text-sm active:bg-indigo-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
-                    <span>🗣️ Growl</span>
-                    <span class="text-[9px] text-indigo-200 uppercase font-semibold">Status Debuff</span>
+                <!-- Slot 1: Status Move (Lv. 1) -->
+                <button id="btn-move-1" onclick="playerAttack(1)" class="battle-btn bg-indigo-600 rounded-xl font-bold text-sm active:bg-indigo-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
+                    <span id="move-name-1">🗣️ Debuff</span>
+                    <span id="move-type-1" class="text-[9px] text-indigo-200 uppercase font-semibold">Status</span>
                 </button>
 
-                <!-- Move 3: Vine Whip (Unlocks at Lv 7) -->
-                <button id="btn-move-vinewhip" onclick="playerAttack('vinewhip')" class="battle-btn bg-green-600 rounded-xl font-bold text-sm active:bg-green-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
-                    <span id="label-vinewhip">🔒 Vine Whip</span>
-                    <span class="text-[9px] text-green-200 uppercase font-semibold">Lv. 7 (Sp. Atk)</span>
+                <!-- Slot 2: Elemental Special (Unlocks Lv. 7) -->
+                <button id="btn-move-2" onclick="playerAttack(2)" class="battle-btn bg-green-600 rounded-xl font-bold text-sm active:bg-green-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
+                    <span id="move-name-2">🔒 Special</span>
+                    <span id="move-type-2" class="text-[9px] text-green-200 uppercase font-semibold">Lv. 7 (Sp. Atk)</span>
                 </button>
 
-                <!-- Move 4: Special Slot (Leech Seed Lv 13 / Razor Leaf Lv 18) -->
-                <button id="btn-move-special" onclick="playerAttack('special')" class="battle-btn bg-emerald-700 rounded-xl font-bold text-sm active:bg-emerald-500 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
-                    <span id="label-special">🔒 Special Move</span>
-                    <span id="desc-special" class="text-[9px] text-emerald-200 uppercase font-semibold">Lv. 13</span>
+                <!-- Slot 3: Ultimate Move (Unlocks Lv. 13) -->
+                <button id="btn-move-3" onclick="playerAttack(3)" class="battle-btn bg-emerald-700 rounded-xl font-bold text-sm active:bg-emerald-500 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
+                    <span id="move-name-3">🔒 Ultimate</span>
+                    <span id="move-type-3" class="text-[9px] text-emerald-200 uppercase font-semibold">Lv. 13</span>
                 </button>
             </div>
         </div>
