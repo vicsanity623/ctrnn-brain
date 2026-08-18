@@ -33,55 +33,64 @@ describe('Strict Game Logic & UI Verification', () => {
         expect(window.gameState.maxHp).toBeDefined();
         expect(window.gameState.speed).toBeDefined();
         expect(window.gameState.spAtk).toBeDefined();
-        expect(window.gameState.enemyLevel).toBe(3); // Ensures stage progression exists
+        expect(window.gameState.enemyLevel).toBe(3);
+        expect(window.gameState.gardenBerries).toBeDefined(); // Berry Bush State
     });
 
     test('2. Required UI Elements & Modals Exist in HTML', () => {
         // Stats Panel
         expect(document.getElementById('stats-modal')).not.toBeNull();
         expect(document.getElementById('stat-hp')).not.toBeNull();
-        expect(document.getElementById('stat-cp')).not.toBeNull(); // Total Power
-        expect(document.getElementById('stat-spd')).not.toBeNull(); // Speed
+        expect(document.getElementById('stat-cp')).not.toBeNull();
+        expect(document.getElementById('stat-spd')).not.toBeNull();
         
         // Inventory Bag
         expect(document.getElementById('inventory-modal')).not.toBeNull();
         expect(document.getElementById('inventory-list')).not.toBeNull();
         
-        // Battle & Hub Elements
+        // Berry Bush & Hub
+        expect(document.getElementById('berry-bush')).not.toBeNull();
         expect(document.getElementById('hub-name')).not.toBeNull();
         expect(document.getElementById('player-hp')).not.toBeNull();
+
+        // 4-Move Battle Grid & Elemental Type Badge
+        expect(document.getElementById('btn-move-tackle')).not.toBeNull();
+        expect(document.getElementById('btn-move-growl')).not.toBeNull();
+        expect(document.getElementById('btn-move-vinewhip')).not.toBeNull();
+        expect(document.getElementById('btn-move-special')).not.toBeNull();
+        expect(document.getElementById('enemy-type-badge')).not.toBeNull();
     });
 
-    test('3. Logic Check: feedBerry() consumes berry and adds mood', () => {
+    test('3. Logic Check: feedBerry() consumes berry and adds mood at < 10 hearts', () => {
         window.gameState.berries = 5;
         window.gameState.hearts = 2;
         
         window.feedBerry();
         
-        expect(window.gameState.berries).toBe(4); // Berry should go down
-        expect(window.gameState.hearts).toBe(3);  // Mood should go up
+        expect(window.gameState.berries).toBe(4);
+        expect(window.gameState.hearts).toBe(3);
     });
 
     test('4. Logic Check: Level Up scales stats correctly', () => {
         const initialLevel = window.gameState.level;
         const initialAtk = window.gameState.attack;
         
-        window.gameState.hearts = 10; // Max mood for best scaling
-        window.levelUp(0); // Trigger level up manually
+        window.gameState.hearts = 10;
+        window.levelUp(0);
         
         expect(window.gameState.level).toBe(initialLevel + 1);
-        expect(window.gameState.attack).toBeGreaterThan(initialAtk); // Attack must increase
+        expect(window.gameState.attack).toBeGreaterThan(initialAtk);
     });
 
     test('5. Logic Check: Player Attack uses stats (No instant win bug)', () => {
         window.pHp = 50;
         window.eHp = 100;
         window.gameState.attack = 10;
-        window.gameState.hearts = 10; // Even with max mood...
+        window.gameState.hearts = 10;
 
         window.playerAttack('tackle');
 
-        // Enemy should only take 10 damage, proving the 999 1-hit KO bug is gone!
+        // Enemy should only take 10 damage
         expect(window.eHp).toBe(90); 
     });
 
@@ -90,10 +99,45 @@ describe('Strict Game Logic & UI Verification', () => {
         
         // Simulate a loss
         window.endBattle(false);
-        expect(window.gameState.enemyLevel).toBe(3); // Should not increase
+        expect(window.gameState.enemyLevel).toBe(3);
 
         // Simulate a win
         window.endBattle(true);
-        expect(window.gameState.enemyLevel).toBe(4); // Stage should progress!
+        expect(window.gameState.enemyLevel).toBe(4);
+    });
+
+    test('7. Logic Check: Full 10/10 Hearts feeding grants 5% Max XP Treat Bonus', () => {
+        window.gameState.berries = 5;
+        window.gameState.hearts = 10;
+        window.gameState.xp = 0;
+        window.gameState.maxXp = 100;
+
+        window.feedBerry();
+
+        expect(window.gameState.berries).toBe(4);
+        expect(window.gameState.xp).toBe(5); // 5% of 100 = 5 XP bonus!
+    });
+
+    test('8. Logic Check: harvestBush() transfers garden berries to inventory', () => {
+        window.gameState.berries = 2;
+        window.gameState.gardenBerries = 3;
+
+        window.harvestBush();
+
+        expect(window.gameState.berries).toBe(5);
+        expect(window.gameState.gardenBerries).toBe(0);
+    });
+
+    test('9. Logic Check: Elemental Type Advantages calculate accurately', () => {
+        // Grass vs Water = 2.0x Super Effective
+        window.enemyType = 'water';
+        expect(window.getTypeMultiplier('vinewhip')).toBe(2.0);
+
+        // Grass vs Fire = 0.5x Not Very Effective
+        window.enemyType = 'fire';
+        expect(window.getTypeMultiplier('vinewhip')).toBe(0.5);
+
+        // Normal moves are always 1.0x neutral
+        expect(window.getTypeMultiplier('tackle')).toBe(1.0);
     });
 });
