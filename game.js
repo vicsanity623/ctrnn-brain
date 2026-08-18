@@ -159,7 +159,8 @@ function harvestBush() {
 // Custom Native-feeling Modal & Vibration System
 function showModal(title, text = '', vibratePattern = [50]) {
     document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-desc').innerText = text || '';
+    // Uses innerHTML to support clean multi-line reward cards & icons
+    document.getElementById('modal-desc').innerHTML = text ? text.replace(/\n/g, '<br>') : '';
     
     const modal = document.getElementById('custom-modal');
     const content = document.getElementById('modal-content');
@@ -727,29 +728,51 @@ function updateHealthBars() {
 
 function endBattle(won) {
     if(won) {
-        // Only increase max stage if we beat our highest unlocked stage!
-        if (gameState.currentStage === gameState.maxStage) {
+        let beatenStage = gameState.currentStage;
+        let isNewRecord = (gameState.currentStage === gameState.maxStage);
+
+        // Advance stage if player beat their highest unlocked stage
+        if (isNewRecord) {
             gameState.maxStage++;
-            gameState.currentStage++; // Auto-advance to the next stage!
+            gameState.currentStage++; 
         }
-        updateHub();
-        let lootMsg = "You won!";
-        
-        // --- Boss Guaranteed Huge Loot ---
+
+        // 1. Calculate XP with Mood Multiplier
+        let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
+        let earnedXp = Math.floor(50 * multiplier);
+
+        // 2. Calculate Loot Drops
+        let lootText = "<span class='text-gray-400'>None</span>";
         if (isBoss) {
-            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3 to 5 Berries!
+            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3 to 5 berries
             gameState.berries += bossBerries;
-            lootMsg = `🎉 DEFEATED THE BOSS! Received ${bossBerries} 🍓 Berries!`;
-        } else if (Math.random() < 0.40) {
-            let foundBerries = Math.floor(Math.random() * 2) + 1; 
+            lootText = `<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries (Boss Drop!)</span>`;
+        } else if (Math.random() < 0.45) {
+            let foundBerries = Math.floor(Math.random() * 2) + 1;
             gameState.berries += foundBerries;
-            lootMsg += ` And found ${foundBerries} 🍓 Berry!`;
+            lootText = `<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berry</span>`;
         }
-        showModal(lootMsg);
+
+        // 3. Assemble Victory Card Details
+        let title = isBoss ? `👑 BOSS CLEARED!` : `🏆 VICTORY!`;
+        let progressMsg = isNewRecord 
+            ? `<span class='text-yellow-400 font-black'>🌟 Stage ${gameState.maxStage} Unlocked!</span>` 
+            : `<span class='text-gray-400'>🔄 Stage ${beatenStage} Cleared</span>`;
+
+        let victoryCard = `
+            <div class='bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-left text-sm space-y-2 mt-2 shadow-inner'>
+                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span></div>
+                <div>🎁 <strong class='text-white'>Loot:</strong> ${lootText}</div>
+                <div class='pt-2 border-t border-gray-800'>${progressMsg}</div>
+            </div>
+        `.trim();
+
+        updateHub();
+        showModal(title, victoryCard, [40, 60, 40]);
         
-        // Switch to hub FIRST, then trigger the XP animation
+        // Switch to hub FIRST, then trigger XP animation
         showScreen('hub-screen');
-        setTimeout(() => addXP(50), 300); // Small delay to let screen transition finish
+        setTimeout(() => addXP(50), 300);
     } else {
         showModal("You blacked out...");
         gameState.hearts = Math.max(0, gameState.hearts - 2); 
