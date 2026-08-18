@@ -68,9 +68,13 @@
             </div>
         </div>
 
-        <!-- Idle Berry Bush Widget (Placed directly on the Hub Screen!) -->
-        <div id="berry-bush" onclick="harvestBush()" class="absolute top-40 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-            <span class="text-3xl transition-transform" id="bush-icon">🌳</span>
+        <!-- Idle Berry Bush Widget (With Fanned Card Stack Container) -->
+        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
+            <!-- Dynamic 20-Berry Fanned Stack Container -->
+            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0">
+                <!-- Stacked Berries Injected Dynamically by JS -->
+            </div>
+            
             <div class="flex flex-col text-left">
                 <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
                 <span id="bush-count" class="text-xs font-black text-white">Growing...</span>
