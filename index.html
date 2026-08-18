@@ -103,11 +103,17 @@
     <div id="battle-screen" class="screen flex flex-col h-full bg-gray-900 w-full absolute hidden">
         <!-- Enemy Area -->
         <div class="flex-1 flex flex-col justify-center items-end p-8 relative">
-            <div class="glass-panel p-3 rounded-xl absolute top-10 left-6 w-48">
-                <h3 id="enemy-name" class="font-bold">Wild Pidgey</h3>
+            <div class="glass-panel p-3 rounded-xl absolute top-10 left-6 min-w-[13rem]">
+                <div class="flex items-center justify-between gap-1">
+                    <h3 id="enemy-name" class="font-bold text-sm truncate">Wild Pidgey</h3>
+                    <span id="enemy-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-gray-700 text-white shadow-sm shrink-0">Normal ⭐</span>
+                </div>
                 <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="enemy-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
             </div>
-            <img id="enemy-sprite" src="" class="w-40 h-40 object-contain translate-x-10 pixel-perfect">
+            <div class="relative">
+                <div id="elemental-fx" class="elemental-slash-fx hidden"></div>
+                <img id="enemy-sprite" src="" class="w-40 h-40 object-contain translate-x-10 pixel-perfect">
+            </div>
         </div>
         
         <!-- Player Area -->
