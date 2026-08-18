@@ -423,7 +423,13 @@ function levelUp(leftoverXp = 0) {
         xpBar.style.transition = 'all 0.5s ease';
         updateHub(); // This animates the bar to the leftover XP amount
         
-        if (gameState.level > 10 && Math.random() > 0.5 && gameState.id === 1) {
+        if (gameState.level === 7) {
+            showModal("NEW MOVE UNLOCKED! 🌿", `${gameState.name} learned Vine Whip! A powerful attack driven by your Sp. Atk!`);
+        } else if (gameState.level === 13) {
+            showModal("NEW MOVE UNLOCKED! 🌱", `${gameState.name} learned Leech Seed! Drains enemy health to heal your HP!`);
+        } else if (gameState.level === 18) {
+            showModal("NEW MOVE UNLOCKED! 🍃", `${gameState.name} learned Razor Leaf! Slices foes with high Critical Hit power!`);
+        } else if (gameState.level > 10 && Math.random() > 0.5 && gameState.id === 1) {
             triggerEvolution(2, 'Ivysaur');
         } else {
             showModal(`${gameState.name} grew to Level ${gameState.level}!`);
@@ -441,9 +447,50 @@ var enemyDefense = 0;
 var isBoss = false;
 var enemyBaseName = "Wild Pokemon";
 
+function updateBattleMoveButtons() {
+    const btnVine = document.getElementById('btn-move-vinewhip');
+    const labelVine = document.getElementById('label-vinewhip');
+    const btnSpecial = document.getElementById('btn-move-special');
+    const labelSpecial = document.getElementById('label-special');
+    const descSpecial = document.getElementById('desc-special');
+
+    // Level 7: Vine Whip
+    if (gameState.level >= 7) {
+        btnVine.disabled = false;
+        labelVine.innerText = "🌿 Vine Whip";
+    } else {
+        btnVine.disabled = true;
+        labelVine.innerText = "🔒 Vine Whip";
+    }
+
+    // Level 13 (Leech Seed) & Level 18 (Razor Leaf)
+    if (gameState.level >= 18) {
+        btnSpecial.disabled = false;
+        labelSpecial.innerText = "🍃 Razor Leaf";
+        descSpecial.innerText = "High Crit (Lv. 18)";
+        btnSpecial.setAttribute('onclick', "playerAttack('razorleaf')");
+    } else if (gameState.level >= 13) {
+        btnSpecial.disabled = false;
+        labelSpecial.innerText = "🌱 Leech Seed";
+        descSpecial.innerText = "Drain HP (Lv. 13)";
+        btnSpecial.setAttribute('onclick', "playerAttack('leechseed')");
+    } else {
+        btnSpecial.disabled = true;
+        labelSpecial.innerText = "🔒 Leech Seed";
+        descSpecial.innerText = "Unlocks Lv. 13";
+    }
+}
+
 function setAttackButtonsDisabled(disabled) {
-    const btns = document.querySelectorAll('#battle-screen button');
-    btns.forEach(btn => { btn.disabled = disabled; });
+    if (disabled) {
+        const btns = document.querySelectorAll('#move-grid button');
+        btns.forEach(btn => { btn.disabled = true; });
+    } else {
+        // Only re-enable the moves that are actually unlocked!
+        document.getElementById('btn-move-tackle').disabled = false;
+        document.getElementById('btn-move-growl').disabled = false;
+        updateBattleMoveButtons();
+    }
 }
 
 function setBattleLog(msg) {
@@ -482,6 +529,8 @@ function enterBattle() {
 
     eHp = eMaxHp;
     pHp = gameState.maxHp;
+    
+    // Update and enable unlocked moves
     setAttackButtonsDisabled(false);
 
     // Load Wild Pokemon
@@ -506,7 +555,7 @@ function enterBattle() {
     document.getElementById('battle-player-sprite').src = document.getElementById('hub-sprite').src;
     document.getElementById('battle-player-name').innerText = `${gameState.name} (Lv. ${gameState.level})`;
 
-    setBattleLog(`A wild foe appeared!`);
+    setBattleLog(isBoss ? `⚠️ WARNING: A POWERFUL BOSS APPEARED!` : `A wild foe appeared!`);
     updateHealthBars();
 }
 
@@ -514,20 +563,48 @@ function playerAttack(moveType = 'tackle') {
     setAttackButtonsDisabled(true);
 
     if (moveType === 'growl') {
-        // Growl shreds enemy defense AND attack!
+        // --- GROWL: Stat Shredder ---
         enemyAttack = Math.max(1, enemyAttack - 2);
         enemyDefense = Math.max(0, enemyDefense - 4);
-        setBattleLog(`${gameState.name} used Growl! Enemy's stats dropped!`);
-    } else {
-        // --- Armor reduction against Player Attack ---
-        let defenseMitigation = Math.floor(enemyDefense / 4);
-        let damage = Math.max(1, gameState.attack - defenseMitigation);
+        setBattleLog(`${gameState.name} used Growl! Enemy stats dropped!`);
+
+    } else if (moveType === 'vinewhip') {
+        // --- VINE WHIP (Lv 7): Special Attack scaling ---
+        let defenseMitigation = Math.floor(enemyDefense / 5);
+        let damage = Math.max(1, Math.floor(gameState.spAtk * 1.35) - defenseMitigation);
+        eHp -= damage;
+        setBattleLog(`🌿 ${gameState.name} whipped foe with Vine Whip for ${damage} Sp. Dmg!`);
+
+    } else if (moveType === 'leechseed') {
+        // --- LEECH SEED (Lv 13): Damage + HP Drain ---
+        let damage = Math.max(1, Math.floor(gameState.spAtk * 0.95) - Math.floor(enemyDefense / 6));
+        let heal = Math.max(1, Math.floor(damage * 0.60)); // Heals 60% of damage dealt
+        eHp -= damage;
+        pHp = Math.min(gameState.maxHp, pHp + heal);
+        setBattleLog(`🌱 Leech Seed dealt ${damage} dmg & drained ${heal} HP back!`);
+
+    } else if (moveType === 'razorleaf') {
+        // --- RAZOR LEAF (Lv 18): High Critical Strike (40% chance for 2x Damage) ---
+        let isCrit = Math.random() < 0.40;
+        let baseDmg = Math.floor((gameState.attack + gameState.spAtk) * 0.85);
+        let rawDmg = isCrit ? baseDmg * 2 : baseDmg;
+        let damage = Math.max(1, rawDmg - Math.floor(enemyDefense / 5));
         
         eHp -= damage;
-        setBattleLog(`${gameState.name} used Tackle for ${damage} damage!`);
-        document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
-        setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
+        setBattleLog(isCrit ? `💥 CRITICAL HIT! Razor Leaf sliced for ${damage} massive damage!` : `🍃 ${gameState.name} used Razor Leaf for ${damage} damage!`);
+
+    } else {
+        // --- TACKLE (Default): Physical Attack scaling ---
+        let defenseMitigation = Math.floor(enemyDefense / 4);
+        let damage = Math.max(1, gameState.attack - defenseMitigation);
+        eHp -= damage;
+        setBattleLog(`💥 ${gameState.name} used Tackle for ${damage} damage!`);
     }
+
+    // Anime Hit Animation
+    document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
+    setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
+
     updateHealthBars();
 
     if (eHp <= 0) {
@@ -538,6 +615,7 @@ function playerAttack(moveType = 'tackle') {
 
     setTimeout(enemyTurn, 1000);
 }
+
 
 function enemyTurn() {
     let damage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
