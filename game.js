@@ -283,22 +283,53 @@ function updateHub() {
         document.getElementById('party-count-badge').innerText = (gameState.roster && gameState.roster.length) || 1;
     }
 
-    // Update Idle Berry Bush UI
+    // Update Idle Berry Bush UI & Fanned Card Stack
     const bushCount = document.getElementById('bush-count');
-    const bushIcon = document.getElementById('bush-icon');
-    if (bushCount && bushIcon) {
+    if (bushCount) {
         if (gameState.gardenBerries > 0) {
-            bushIcon.innerText = '🍓';
             bushCount.innerText = `${gameState.gardenBerries} Ready!`;
             bushCount.className = 'text-xs font-black text-pink-400 animate-pulse';
         } else {
-            bushIcon.innerText = '🌳';
             bushCount.innerText = 'Growing...';
             bushCount.className = 'text-xs font-semibold text-gray-400';
         }
     }
+    renderBerryStack();
 
     localStorage.setItem('pokeSave', JSON.stringify(gameState));
+}
+
+// --- FANNED 20-BERRY CARD STACK RENDERER ---
+function renderBerryStack() {
+    const container = document.getElementById('berry-stack-container');
+    if (!container) return;
+    
+    let count = gameState.gardenBerries || 0;
+    container.innerHTML = '';
+
+    if (count <= 0) {
+        container.innerHTML = `<span class="text-2xl select-none">🌳</span>`;
+        return;
+    }
+
+    // Fanning Spread Limits (Arched Playing-Card Math)
+    let maxSpreadX = 14; // Horizontal span in pixels
+    let maxAngle = 36;   // Total rotation fan spread in degrees (-18° to +18°)
+
+    for (let i = 0; i < count; i++) {
+        let ratio = count > 1 ? (i / (count - 1)) : 0.5;
+        let xOffset = (ratio - 0.5) * maxSpreadX * 2;
+        let rot = (ratio - 0.5) * maxAngle;
+        let yArch = -Math.sin(ratio * Math.PI) * 4; // Creates an arched card-hand curve
+
+        let berrySpan = document.createElement('span');
+        berrySpan.innerText = '🍓';
+        berrySpan.className = 'absolute text-2xl select-none pointer-events-none filter drop-shadow transition-all duration-300';
+        berrySpan.style.zIndex = i + 1; // Layered Z-Index
+        berrySpan.style.transform = `translate(${xOffset.toFixed(1)}px, ${yArch.toFixed(1)}px) rotate(${rot.toFixed(1)}deg)`;
+        
+        container.appendChild(berrySpan);
+    }
 }
 
 // --- HARVEST BERRY BUSH ---
