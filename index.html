@@ -61,17 +61,17 @@
             </div>
         </div>
 
+        <!-- Idle Berry Bush Widget (Placed directly on the Hub Screen!) -->
+        <div id="berry-bush" onclick="harvestBush()" class="absolute top-28 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-2 shadow-lg active:scale-95 transition-all">
+            <span class="text-3xl transition-transform" id="bush-icon">🌳</span>
+            <div class="flex flex-col text-left">
+                <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
+                <span id="bush-count" class="text-xs font-black text-white">Growing...</span>
+            </div>
+        </div>
+
         <!-- Pokemon Sprite Area -->
         <div id="sprite-container" class="flex-1 flex items-center justify-center relative touch-area">
-            <!-- Idle Berry Bush Widget -->
-            <div id="berry-bush" onclick="harvestBush()" class="absolute top-4 right-4 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-                <span class="text-3xl transition-transform" id="bush-icon">🌳</span>
-                <div class="flex flex-col text-left">
-                    <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
-                    <span id="bush-count" class="text-xs font-black text-white">Growing...</span>
-                </div>
-            </div>
-
             <div id="petting-zone" class="absolute inset-0 z-10 cursor-pointer"></div>
             <div id="swirl-effect" class="absolute w-48 h-48 rounded-full border-4 border-pink-500 hidden opacity-0"></div>
             <img id="hub-sprite" src="" class="w-64 h-64 object-contain filter drop-shadow-2xl transition-transform duration-300 transform scale-100 pixel-perfect">
