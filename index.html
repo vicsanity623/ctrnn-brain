@@ -101,6 +101,17 @@
 
     <!-- 5. BATTLE SCREEN -->
     <div id="battle-screen" class="screen flex flex-col h-full bg-gray-900 w-full absolute hidden">
+        
+        <!-- Stage / Route Navigator Bar -->
+        <div class="glass-panel mx-4 mt-4 px-4 py-2 rounded-2xl flex items-center justify-between z-20 border border-white/10 shadow-lg">
+            <button id="btn-prev-stage" onclick="changeStage(-1)" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
+            <div class="text-center flex flex-col items-center">
+                <span id="stage-indicator" class="text-xs font-black text-yellow-400 tracking-wider">STAGE 3</span>
+                <span id="stage-max-indicator" class="text-[9px] text-gray-400 font-semibold">(Max: 3)</span>
+            </div>
+            <button id="btn-next-stage" onclick="changeStage(1)" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
+        </div>
+
         <!-- Enemy Area -->
         <div class="flex-1 flex flex-col justify-center items-end p-8 relative">
             <div class="glass-panel p-3 rounded-xl absolute top-10 left-6 min-w-[13rem]">
