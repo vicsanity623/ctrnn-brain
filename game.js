@@ -1090,6 +1090,9 @@ function playerAttack(slot = 0) {
         typeEffectText = " 💧 Not very effective (0.5x)...";
     }
 
+    // --- SCOPED DAMAGE VARIABLE (ACCESSIBLE EVERYWHERE) ---
+    let damage = 0;
+
     if (move.type === 'status') {
         // --- SLOT 1: STATUS DEBUFF ---
         enemyAttack = Math.max(1, enemyAttack - 2);
@@ -1100,7 +1103,7 @@ function playerAttack(slot = 0) {
         // --- SLOT 2: ELEMENTAL SPECIAL (Lv. 7, Scales with Sp. Atk) ---
         let defenseMitigation = Math.floor(enemyDefense / 5);
         let baseDmg = Math.max(1, Math.floor(gameState.spAtk * move.power) - defenseMitigation);
-        let damage = Math.max(1, Math.floor(baseDmg * multiplier));
+        damage = Math.max(1, Math.floor(baseDmg * multiplier));
         eHp -= damage;
         setBattleLog(`${move.name} hit for ${damage} Special Damage!${typeEffectText}`);
 
@@ -1108,15 +1111,14 @@ function playerAttack(slot = 0) {
         // --- SLOT 3: ULTIMATE MOVE (Lv. 13, Dmg + Effects) ---
         let defenseMitigation = Math.floor(enemyDefense / 6);
         let baseDmg = Math.max(1, Math.floor((gameState.attack + gameState.spAtk) * move.power * 0.7) - defenseMitigation);
-        let damage = Math.max(1, Math.floor(baseDmg * multiplier));
+        damage = Math.max(1, Math.floor(baseDmg * multiplier));
         
-        // Grass/Poison drains HP, Fire/Electric crits
+        // Grass/Poison drains HP, Other types deal raw damage
         if (pType === 'grass' || pType === 'poison') {
             let heal = Math.max(1, Math.floor(damage * 0.5));
             pHp = Math.min(gameState.maxHp, pHp + heal);
             setBattleLog(`${move.name} dealt ${damage} dmg and drained ${heal} HP!${typeEffectText}`);
         } else {
-            eHp -= damage;
             setBattleLog(`${move.name} blasted the foe for ${damage} Massive Damage!${typeEffectText}`);
         }
         eHp -= damage;
@@ -1124,7 +1126,7 @@ function playerAttack(slot = 0) {
     } else {
         // --- SLOT 0: BASIC PHYSICAL ATTACK ---
         let defenseMitigation = Math.floor(enemyDefense / 4);
-        let damage = Math.max(1, gameState.attack - defenseMitigation);
+        damage = Math.max(1, gameState.attack - defenseMitigation);
         eHp -= damage;
         setBattleLog(`${gameState.name} used ${move.name} for ${damage} damage!`);
     }
@@ -1140,7 +1142,7 @@ function playerAttack(slot = 0) {
             setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '💧 RESISTED (0.5x)', 'damage'), 120);
         }
 
-        // Floating heal numbers for Leech Seed
+        // Floating heal numbers for Leech Seed / Draining moves
         if (move.type === 'ultimate' && (pType === 'grass' || pType === 'poison')) {
             let healAmt = Math.max(1, Math.floor(damage * 0.5));
             spawnFloatingText('player-sprite-wrapper', `+${healAmt} HP`, 'heal');
