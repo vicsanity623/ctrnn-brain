@@ -446,6 +446,35 @@ var enemyAttack = 10;
 var enemyDefense = 0;
 var isBoss = false;
 var enemyBaseName = "Wild Pokemon";
+var enemyType = "normal"; // <-- Elemental Type Tracking
+
+// --- ELEMENTAL TYPE BADGE RENDERER ---
+function updateEnemyTypeBadge() {
+    const badge = document.getElementById('enemy-type-badge');
+    if (!badge) return;
+    
+    const typeConfig = {
+        water: { text: "Water 💧", class: "bg-blue-600 text-white" },
+        fire: { text: "Fire 🔥", class: "bg-red-600 text-white animate-pulse" },
+        grass: { text: "Grass 🌿", class: "bg-green-600 text-white" },
+        electric: { text: "Electric ⚡", class: "bg-yellow-500 text-black font-bold" },
+        normal: { text: "Normal ⭐", class: "bg-gray-600 text-white" }
+    };
+
+    let config = typeConfig[enemyType] || typeConfig.normal;
+    badge.innerText = config.text;
+    badge.className = `text-[9px] px-2 py-0.5 rounded-full font-black uppercase shadow-md ${config.class}`;
+}
+
+// --- TYPE EFFECTIVENESS CALCULATOR ---
+function getTypeMultiplier(moveType) {
+    if (moveType === 'tackle' || moveType === 'growl') return 1.0; // Normal moves are always 1x
+
+    // Grass Moves (Vine Whip, Leech Seed, Razor Leaf)
+    if (enemyType === 'water') return 2.0; // SUPER EFFECTIVE!
+    if (enemyType === 'fire' || enemyType === 'grass') return 0.5; // NOT VERY EFFECTIVE...
+    return 1.0; // Neutral against Electric & Normal
+}
 
 function updateBattleMoveButtons() {
     const btnVine = document.getElementById('btn-move-vinewhip');
@@ -486,7 +515,6 @@ function setAttackButtonsDisabled(disabled) {
         const btns = document.querySelectorAll('#move-grid button');
         btns.forEach(btn => { btn.disabled = true; });
     } else {
-        // Only re-enable the moves that are actually unlocked!
         document.getElementById('btn-move-tackle').disabled = false;
         document.getElementById('btn-move-growl').disabled = false;
         updateBattleMoveButtons();
@@ -516,11 +544,8 @@ function enterBattle() {
     let levelDiff = Math.max(0, enemyLevel - 3);
     eMaxHp = Math.floor(60 * Math.pow(1.085, levelDiff));
     enemyAttack = Math.floor(6 * Math.pow(1.07, levelDiff));
-    
-    // --- ENEMY DEFENSE SCALING ---
     enemyDefense = Math.floor(4 * Math.pow(1.06, levelDiff));
 
-    // Apply Boss Multipliers
     if (isBoss) {
         eMaxHp = Math.floor(eMaxHp * 2.5);
         enemyAttack = Math.floor(enemyAttack * 1.3);
@@ -529,9 +554,12 @@ function enterBattle() {
 
     eHp = eMaxHp;
     pHp = gameState.maxHp;
-    
-    // Update and enable unlocked moves
     setAttackButtonsDisabled(false);
+
+    // Default Random Type Fallback
+    const randomTypes = ['water', 'fire', 'grass', 'electric', 'normal'];
+    enemyType = randomTypes[Math.floor(Math.random() * randomTypes.length)];
+    updateEnemyTypeBadge();
 
     // Load Wild Pokemon
     let wildId = Math.floor(Math.random() * 150) + 1;
@@ -543,12 +571,18 @@ function enterBattle() {
     enemyBaseName = isBoss ? "👑 BOSS" : "Wild Pokemon";
     document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
     
+    // Fetch Real Canonical Type from PokeAPI
     fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
         .then(res => res.json())
         .then(data => {
             let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
             enemyBaseName = isBoss ? `👑 BOSS ${capitalized}` : `Wild ${capitalized}`;
             document.getElementById('enemy-name').innerText = `${enemyBaseName} (Lv. ${enemyLevel})`;
+            
+            if (data.types && data.types[0]) {
+                enemyType = data.types[0].type.name;
+                updateEnemyTypeBadge();
+            }
         })
         .catch(err => console.log(err));
 
@@ -562,46 +596,59 @@ function enterBattle() {
 function playerAttack(moveType = 'tackle') {
     setAttackButtonsDisabled(true);
 
+    let multiplier = getTypeMultiplier(moveType);
+    let typeEffectText = "";
+    
+    if (multiplier === 2.0) {
+        typeEffectText = " 🔥 It's SUPER EFFECTIVE!";
+        // Trigger Super Effective Slash Animation
+        const fx = document.getElementById('elemental-fx');
+        if (fx) {
+            fx.classList.remove('hidden');
+            setTimeout(() => fx.classList.add('hidden'), 450);
+        }
+        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    } else if (multiplier === 0.5) {
+        typeEffectText = " 💧 It's not very effective...";
+    }
+
     if (moveType === 'growl') {
-        // --- GROWL: Stat Shredder ---
         enemyAttack = Math.max(1, enemyAttack - 2);
         enemyDefense = Math.max(0, enemyDefense - 4);
         setBattleLog(`${gameState.name} used Growl! Enemy stats dropped!`);
 
     } else if (moveType === 'vinewhip') {
-        // --- VINE WHIP (Lv 7): Special Attack scaling ---
         let defenseMitigation = Math.floor(enemyDefense / 5);
-        let damage = Math.max(1, Math.floor(gameState.spAtk * 1.35) - defenseMitigation);
+        let baseDmg = Math.max(1, Math.floor(gameState.spAtk * 1.35) - defenseMitigation);
+        let damage = Math.max(1, Math.floor(baseDmg * multiplier));
         eHp -= damage;
-        setBattleLog(`🌿 ${gameState.name} whipped foe with Vine Whip for ${damage} Sp. Dmg!`);
+        setBattleLog(`🌿 ${gameState.name} used Vine Whip for ${damage} Sp. Dmg!${typeEffectText}`);
 
     } else if (moveType === 'leechseed') {
-        // --- LEECH SEED (Lv 13): Damage + HP Drain ---
-        let damage = Math.max(1, Math.floor(gameState.spAtk * 0.95) - Math.floor(enemyDefense / 6));
-        let heal = Math.max(1, Math.floor(damage * 0.60)); // Heals 60% of damage dealt
+        let baseDmg = Math.max(1, Math.floor(gameState.spAtk * 0.95) - Math.floor(enemyDefense / 6));
+        let damage = Math.max(1, Math.floor(baseDmg * multiplier));
+        let heal = Math.max(1, Math.floor(damage * 0.60));
         eHp -= damage;
         pHp = Math.min(gameState.maxHp, pHp + heal);
-        setBattleLog(`🌱 Leech Seed dealt ${damage} dmg & drained ${heal} HP back!`);
+        setBattleLog(`🌱 Leech Seed dealt ${damage} dmg & drained ${heal} HP!${typeEffectText}`);
 
     } else if (moveType === 'razorleaf') {
-        // --- RAZOR LEAF (Lv 18): High Critical Strike (40% chance for 2x Damage) ---
         let isCrit = Math.random() < 0.40;
         let baseDmg = Math.floor((gameState.attack + gameState.spAtk) * 0.85);
         let rawDmg = isCrit ? baseDmg * 2 : baseDmg;
-        let damage = Math.max(1, rawDmg - Math.floor(enemyDefense / 5));
-        
+        let damage = Math.max(1, Math.floor((rawDmg - Math.floor(enemyDefense / 5)) * multiplier));
         eHp -= damage;
-        setBattleLog(isCrit ? `💥 CRITICAL HIT! Razor Leaf sliced for ${damage} massive damage!` : `🍃 ${gameState.name} used Razor Leaf for ${damage} damage!`);
+        setBattleLog(isCrit ? `💥 CRITICAL HIT! Razor Leaf dealt ${damage} dmg!${typeEffectText}` : `🍃 ${gameState.name} used Razor Leaf for ${damage} dmg!${typeEffectText}`);
 
     } else {
-        // --- TACKLE (Default): Physical Attack scaling ---
+        // Tackle (Normal)
         let defenseMitigation = Math.floor(enemyDefense / 4);
         let damage = Math.max(1, gameState.attack - defenseMitigation);
         eHp -= damage;
         setBattleLog(`💥 ${gameState.name} used Tackle for ${damage} damage!`);
     }
 
-    // Anime Hit Animation
+    // Shake Animation
     document.getElementById('enemy-sprite').style.transform = 'translate(40px) scale(1.1)';
     setTimeout(() => document.getElementById('enemy-sprite').style.transform = 'translate(40px)', 100);
 
@@ -616,11 +663,22 @@ function playerAttack(moveType = 'tackle') {
     setTimeout(enemyTurn, 1000);
 }
 
-
 function enemyTurn() {
-    let damage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
+    let baseDamage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
+    let damage = baseDamage;
+    let enemyEffectText = "";
+
+    // Enemy Type Counter-Buffs on Bulbasaur (Grass Type)
+    if (enemyType === 'fire') {
+        damage = Math.floor(baseDamage * 1.35); // Fire burns grass!
+        enemyEffectText = " 🔥 Super effective on you!";
+    } else if (enemyType === 'water') {
+        damage = Math.max(1, Math.floor(baseDamage * 0.75)); // Grass resists water!
+        enemyEffectText = " 🛡️ You resisted the hit!";
+    }
+
     pHp -= damage;
-    setBattleLog(`${enemyBaseName} attacked for ${damage} damage!`);
+    setBattleLog(`${enemyBaseName} attacked for ${damage} damage!${enemyEffectText}`);
     updateHealthBars();
 
     if (pHp <= 0) {
