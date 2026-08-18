@@ -287,11 +287,12 @@ hubSprite.ondragstart = () => false;
 spriteContainer.style.touchAction = 'none'; // Prevents page scrolling while swirling
 
 function startSwirl(e) {
+    if (e.target.closest('#berry-bush')) return; // Ignore if tapping the Berry Bush!
     e.preventDefault();
     isSwirling = true;
     touchTimer = setTimeout(() => {
         if(isSwirling) gainHeart();
-    }, 2000); // Reduced to 2 seconds so it feels more responsive
+    }, 2000);
 }
 
 function stopSwirl() {
