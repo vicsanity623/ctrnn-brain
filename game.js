@@ -1,23 +1,31 @@
 // Game State
 var gameState = {
     id: 1, name: 'Bulbasaur', level: 5, xp: 0, maxXp: 100, 
-    hearts: 2, attack: 10, defense: 10, maxHp: 50,
+    hearts: 2, attack: 10, defense: 10, maxHp: 80,
     spAtk: 12, spDef: 12, speed: 9,
-    berries: 5, lastInteraction: Date.now(), enemyLevel: 3
+    berries: 5, lastInteraction: Date.now(), enemyLevel: 3,
+    gardenBerries: 1, lastGardenHarvest: Date.now() // <-- Idle Berry Bush State
 };
 
-// Heart Depletion Interval (Loses 1 heart every 60 seconds)
-// Only deplete hearts if the tab is active and player is on the hub screen
+// Background Interval: Handles Heart Loss & Berry Bush Growth (1 berry every 2 minutes)
 setInterval(() => {
-    const isHubVisible =!document.getElementById('hub-screen').classList.contains('hidden');
+    const isHubVisible = !document.getElementById('hub-screen').classList.contains('hidden');
     const isTabActive = document.visibilityState === 'visible';
 
+    // Heart Depletion
     if (gameState.hearts > 0 && isHubVisible && isTabActive) {
         gameState.hearts--;
         gameState.lastInteraction = Date.now();
-        updateHub();
     }
-}, 60000);
+
+    // Berry Garden Growth (Grows up to 5 berries max)
+    if (gameState.gardenBerries < 5 && (Date.now() - gameState.lastGardenHarvest) >= 120000) {
+        gameState.gardenBerries = Math.min(5, gameState.gardenBerries + 1);
+        gameState.lastGardenHarvest = Date.now();
+    }
+
+    if (isHubVisible) updateHub();
+}, 30000);
 
 // UI Elements
 const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen'];
@@ -51,7 +59,16 @@ function startGame(isNew) {
         if (gameState.spAtk === undefined) gameState.spAtk = 12;
         if (gameState.spDef === undefined) gameState.spDef = 12;
         if (gameState.speed === undefined) gameState.speed = 9;
+        if (gameState.gardenBerries === undefined) gameState.gardenBerries = 1;
+        if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
+
+        // Calculate offline Berry Bush growth (1 berry per 2 minutes offline, max 5)
+        let gardenMins = Math.floor((Date.now() - gameState.lastGardenHarvest) / 120000);
+        if (gardenMins > 0) {
+            gameState.gardenBerries = Math.min(5, gameState.gardenBerries + gardenMins);
+            gameState.lastGardenHarvest = Date.now();
+        }
 
         // Calculate offline heart depletion (1 heart lost per minute offline)
         let minutesOffline = Math.floor((Date.now() - gameState.lastInteraction) / 60000);
@@ -103,7 +120,38 @@ function updateHub() {
         document.getElementById('berry-count').innerText = gameState.berries;
     }
 
+    // Update Idle Berry Bush UI
+    const bushCount = document.getElementById('bush-count');
+    const bushIcon = document.getElementById('bush-icon');
+    if (bushCount && bushIcon) {
+        if (gameState.gardenBerries > 0) {
+            bushIcon.innerText = '🍓';
+            bushCount.innerText = `${gameState.gardenBerries} Ready!`;
+            bushCount.className = 'text-xs font-black text-pink-400 animate-pulse';
+        } else {
+            bushIcon.innerText = '🌳';
+            bushCount.innerText = 'Growing...';
+            bushCount.className = 'text-xs font-semibold text-gray-400';
+        }
+    }
+
     localStorage.setItem('pokeSave', JSON.stringify(gameState));
+}
+
+// --- HARVEST BERRY BUSH ---
+function harvestBush() {
+    if (gameState.gardenBerries > 0) {
+        let harvested = gameState.gardenBerries;
+        gameState.berries += harvested;
+        gameState.gardenBerries = 0;
+        gameState.lastGardenHarvest = Date.now();
+        
+        showModal("Harvest Complete! 🍓", `You picked ${harvested} fresh Oran Berries from your garden!`);
+        if (navigator.vibrate) navigator.vibrate([40, 40]);
+        updateHub();
+    } else {
+        showModal("Garden Growing... 🌳", "Berries take 2 minutes to grow. Check back soon or battle to find more!");
+    }
 }
 
 // Custom Native-feeling Modal & Vibration System
@@ -293,10 +341,27 @@ function feedBerry() {
             gameState.berries--;
             gainHeart();
         } else {
-            showModal(`${gameState.name} is completely full and happy!`);
+            // --- FULL 10/10 HEARTS: 5% XP TREAT BONUS ---
+            gameState.berries--;
+            let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
+            gameState.xp += bonusXp;
+            
+            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${bonusXp} XP (5% boost)!`);
+            if (navigator.vibrate) navigator.vibrate(30);
+
+            // Trigger level-up animation if this treat overflows the XP bar!
+            if (gameState.xp >= gameState.maxXp) {
+                document.getElementById('xp-bar').style.width = '100%';
+                setTimeout(() => {
+                    let leftoverXp = gameState.xp - gameState.maxXp;
+                    levelUp(leftoverXp);
+                }, 600);
+            } else {
+                updateHub();
+            }
         }
     } else {
-        showModal("You don't have any berries left! Win battles to find more.");
+        showModal("Out of Berries!", "You don't have any berries left! Harvest your garden bush or win battles to find more.");
     }
 }
 
