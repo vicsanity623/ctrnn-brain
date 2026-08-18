@@ -94,16 +94,18 @@ describe('Strict Game Logic & UI Verification', () => {
         expect(window.eHp).toBe(90); 
     });
 
-    test('6. Logic Check: Winning a battle increases enemyLevel (Stage Progression)', () => {
-        window.gameState.enemyLevel = 3;
+    test('6. Logic Check: Winning a battle increases maxStage (Stage Progression)', () => {
+        window.gameState.currentStage = 3;
+        window.gameState.maxStage = 3;
         
         // Simulate a loss
         window.endBattle(false);
-        expect(window.gameState.enemyLevel).toBe(3);
+        expect(window.gameState.maxStage).toBe(3);
 
-        // Simulate a win
+        // Simulate a win on record stage
         window.endBattle(true);
-        expect(window.gameState.enemyLevel).toBe(4);
+        expect(window.gameState.maxStage).toBe(4);
+        expect(window.gameState.currentStage).toBe(4);
     });
 
     test('7. Logic Check: Full 10/10 Hearts feeding grants 5% Max XP Treat Bonus', () => {
