@@ -65,14 +65,24 @@ button, .touch-manipulation, .cursor-pointer {
 /* Hit Shake Reactions */
 @keyframes hitShake {
     0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-8px) rotate(-2deg); }
-    40% { transform: translateX(8px) rotate(2deg); }
-    60% { transform: translateX(-5px) rotate(-1deg); }
-    80% { transform: translateX(5px) rotate(1deg); }
+    20% { transform: translateX(-10px) rotate(-3deg); }
+    40% { transform: translateX(10px) rotate(3deg); }
+    60% { transform: translateX(-6px) rotate(-1deg); }
+    80% { transform: translateX(6px) rotate(1deg); }
 }
 
-.sprite-hit-shake {
-    animation: hitShake 0.4s ease-in-out;
+/* Rapid White & Red Strobe Hit Reaction */
+@keyframes hitFlashRapid {
+    0% { filter: brightness(1); }
+    20% { filter: brightness(4) contrast(2) drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
+    40% { filter: sepia(1) saturate(8) hue-rotate(-50deg) brightness(1.8) drop-shadow(0 0 12px rgba(239, 68, 68, 1)); }
+    60% { filter: brightness(3.5) contrast(1.8); }
+    80% { filter: sepia(1) saturate(6) hue-rotate(-50deg) brightness(1.5); }
+    100% { filter: brightness(1); }
+}
+
+.hit-flash-effect {
+    animation: hitShake 0.4s ease-in-out, hitFlashRapid 0.4s ease-in-out !important;
 }
 
 @keyframes critImpact {
