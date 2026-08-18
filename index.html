@@ -132,7 +132,7 @@
                 </div>
                 <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="enemy-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
             </div>
-            <div class="relative">
+            <div class="relative flex items-center justify-center" id="enemy-sprite-wrapper">
                 <div id="elemental-fx" class="elemental-slash-fx hidden"></div>
                 <img id="enemy-sprite" src="" class="w-40 h-40 object-contain translate-x-10 pixel-perfect">
             </div>
@@ -147,7 +147,9 @@
                 </div>
                 <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="player-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
             </div>
-            <img id="battle-player-sprite" src="" class="w-48 h-48 object-contain -translate-x-10 pixel-perfect">
+            <div class="relative flex items-center justify-center" id="player-sprite-wrapper">
+                <img id="battle-player-sprite" src="" class="w-48 h-48 object-contain -translate-x-10 pixel-perfect">
+            </div>
         </div>
 
         <!-- Battle Log & Moves UI (4 Moves + Catch Button) -->
