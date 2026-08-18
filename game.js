@@ -348,26 +348,48 @@ function harvestBush() {
     }
 }
 
-// Custom Native-feeling Modal & Vibration System
+// --- SMART MODAL QUEUE ENGINE ---
+var modalQueue = [];
+var isModalActive = false;
+
 function showModal(title, text = '', vibratePattern = [50]) {
-    document.getElementById('modal-title').innerText = title;
-    // Uses innerHTML to support clean multi-line reward cards & icons
-    document.getElementById('modal-desc').innerHTML = text ? text.replace(/\n/g, '<br>') : '';
+    // Add to queue so multiple notifications never overwrite each other
+    modalQueue.push({ title, text, vibratePattern });
+    if (!isModalActive) {
+        processNextModal();
+    }
+}
+
+function processNextModal() {
+    if (modalQueue.length === 0) {
+        isModalActive = false;
+        return;
+    }
+
+    isModalActive = true;
+    const current = modalQueue.shift();
+
+    document.getElementById('modal-title').innerText = current.title;
+    document.getElementById('modal-desc').innerHTML = current.text ? current.text.replace(/\n/g, '<br>') : '';
     
+    // If more alerts are waiting in line, show "Continue ➔"
+    const btn = document.getElementById('modal-btn');
+    if (btn) {
+        btn.innerText = modalQueue.length > 0 ? "Continue ➔" : "Awesome!";
+    }
+
     const modal = document.getElementById('custom-modal');
     const content = document.getElementById('modal-content');
     
     modal.classList.remove('hidden');
-    // Tiny delay to allow CSS to animate
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         content.classList.remove('scale-95');
         content.classList.add('scale-100');
     }, 10);
 
-    // Trigger iPhone haptics if supported
     if (navigator.vibrate) {
-        navigator.vibrate(vibratePattern);
+        navigator.vibrate(current.vibratePattern);
     }
 }
 
@@ -381,7 +403,13 @@ function closeModal() {
     
     setTimeout(() => {
         modal.classList.add('hidden');
-    }, 300);
+        // If more notifications are waiting in the queue, smoothly display the next one!
+        if (modalQueue.length > 0) {
+            setTimeout(processNextModal, 150);
+        } else {
+            isModalActive = false;
+        }
+    }, 250);
 }
 
 // --- STATS PANEL SYSTEM ---
