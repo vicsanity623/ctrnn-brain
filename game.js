@@ -1279,17 +1279,36 @@ function endBattle(won) {
         let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
         let earnedXp = Math.floor(50 * multiplier);
 
-        // 2. Calculate Loot Drops
-        let lootText = "<span class='text-gray-400'>None</span>";
+        // 2. Calculate Loot Drops (Berries + Guaranteed Pokéballs on Bosses!)
+        let drops = [];
+        if (!gameState.pokeballs) gameState.pokeballs = 0;
+
         if (isBoss) {
-            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3 to 5 berries
+            // --- GUARANTEED BOSS REWARDS ---
+            let isMilestoneBoss = (beatenStage % 25 === 0);
+            let bossBalls = isMilestoneBoss ? (Math.floor(Math.random() * 3) + 3) : (Math.floor(Math.random() * 2) + 1); // 1-2 Balls (or 3-5 on Milestones!)
+            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3-5 Berries
+
             gameState.berries += bossBerries;
-            lootText = `<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries (Boss Drop!)</span>`;
-        } else if (Math.random() < 0.45) {
-            let foundBerries = Math.floor(Math.random() * 2) + 1;
-            gameState.berries += foundBerries;
-            lootText = `<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berry</span>`;
+            gameState.pokeballs += bossBalls;
+
+            drops.push(`<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries</span>`);
+            drops.push(`<span class='text-red-400 font-bold'>+${bossBalls} 🔴 Pokéball${bossBalls > 1 ? 's' : ''} (Boss Drop!)</span>`);
+        } else {
+            // --- REGULAR WILD STAGE REWARDS ---
+            if (Math.random() < 0.45) {
+                let foundBerries = Math.floor(Math.random() * 2) + 1;
+                gameState.berries += foundBerries;
+                drops.push(`<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berry</span>`);
+            }
+            // 15% Lucky chance for a wild Pokéball find!
+            if (Math.random() < 0.11) {
+                gameState.pokeballs += 1;
+                drops.push(`<span class='text-red-400 font-bold'>+1 🔴 Pokéball</span>`);
+            }
         }
+
+        let lootText = drops.length > 0 ? drops.join(" <span class='text-gray-500'>•</span> ") : "<span class='text-gray-400'>None</span>";
 
         // 3. Assemble Victory Card Details
         let title = isBoss ? `👑 BOSS CLEARED!` : `🏆 VICTORY!`;
