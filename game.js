@@ -153,9 +153,11 @@ setInterval(() => {
         }
     }
 
-    // Berry Garden Growth (Now accumulates up to 20 Berries max!)
-    if (gameState.gardenBerries < 20 && (Date.now() - gameState.lastGardenHarvest) >= 120000) {
-        gameState.gardenBerries = Math.min(20, gameState.gardenBerries + 1);
+    // Smart Batch Berry Growth (Adds all accumulated 2-min intervals up to 20!)
+    let elapsedGardenTime = Date.now() - (gameState.lastGardenHarvest || Date.now());
+    let berriesGrown = Math.floor(elapsedGardenTime / 120000);
+    if (berriesGrown > 0 && (gameState.gardenBerries || 0) < 20) {
+        gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + berriesGrown);
         gameState.lastGardenHarvest = Date.now();
     }
 
@@ -216,10 +218,10 @@ function startGame(isNew) {
             }];
         }
 
-        // Calculate offline Berry Bush growth (1 berry per 2 minutes offline, max 5)
-        let gardenMins = Math.floor((Date.now() - gameState.lastGardenHarvest) / 120000);
-        if (gardenMins > 0) {
-            gameState.gardenBerries = Math.min(5, gameState.gardenBerries + gardenMins);
+        // Offline Berry Bush Growth (Accurately loads all offline berries up to 20!)
+        let gardenBerriesGrown = Math.floor((Date.now() - (gameState.lastGardenHarvest || Date.now())) / 120000);
+        if (gardenBerriesGrown > 0) {
+            gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + gardenBerriesGrown);
             gameState.lastGardenHarvest = Date.now();
         }
 
