@@ -971,10 +971,11 @@ function enterBattle() {
     updateTypeBadge('player-type-badge', gameState.type || 'grass');
 
     const allTypes = Object.keys(TYPE_DATABASE);
-    enemyType = allTypes[Math.floor(Math.random() * allTypes.length)];
+    // Deterministic fallback type matching the stage
+    enemyType = allTypes[(enemyLevel * 3) % allTypes.length];
     updateTypeBadge('enemy-type-badge', enemyType);
 
-    // --- POKÉMON SPAWN ENGINE (BASE / BOSS / LEGENDARY TIERS) ---
+    // --- STAGE-LOCKED SPAWN ENGINE (100% PERSISTENT PER STAGE) ---
     let wildId;
     if (enemyLevel === 100) {
         wildId = 150; // 👑 LEVEL 100 FINAL BOSS: MEWTWO
@@ -992,11 +993,13 @@ function enterBattle() {
         wildId = 144; // ❄️ LEVEL 60 BOSS: ARTICUNO
         isBoss = true;
     } else if (isBoss) {
-        // Regular Boss Stages (Lv 5, 10, 15, 20...) Spawn Evolved Forms
-        wildId = EVOLVED_BOSS_IDS[Math.floor(Math.random() * EVOLVED_BOSS_IDS.length)];
+        // Boss stages are deterministically locked to a specific evolved Pokémon!
+        let bossIndex = (enemyLevel * 7) % EVOLVED_BOSS_IDS.length;
+        wildId = EVOLVED_BOSS_IDS[bossIndex];
     } else {
-        // Normal Stages Spawn Stage 1 / Base Form Pokémon ONLY!
-        wildId = BASE_POKEMON_IDS[Math.floor(Math.random() * BASE_POKEMON_IDS.length)];
+        // Regular stages are permanently locked to a specific Base Pokémon!
+        let baseIndex = (enemyLevel * 13 + 5) % BASE_POKEMON_IDS.length;
+        wildId = BASE_POKEMON_IDS[baseIndex];
     }
 
     document.getElementById('enemy-sprite').src = `assets/sprites/${wildId}_animated.gif`;
