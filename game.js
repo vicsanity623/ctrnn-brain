@@ -784,7 +784,24 @@ function levelUp(leftoverXp = 0) {
     }, 50);
 }
 
-//// --- BATTLE SYSTEM ---
+// --- POKÉDEX SPAWN POOLS ---
+// Stage 1 / Base Form Pokémon ONLY (For Regular Stages)
+const BASE_POKEMON_IDS = [
+    1, 4, 7, 10, 13, 16, 19, 21, 23, 25, 27, 29, 32, 35, 37, 39, 41, 43, 46, 48, 
+    50, 52, 54, 56, 58, 60, 63, 66, 69, 72, 74, 77, 79, 81, 83, 84, 86, 88, 90, 
+    92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 114, 115, 116, 118, 120, 
+    122, 123, 124, 125, 126, 127, 128, 129, 131, 132, 133, 137, 138, 140, 142, 143, 147
+];
+
+// Evolved Forms (Exclusively for Boss Stages Every 5 Levels)
+const EVOLVED_BOSS_IDS = [
+    2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 34, 
+    36, 38, 40, 42, 44, 45, 47, 49, 51, 53, 55, 57, 59, 61, 62, 64, 65, 67, 68, 
+    70, 71, 73, 75, 76, 78, 80, 82, 85, 87, 89, 91, 93, 94, 97, 99, 101, 103, 
+    105, 106, 107, 110, 112, 117, 119, 121, 130, 134, 135, 136, 139, 141, 148, 149
+];
+
+// --- BATTLE SYSTEM ---
 var eHp = 100;
 var eMaxHp = 100;
 var pHp = gameState.maxHp;
@@ -947,8 +964,31 @@ function enterBattle() {
     enemyType = allTypes[Math.floor(Math.random() * allTypes.length)];
     updateTypeBadge('enemy-type-badge', enemyType);
 
-    // Load Wild Pokemon
-    let wildId = Math.floor(Math.random() * 150) + 1;
+    // --- POKÉMON SPAWN ENGINE (BASE / BOSS / LEGENDARY TIERS) ---
+    let wildId;
+    if (enemyLevel === 100) {
+        wildId = 150; // 👑 LEVEL 100 FINAL BOSS: MEWTWO
+        isBoss = true;
+    } else if (enemyLevel === 90) {
+        wildId = 151; // 🌟 LEVEL 90 MYTHICAL BOSS: MEW
+        isBoss = true;
+    } else if (enemyLevel === 80) {
+        wildId = 146; // 🔥 LEVEL 80 BOSS: MOLTRES
+        isBoss = true;
+    } else if (enemyLevel === 70) {
+        wildId = 145; // ⚡ LEVEL 70 BOSS: ZAPDOS
+        isBoss = true;
+    } else if (enemyLevel === 60) {
+        wildId = 144; // ❄️ LEVEL 60 BOSS: ARTICUNO
+        isBoss = true;
+    } else if (isBoss) {
+        // Regular Boss Stages (Lv 5, 10, 15, 20...) Spawn Evolved Forms
+        wildId = EVOLVED_BOSS_IDS[Math.floor(Math.random() * EVOLVED_BOSS_IDS.length)];
+    } else {
+        // Normal Stages Spawn Stage 1 / Base Form Pokémon ONLY!
+        wildId = BASE_POKEMON_IDS[Math.floor(Math.random() * BASE_POKEMON_IDS.length)];
+    }
+
     document.getElementById('enemy-sprite').src = `assets/sprites/${wildId}_animated.gif`;
     document.getElementById('enemy-sprite').onerror = function() {
         this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
