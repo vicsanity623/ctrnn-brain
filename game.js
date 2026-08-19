@@ -935,8 +935,7 @@ function enterBattle() {
     }
 
     showScreen('battle-screen');
-    enemyLevel = gameState.currentStage; // Uses the selected stage!
-    updateStageNavigatorUI();
+    enemyLevel = gameState.currentStage;
 
     // --- BOSS CHECK (Every 5 Levels) ---
     isBoss = (enemyLevel % 5 === 0);
@@ -956,6 +955,17 @@ function enterBattle() {
     eHp = eMaxHp;
     pHp = gameState.maxHp;
     setAttackButtonsDisabled(false);
+
+    // --- CALCULATE & DISPLAY BATTLE CP BADGES ---
+    let playerCP = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
+    let enemyCP = eMaxHp + Math.floor(enemyAttack * 1.5) + Math.floor(enemyDefense * 1.5) + Math.floor(enemyLevel * 2);
+
+    const playerCpEl = document.getElementById('battle-player-cp');
+    const enemyCpEl = document.getElementById('battle-enemy-cp');
+    if (playerCpEl) playerCpEl.innerText = `CP ${playerCP}`;
+    if (enemyCpEl) enemyCpEl.innerText = `CP ${enemyCP}`;
+
+    updateStageNavigatorUI();
 
     // Update Player Type & Enemy Type Badges
     updateTypeBadge('player-type-badge', gameState.type || 'grass');
