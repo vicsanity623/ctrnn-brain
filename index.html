@@ -119,14 +119,25 @@
     <!-- 5. BATTLE SCREEN -->
     <div id="battle-screen" class="screen flex flex-col h-full bg-gray-900 w-full absolute hidden">
         
-        <!-- Stage / Route Navigator Bar -->
-        <div class="glass-panel mx-4 mt-4 px-4 py-2 rounded-2xl flex items-center justify-between z-20 border border-white/10 shadow-lg">
-            <button id="btn-prev-stage" onclick="changeStage(-1)" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
-            <div class="text-center flex flex-col items-center">
-                <span id="stage-indicator" class="text-xs font-black text-yellow-400 tracking-wider">STAGE 3</span>
+        <!-- Stage / Route Navigator Bar (With Player & Enemy Combat Power) -->
+        <div class="glass-panel mx-4 mt-4 px-3 py-2 rounded-2xl flex items-center justify-between z-20 border border-white/10 shadow-lg">
+            <!-- Left: Prev Button + Player CP -->
+            <div class="flex items-center gap-2">
+                <button id="btn-prev-stage" onclick="changeStage(-1)" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
+                <span id="battle-player-cp" class="text-xs font-black text-yellow-400 tracking-wider drop-shadow">CP 0</span>
+            </div>
+
+            <!-- Center: Stage Indicator -->
+            <div class="text-center flex flex-col items-center px-1">
+                <span id="stage-indicator" class="text-xs font-black text-yellow-400 tracking-wider whitespace-nowrap">STAGE 3</span>
                 <span id="stage-max-indicator" class="text-[9px] text-gray-400 font-semibold">(Max: 3)</span>
             </div>
-            <button id="btn-next-stage" onclick="changeStage(1)" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
+
+            <!-- Right: Enemy CP + Next Button -->
+            <div class="flex items-center gap-2">
+                <span id="battle-enemy-cp" class="text-xs font-black text-red-400 tracking-wider drop-shadow">CP 0</span>
+                <button id="btn-next-stage" onclick="changeStage(1)" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
+            </div>
         </div>
 
         <!-- Enemy Area -->
