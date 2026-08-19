@@ -49,12 +49,18 @@
         <div id="time-overlay" class="absolute inset-0 pointer-events-none z-20 transition-colors duration-1000"></div>
         <!-- Stats Top Bar -->
         <div class="flex justify-between items-center p-4 glass-panel m-4 rounded-2xl">
-            <div onclick="openStats()" class="cursor-pointer active:scale-95 transition-transform bg-white/10 p-2 pr-3 rounded-xl border border-white/20 shadow-md">
+            <div onclick="openStats()" class="cursor-pointer active:scale-95 transition-transform bg-white/10 p-2 pr-4 rounded-xl border border-white/20 shadow-md">
                 <div class="flex items-center gap-2">
-                    <h2 id="hub-name" class="text-xl font-black uppercase truncate max-w-[120px]">Bulbasaur</h2>
+                    <h2 id="hub-name" class="text-lg font-black uppercase truncate max-w-[145px]">Bulbasaur</h2>
                     <span class="text-[9px] bg-blue-500 px-2 py-0.5 rounded-full font-bold shadow-inner">STATS 📊</span>
                 </div>
-                <p class="text-xs text-gray-300 ml-1">Level <span id="hub-level">5</span></p>
+                <div class="flex items-center gap-2 mt-0.5 ml-1">
+                    <p class="text-xs text-gray-300 font-semibold">Lv. <span id="hub-level" class="text-white font-bold">5</span></p>
+                    <span class="text-gray-500 text-xs">•</span>
+                    <p class="text-xs text-orange-400 font-black tracking-wide flex items-center gap-0.5">
+                        <span>⚡</span><span id="hub-power">181</span> <span class="text-[9px] text-orange-200/80 font-bold uppercase">CP</span>
+                    </p>
+                </div>
             </div>
             
             <div class="flex flex-col items-end gap-2">
