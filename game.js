@@ -810,7 +810,9 @@ var enemyAttack = 10;
 var enemyDefense = 0;
 var isBoss = false;
 var enemyBaseName = "Wild Pokemon";
-var enemyType = "normal"; // <-- Elemental Type Tracking
+var enemyType = "normal";
+var battleDamageDealt = 0;
+var battleDamageReceived = 0;
 
 // --- ELEMENTAL TYPE BADGE RENDERER ---
 function updateTypeBadge(elementId, typeKey) {
@@ -954,6 +956,11 @@ function enterBattle() {
 
     eHp = eMaxHp;
     pHp = gameState.maxHp;
+    
+    // Reset Battle Stats for New Encounter
+    battleDamageDealt = 0;
+    battleDamageReceived = 0;
+    
     setAttackButtonsDisabled(false);
 
     // --- CALCULATE & DISPLAY BATTLE CP BADGES ---
@@ -1191,6 +1198,11 @@ function playerAttack(slot = 0) {
         setBattleLog(`${gameState.name} used ${move.name} for ${damage} damage!`);
     }
 
+    // Accumulate total player damage dealt this battle
+    if (damage > 0) {
+        battleDamageDealt += damage;
+    }
+
     // --- TRIGGER FLOATING COMBAT TEXT & STROBE HIT REACTION ---
     if (move.type !== 'status') {
         triggerHitReaction('enemy-sprite');
@@ -1238,6 +1250,7 @@ function enemyTurn() {
     }
 
     pHp -= damage;
+    battleDamageReceived += damage; // Accumulate total damage taken
     setBattleLog(`${enemyBaseName} attacked for ${damage} damage!${enemyEffectText}`);
     
     // --- PLAYER HIT REACTION & FLOATING TEXT ---
@@ -1301,7 +1314,7 @@ function endBattle(won) {
                 gameState.berries += foundBerries;
                 drops.push(`<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berry</span>`);
             }
-            // 15% Lucky chance for a wild Pokéball find!
+            // 11% Lucky chance for a wild Pokéball find!
             if (Math.random() < 0.11) {
                 gameState.pokeballs += 1;
                 drops.push(`<span class='text-red-400 font-bold'>+1 🔴 Pokéball</span>`);
@@ -1310,7 +1323,7 @@ function endBattle(won) {
 
         let lootText = drops.length > 0 ? drops.join(" <span class='text-gray-500'>•</span> ") : "<span class='text-gray-400'>None</span>";
 
-        // 3. Assemble Victory Card Details
+        // 3. Assemble Rich Victory Card with Combat Analytics
         let title = isBoss ? `👑 BOSS CLEARED!` : `🏆 VICTORY!`;
         let progressMsg = isNewRecord 
             ? `<span class='text-yellow-400 font-black'>🌟 Stage ${gameState.maxStage} Unlocked!</span>` 
@@ -1320,6 +1333,7 @@ function endBattle(won) {
             <div class='bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-left text-sm space-y-2 mt-2 shadow-inner'>
                 <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span></div>
                 <div>🎁 <strong class='text-white'>Loot:</strong> ${lootText}</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-blue-400 font-bold'>${battleDamageReceived}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800'>${progressMsg}</div>
             </div>
         `.trim();
@@ -1331,9 +1345,19 @@ function endBattle(won) {
         showScreen('hub-screen');
         setTimeout(() => addXP(50), 300);
     } else {
-        showModal("You blacked out...");
+        // --- RICH DEFEAT CARD ---
         gameState.hearts = Math.max(0, gameState.hearts - 2); 
         updateHub();
+
+        let defeatCard = `
+            <div class='bg-gray-900/80 p-4 rounded-xl border border-red-900/60 text-left text-sm space-y-2.5 mt-2 shadow-inner'>
+                <div class='text-gray-300'>${gameState.name} was overwhelmed on <strong class='text-yellow-400'>Stage ${gameState.currentStage}</strong>!</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-red-400 font-bold'>${battleDamageReceived}</span> Taken</div>
+                <div class='pt-2 border-t border-gray-800 text-xs text-red-400 font-semibold'>💔 Lost 2 Hearts (Feed berries or pet to recover!)</div>
+            </div>
+        `.trim();
+
+        showModal("💀 BLACKED OUT...", defeatCard, [80, 80]);
         showScreen('hub-screen');
     }
 }
