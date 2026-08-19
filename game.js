@@ -268,6 +268,13 @@ function updateHub() {
     document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
     document.getElementById('hub-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif`;
 
+    // Live Total Combat Power (CP) Calculation
+    let totalPower = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
+    const hubPowerEl = document.getElementById('hub-power');
+    if (hubPowerEl) {
+        hubPowerEl.innerText = totalPower;
+    }
+
     // Draw Hearts
     let heartsHtml = '';
     for(let i=0; i<10; i++) {
