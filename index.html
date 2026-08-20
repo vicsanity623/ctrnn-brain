@@ -94,14 +94,34 @@
             <img id="hub-sprite" src="" class="w-64 h-64 object-contain filter drop-shadow-2xl transition-transform duration-300 transform scale-100 pixel-perfect">
         </div>
 
-        <!-- XP Bar & Controls -->
-        <div class="glass-panel p-6 rounded-t-3xl mt-auto">
-            <div class="mb-4">
-                <p class="text-xs font-bold text-right mb-1">XP</p>
-                <div class="w-full h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
-                    <div id="xp-bar" class="h-full shiny-gradient w-0 transition-all duration-500"></div>
+        <!-- XP Bar & Controls (With Level, 4 Move Chips & Numeric XP) -->
+        <div class="glass-panel p-4 pb-6 rounded-t-3xl mt-auto z-20 shadow-2xl">
+            <!-- Top Row: Level + 4 Move Preview Chips + XP Label -->
+            <div class="flex items-center justify-between gap-1 mb-2">
+                <!-- Left: Level Badge -->
+                <span class="text-xs font-black text-yellow-400 tracking-wider shrink-0 pl-1">LV. <span id="hub-bar-level">1</span></span>
+
+                <!-- Middle: 4 Move Preview Chips (Dynamically Styled by JS) -->
+                <div class="flex-1 flex items-center justify-center gap-1 mx-1 overflow-x-hidden" id="hub-move-chips">
+                    <span id="hub-chip-0" class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white truncate shadow-sm">Tackle</span>
+                    <span id="hub-chip-1" class="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white truncate shadow-sm">Growl</span>
+                    <span id="hub-chip-2" class="px-2 py-0.5 rounded text-[9px] font-bold bg-green-600 text-white truncate shadow-sm">Vine Whip</span>
+                    <span id="hub-chip-3" class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-700 text-white truncate shadow-sm">Leech Seed</span>
                 </div>
+
+                <!-- Right: XP Label -->
+                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0 pr-1">XP</span>
             </div>
+
+            <!-- Glowing Numeric XP Bar Container -->
+            <div class="relative w-full h-5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-700/80 mb-3 shadow-inner flex items-center justify-center">
+                <!-- Background Gradient Fill -->
+                <div id="xp-bar" class="absolute left-0 top-0 h-full shiny-gradient w-0 transition-all duration-500"></div>
+                <!-- Centered Numeric Readout (e.g. 342 / 425) -->
+                <span id="xp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">0 / 50</span>
+            </div>
+
+            <!-- Action Buttons -->
             <div class="grid grid-cols-3 gap-2">
                 <button onclick="feedBerry()" class="py-3 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm">
                     <span class="text-2xl">🍓</span> Feed (<span id="berry-count">5</span>)
