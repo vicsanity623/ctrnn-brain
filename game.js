@@ -218,13 +218,6 @@ function startGame(isNew) {
             }];
         }
 
-        // Offline Berry Bush Growth (Accurately loads all offline berries up to 20!)
-        let gardenBerriesGrown = Math.floor((Date.now() - (gameState.lastGardenHarvest || Date.now())) / 120000);
-        if (gardenBerriesGrown > 0) {
-            gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + gardenBerriesGrown);
-            gameState.lastGardenHarvest = Date.now();
-        }
-
         // Gentle Offline Heart Decay (1 heart lost every 30 minutes offline)
         let offlinePeriods = Math.floor((Date.now() - gameState.lastInteraction) / (30 * 60000));
         if (offlinePeriods > 0) {
@@ -232,8 +225,8 @@ function startGame(isNew) {
             gameState.lastInteraction = Date.now();
         }
 
-        // Offline Berry Bush Growth (1 berry per 2 minutes offline, accumulates up to 20!)
-        let gardenBerriesGrown = Math.floor((Date.now() - gameState.lastGardenHarvest) / 120000);
+        // Offline Berry Bush Growth (Accurately loads all offline berries up to 20!)
+        let gardenBerriesGrown = Math.floor((Date.now() - (gameState.lastGardenHarvest || Date.now())) / 120000);
         if (gardenBerriesGrown > 0) {
             gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + gardenBerriesGrown);
             gameState.lastGardenHarvest = Date.now();
