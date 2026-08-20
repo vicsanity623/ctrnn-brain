@@ -128,11 +128,12 @@ const TYPE_DATABASE = {
         ]}
 };
 
-// Game State (Level 1 Starter Baseline)
+// Game State
 var gameState = {
     id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50, 
     hearts: 2, attack: 5, defense: 5, maxHp: 40,
     spAtk: 6, spDef: 6, speed: 5,
+    critRate: 5.0,
     berries: 5, pokeballs: 3,
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1, // <-- Starts on Stage 1!
@@ -516,6 +517,9 @@ function openStats() {
     document.getElementById('stat-spd').innerText = gameState.speed;
     document.getElementById('stat-mood').innerText = `${gameState.hearts}/10`;
     
+    const critEl = document.getElementById('stat-crit');
+    if (critEl) critEl.innerText = `${(gameState.critRate || 5.0).toFixed(2)}%`;
+    
     // Calculate and display Total Power
     let totalPower = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
     document.getElementById('stat-cp').innerText = totalPower;
@@ -846,6 +850,7 @@ function levelUp(leftoverXp = 0) {
     gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
     gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
     gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
+    gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
 
     // Instantly snap XP bar back to 0 without animation
     let xpBar = document.getElementById('xp-bar');
@@ -1236,6 +1241,14 @@ function playerAttack(slot = 0) {
     let moveIndex = (typeof slot === 'number') ? slot : (slot === 'growl' ? 1 : (slot === 'vinewhip' ? 2 : (slot === 'leechseed' || slot === 'razorleaf' ? 3 : 0)));
     const move = typeData.moves[moveIndex];
 
+    // --- 1. MISS CHANCE (0.5% Chance to Miss) ---
+    if (typeof slot === 'number' && Math.random() < 0.005) {
+        setBattleLog(`💨 ${gameState.name}'s ${move.name} MISSED!`);
+        spawnFloatingText('enemy-sprite-wrapper', '💨 MISSED!', 'heal');
+        setTimeout(enemyTurn, 1000);
+        return;
+    }
+
     let multiplier = (move.type === 'physical' || move.type === 'status') ? 1.0 : getTypeMultiplier(pType, enemyType);
     let typeEffectText = "";
     
@@ -1251,11 +1264,14 @@ function playerAttack(slot = 0) {
         typeEffectText = " 💧 Not very effective (0.5x)...";
     }
 
+    // --- 2. CRITICAL HIT CALCULATION ---
+    let isCrit = (typeof slot === 'number') && (move.type !== 'status') && ((Math.random() * 100) < (gameState.critRate || 5.0));
+
     // --- COOLDOWN TRACKING ---
     if (move.type === 'status') {
-        statusCooldown = 4; // Set 4-turn cooldown when using status move
+        statusCooldown = 4;
     } else if (statusCooldown > 0) {
-        statusCooldown--; // Decrement cooldown when using any other move
+        statusCooldown--;
     }
 
     let damage = 0;
@@ -1267,60 +1283,62 @@ function playerAttack(slot = 0) {
         setBattleLog(`${gameState.name} used ${move.name}! Enemy stats were shredded! (4T Cooldown)`);
 
     } else if (move.type === 'special') {
-        // --- SLOT 2: ELEMENTAL SPECIAL (Lv. 7, Scales with Sp. Atk) ---
+        // --- SLOT 2: ELEMENTAL SPECIAL ---
         let defenseMitigation = Math.floor(enemyDefense / 5);
         let baseDmg = Math.max(1, Math.floor(gameState.spAtk * move.power) - defenseMitigation);
-        damage = Math.max(1, Math.floor(baseDmg * multiplier));
+        let rawDmg = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
+        damage = Math.max(1, Math.floor(rawDmg * multiplier));
         eHp -= damage;
-        setBattleLog(`${move.name} hit for ${damage} Special Damage!${typeEffectText}`);
+        setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${move.name} hit for ${damage} Sp. Dmg!${typeEffectText}`);
 
     } else if (move.type === 'ultimate') {
-        // --- SLOT 3: ULTIMATE MOVE (Lv. 13, Dmg + Effects) ---
+        // --- SLOT 3: ULTIMATE MOVE ---
         let defenseMitigation = Math.floor(enemyDefense / 6);
         let baseDmg = Math.max(1, Math.floor((gameState.attack + gameState.spAtk) * move.power * 0.7) - defenseMitigation);
-        damage = Math.max(1, Math.floor(baseDmg * multiplier));
+        let rawDmg = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
+        damage = Math.max(1, Math.floor(rawDmg * multiplier));
         
-        // Grass/Poison drains HP, Other types deal raw damage
         if (pType === 'grass' || pType === 'poison') {
             let heal = Math.max(1, Math.floor(damage * 0.5));
             pHp = Math.min(gameState.maxHp, pHp + heal);
-            setBattleLog(`${move.name} dealt ${damage} dmg and drained ${heal} HP!${typeEffectText}`);
+            setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${move.name} dealt ${damage} dmg & drained ${heal} HP!${typeEffectText}`);
         } else {
-            setBattleLog(`${move.name} blasted the foe for ${damage} Massive Damage!${typeEffectText}`);
+            setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${move.name} blasted foe for ${damage} Damage!${typeEffectText}`);
         }
         eHp -= damage;
 
     } else {
         // --- SLOT 0: BASIC PHYSICAL ATTACK ---
         let defenseMitigation = Math.floor(enemyDefense / 4);
-        damage = Math.max(1, gameState.attack - defenseMitigation);
+        let baseDmg = Math.max(1, gameState.attack - defenseMitigation);
+        damage = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
         eHp -= damage;
-        setBattleLog(`${gameState.name} used ${move.name} for ${damage} damage!`);
+        setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${gameState.name} used ${move.name} for ${damage} damage!`);
     }
 
-    // Accumulate total player damage dealt this battle
+    // Accumulate damage
     if (damage > 0) {
         battleDamageDealt += damage;
     }
 
-    // --- TRIGGER FLOATING COMBAT TEXT & STROBE HIT REACTION ---
+    // --- TRIGGER FLOATING TEXT & REACTION ---
     if (move.type !== 'status') {
         triggerHitReaction('enemy-sprite');
-        spawnFloatingText('enemy-sprite-wrapper', `-${damage}`, (multiplier === 2.0) ? 'super' : 'damage');
+        spawnFloatingText('enemy-sprite-wrapper', `-${damage}`, isCrit ? 'crit' : ((multiplier === 2.0) ? 'super' : 'damage'));
 
-        if (multiplier === 2.0) {
+        if (isCrit) {
+            setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '💥 CRITICAL HIT!', 'crit'), 120);
+        } else if (multiplier === 2.0) {
             setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '🔥 SUPER EFFECTIVE!', 'super'), 120);
         } else if (multiplier === 0.5) {
             setTimeout(() => spawnFloatingText('enemy-sprite-wrapper', '💧 RESISTED (0.5x)', 'damage'), 120);
         }
 
-        // Floating heal numbers for Leech Seed / Draining moves
         if (move.type === 'ultimate' && (pType === 'grass' || pType === 'poison')) {
             let healAmt = Math.max(1, Math.floor(damage * 0.5));
             spawnFloatingText('player-sprite-wrapper', `+${healAmt} HP`, 'heal');
         }
     } else {
-        // Status debuff floating text
         spawnFloatingText('enemy-sprite-wrapper', '🔻 STATS DROP', 'crit');
     }
 
@@ -1339,39 +1357,53 @@ function enemyTurn() {
     const pType = gameState.type || 'grass';
     const eTypeData = TYPE_DATABASE[enemyType] || TYPE_DATABASE.normal;
 
-    // 1. Pick a Real Named Move based on Enemy Level
+    // --- ENEMY MISS CHANCE (0.5% Chance) ---
+    if (Math.random() < 0.005) {
+        setBattleLog(`💨 ${enemyBaseName}'s attack MISSED!`);
+        spawnFloatingText('player-sprite-wrapper', '💨 DODGED!', 'heal');
+        setAttackButtonsDisabled(false);
+        return;
+    }
+
+    // Pick a Real Named Move based on Enemy Level
     let availableMoveCount = enemyLevel >= 13 ? 4 : (enemyLevel >= 7 ? 3 : 2);
     let moveIndex = Math.floor(Math.random() * availableMoveCount);
     let chosenMove = eTypeData.moves[moveIndex];
 
-    // 2. Base Damage Calculation
+    // Base Damage & Enemy Crit (3% chance)
+    let isEnemyCrit = (Math.random() * 100) < 3.0;
     let baseDamage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
     if (chosenMove.type === 'special' || chosenMove.type === 'ultimate') {
         baseDamage = Math.floor(baseDamage * (chosenMove.power || 1.35));
     }
+    if (isEnemyCrit) {
+        baseDamage = Math.floor(baseDamage * 1.5); // 1.5x enemy crit
+    }
 
-    // 3. Universal 18-Type Matchup against Player Element
+    // 18-Type Matchup against Player
     let enemyMultiplier = getTypeMultiplier(enemyType, pType);
     let damage = baseDamage;
     let enemyEffectText = "";
 
     if (enemyMultiplier === 2.0) {
-        damage = Math.max(1, Math.floor(baseDamage * 1.4)); // 1.4x Super Effective hit!
+        damage = Math.max(1, Math.floor(baseDamage * 1.4));
         enemyEffectText = " 🔥 Super effective on you!";
     } else if (enemyMultiplier === 0.5) {
-        damage = Math.max(1, Math.floor(baseDamage * 0.7)); // 0.7x Resisted hit!
+        damage = Math.max(1, Math.floor(baseDamage * 0.7));
         enemyEffectText = " 🛡️ You resisted the hit!";
     }
 
     pHp -= damage;
     battleDamageReceived += damage;
-    setBattleLog(`${enemyBaseName} used ${chosenMove.name} for ${damage} damage!${enemyEffectText}`);
+    setBattleLog(`${isEnemyCrit ? '💥 CRIT! ' : ''}${enemyBaseName} used ${chosenMove.name} for ${damage} damage!${enemyEffectText}`);
     
-    // --- PLAYER HIT REACTION & FLOATING TEXT ---
+    // Player Hit Reaction & Floating Text
     triggerHitReaction('battle-player-sprite');
-    spawnFloatingText('player-sprite-wrapper', `-${damage}`, (enemyMultiplier === 2.0) ? 'super' : 'damage');
+    spawnFloatingText('player-sprite-wrapper', `-${damage}`, isEnemyCrit ? 'crit' : ((enemyMultiplier === 2.0) ? 'super' : 'damage'));
     
-    if (enemyMultiplier === 2.0) {
+    if (isEnemyCrit) {
+        setTimeout(() => spawnFloatingText('player-sprite-wrapper', '💥 CRITICAL HIT!', 'crit'), 120);
+    } else if (enemyMultiplier === 2.0) {
         setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🔥 SUPER EFFECTIVE!', 'super'), 120);
     } else if (enemyMultiplier === 0.5) {
         setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🛡️ RESISTED!', 'heal'), 120);
