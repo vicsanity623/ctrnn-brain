@@ -559,7 +559,7 @@ function feedBerry() {
             let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
             gameState.xp += bonusXp;
             
-            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${bonusXp} XP (5% boost)!`);
+            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
             if (navigator.vibrate) navigator.vibrate(30);
 
             if (gameState.xp >= gameState.maxXp) {
