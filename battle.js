@@ -166,8 +166,8 @@ function enterBattle() {
 
     const playerCpEl = document.getElementById('battle-player-cp');
     const enemyCpEl = document.getElementById('battle-enemy-cp');
-    if (playerCpEl) playerCpEl.innerText = `CP ${playerCP}`;
-    if (enemyCpEl) enemyCpEl.innerText = `CP ${enemyCP}`;
+    if (playerCpEl) playerCpEl.innerText = `CP ${formatNumber(playerCP)}`;
+    if (enemyCpEl) enemyCpEl.innerText = `CP ${formatNumber(enemyCP)}`;
 
     updateStageNavigatorUI();
 
@@ -529,12 +529,12 @@ function updateHealthBars() {
 
     const playerHpText = document.getElementById('player-hp-text');
     if (playerHpText) {
-        playerHpText.innerText = `${Math.max(0, pHp)} / ${gameState.maxHp} HP`;
+        playerHpText.innerText = `${formatNumber(Math.max(0, pHp))} / ${formatNumber(gameState.maxHp)} HP`;
     }
 
     const enemyHpText = document.getElementById('enemy-hp-text');
     if (enemyHpText) {
-        enemyHpText.innerText = `${Math.max(0, eHp)} / ${eMaxHp} HP`;
+        enemyHpText.innerText = `${formatNumber(Math.max(0, eHp))} / ${formatNumber(eMaxHp)} HP`;
     }
 }
 
