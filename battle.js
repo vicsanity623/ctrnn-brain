@@ -268,27 +268,61 @@ function throwPokeBall() {
             // SUCCESSFUL CATCH!
             setBattleLog(`Gotcha! ${enemyBaseName} was caught! 🎉`);
             
-            // Generate clean stats for caught Pokemon based on its stage level
+            // --- FRESH LEVEL 1 COMPANION WITH RNG STAT VARIATION ---
+            let cleanName = currentWildData.name.replace('Wild ', '').replace('👑 BOSS ', '');
+            
+            // Individual RNG rolls (Base Stat IV variation)
+            let rollHp = 38 + Math.floor(Math.random() * 9);      // 38 - 46 HP
+            let rollAtk = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Attack
+            let rollDef = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Defense
+            let rollSpAtk = 5 + Math.floor(Math.random() * 5);    // 5 - 9 Sp. Atk
+            let rollSpDef = 5 + Math.floor(Math.random() * 5);    // 5 - 9 Sp. Def
+            let rollSpd = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Speed
+            let rollCrit = parseFloat((4.5 + Math.random() * 1.5).toFixed(2)); // 4.50% - 6.00% Crit
+
             let caughtPokemon = {
                 id: currentWildData.id,
-                name: currentWildData.name.replace('Wild ', '').replace('👑 BOSS ', ''),
+                name: cleanName,
                 type: enemyType || 'normal',
-                level: enemyLevel,
-                maxHp: Math.floor(60 + (enemyLevel * 6)),
-                attack: Math.floor(8 + (enemyLevel * 1.5)),
-                defense: Math.floor(8 + (enemyLevel * 1.5)),
-                spAtk: Math.floor(10 + (enemyLevel * 1.8)),
-                spDef: Math.floor(10 + (enemyLevel * 1.8)),
-                speed: Math.floor(7 + (enemyLevel * 1.2)),
+                level: 1,
+                maxHp: rollHp,
+                attack: rollAtk,
+                defense: rollDef,
+                spAtk: rollSpAtk,
+                spDef: rollSpDef,
+                speed: rollSpd,
+                critRate: rollCrit,
                 xp: 0,
-                maxXp: Math.floor(100 * Math.pow(1.3, enemyLevel - 5))
+                maxXp: 50
             };
 
             if (!gameState.roster) gameState.roster = [];
             gameState.roster.push(caughtPokemon);
 
+            let totalPower = rollHp + rollAtk + rollDef + rollSpAtk + rollSpDef + rollSpd;
+
             setTimeout(() => {
-                showModal("🎉 POKÉMON CAUGHT!", `You successfully caught a Lv. ${enemyLevel} ${caughtPokemon.name}! It has been added to your Party roster.`);
+                let catchCard = `
+                    <div class='bg-gray-900/80 p-3.5 rounded-xl border border-indigo-500/40 text-left text-xs space-y-1.5 mt-2 shadow-inner'>
+                        <div class='flex justify-between items-center pb-1 border-b border-gray-700'>
+                            <span class='font-bold text-white text-sm'>${caughtPokemon.name}</span>
+                            <span class='text-yellow-400 font-black'>Lv. 1 Baseline</span>
+                        </div>
+                        <div class='grid grid-cols-2 gap-2 text-gray-300 pt-1'>
+                            <div>💚 HP: <strong class='text-green-400'>${rollHp}</strong></div>
+                            <div>⚡ SPD: <strong class='text-yellow-400'>${rollSpd}</strong></div>
+                            <div>❤️ ATK: <strong class='text-red-400'>${rollAtk}</strong></div>
+                            <div>💜 SP.ATK: <strong class='text-purple-400'>${rollSpAtk}</strong></div>
+                            <div>💙 DEF: <strong class='text-blue-400'>${rollDef}</strong></div>
+                            <div>🔮 SP.DEF: <strong class='text-indigo-400'>${rollSpDef}</strong></div>
+                        </div>
+                        <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                            Total Base Power: ⚡${totalPower} CP
+                        </div>
+                    </div>
+                `.trim();
+
+                showModal("🎉 POKÉMON CAUGHT!", catchCard, [40, 80, 40]);
                 endBattle(true);
             }, 1000);
         } else {
