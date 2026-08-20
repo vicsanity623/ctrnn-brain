@@ -628,41 +628,50 @@ function levelUp(leftoverXp = 0) {
         xpBar.style.transition = 'all 0.5s ease';
         updateHub();
         
-        if (gameState.level === 7) {
-            showModal("NEW MOVE UNLOCKED! 🌿", `${gameState.name} learned Vine Whip! A powerful attack driven by your Sp. Atk!`);
+        // Check for Multi-Stage Evolution
+        const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
+
+        if (evo && gameState.level >= evo.level) {
+            triggerEvolution(evo.toId, evo.toName, evo.type);
+        } else if (gameState.level === 7) {
+            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
         } else if (gameState.level === 13) {
-            showModal("NEW MOVE UNLOCKED! 🌱", `${gameState.name} learned Leech Seed! Drains enemy health to heal your HP!`);
-        } else if (gameState.level === 18) {
-            showModal("NEW MOVE UNLOCKED! 🍃", `${gameState.name} learned Razor Leaf! Slices foes with high Critical Hit power!`);
-        } else if (gameState.level > 10 && Math.random() > 0.5 && gameState.id === 1) {
-            triggerEvolution(2, 'Ivysaur');
+            showModal("NEW MOVE UNLOCKED! 🌟", `${gameState.name} unlocked Slot 3 Ultimate Move! Massive combat power!`);
         } else {
             showModal(`${gameState.name} grew to Level ${gameState.level}!`);
         }
     }, 50);
 }
 
-// --- EVOLUTION SYSTEM ---
-function triggerEvolution(newId, newName) {
+// --- UNIVERSAL EVOLUTION SYSTEM ---
+function triggerEvolution(newId, newName, newType) {
     showScreen('evo-screen');
-    document.getElementById('evo-old-name').innerText = gameState.name;
+    const oldName = gameState.name;
+    document.getElementById('evo-old-name').innerText = oldName;
     document.getElementById('evo-sprite').src = document.getElementById('hub-sprite').src;
     
     setTimeout(() => {
         gameState.id = newId;
         gameState.name = newName;
-        gameState.maxHp += 30;
-        gameState.attack += 20;
-        gameState.defense += 20;
-        gameState.spAtk += 20;
-        gameState.spDef += 20;
-        gameState.speed += 15;
+        if (newType) gameState.type = newType;
+
+        // Big Stat Boost on Evolution!
+        gameState.maxHp += 40;
+        gameState.attack += 25;
+        gameState.defense += 25;
+        gameState.spAtk += 25;
+        gameState.spDef += 25;
+        gameState.speed += 20;
         
-        document.getElementById('evo-sprite').classList.remove('brightness-0', 'animate-pulse');
-        document.getElementById('evo-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${newId}.gif`;
+        // Permanently sync evolution to active slot in party roster
+        syncCurrentPokemonToRoster();
+
+        const evoImg = document.getElementById('evo-sprite');
+        evoImg.classList.remove('brightness-0', 'animate-pulse');
+        evoImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${newId}.gif`;
         
         setTimeout(() => {
-            showModal(`Your Pokemon evolved into ${newName}!`);
+            showModal("✨ EVOLUTION COMPLETE! ✨", `Congratulations! Your ${oldName} evolved into a powerful <strong>${newName}</strong>!`, [50, 100, 50]);
             updateHub();
             showScreen('hub-screen');
         }, 2000);
