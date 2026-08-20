@@ -260,7 +260,40 @@ function nextStory() {
 function updateHub() {
     document.getElementById('hub-name').innerText = gameState.name;
     document.getElementById('hub-level').innerText = gameState.level;
+    
+    // Live Level on XP Bar
+    const hubBarLvl = document.getElementById('hub-bar-level');
+    if (hubBarLvl) hubBarLvl.innerText = gameState.level;
+
+    // Fill Width & Numeric XP Text (e.g. 342 / 425)
     document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
+    const xpText = document.getElementById('xp-text');
+    if (xpText) {
+        xpText.innerText = `${gameState.xp} / ${gameState.maxXp}`;
+    }
+
+    // Dynamic 4-Move Chips Rendering on Hub Bar
+    const pType = gameState.type || 'grass';
+    const typeData = TYPE_DATABASE[pType] || TYPE_DATABASE.grass;
+    
+    for (let i = 0; i < 4; i++) {
+        const chip = document.getElementById(`hub-chip-${i}`);
+        if (chip) {
+            let cleanMoveName = typeData.moves[i].name.replace(/^[^\s]+\s/, ''); // Strips emoji for compact fit
+            if (i === 2 && gameState.level < 7) {
+                chip.innerText = `🔒 ${cleanMoveName}`;
+                chip.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-800 text-gray-500 truncate border border-gray-700/50";
+            } else if (i === 3 && gameState.level < 13) {
+                chip.innerText = `🔒 ${cleanMoveName}`;
+                chip.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-800 text-gray-500 truncate border border-gray-700/50";
+            } else {
+                chip.innerText = cleanMoveName;
+                let bgColors = ["bg-blue-600", "bg-indigo-600", "bg-green-600", "bg-emerald-600"];
+                chip.className = `px-2 py-0.5 rounded text-[9px] font-bold text-white truncate shadow-sm ${bgColors[i]}`;
+            }
+        }
+    }
+
     document.getElementById('hub-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif`;
 
     // Live Total Combat Power (CP) Calculation
