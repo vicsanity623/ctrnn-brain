@@ -2,6 +2,27 @@
 // GLOBAL CONSTANTS & SHARED STATE (global.js)
 // ============================================================================
 
+// --- COMPACT NUMBER FORMATTER (999, 1.00K, 999.99K, 1.00M, 1.00B) ---
+function formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) return '0';
+    if (num < 1000) return Math.floor(num).toString();
+
+    const tiers = [
+        { value: 1e12, symbol: 'T' },
+        { value: 1e9, symbol: 'B' },
+        { value: 1e6, symbol: 'M' },
+        { value: 1e3, symbol: 'K' }
+    ];
+
+    for (let i = 0; i < tiers.length; i++) {
+        if (num >= tiers[i].value) {
+            let formatted = (num / tiers[i].value).toFixed(2);
+            return `${formatted}${tiers[i].symbol}`;
+        }
+    }
+    return num.toString();
+}
+
 // --- 18 OFFICIAL ELEMENTAL TYPE DATABASE ---
 const TYPE_DATABASE = {
     normal: { name: "Normal", icon: "⭐", bg: "bg-gray-600", superVs: [], weakVs: ["fighting"],
