@@ -406,8 +406,10 @@ function renderPartyList() {
 
     syncCurrentPokemonToRoster();
 
+    let activeIdx = gameState.activeRosterIndex ?? 0;
+
     gameState.roster.forEach((p, index) => {
-        let isActive = (p.id === gameState.id && p.name === gameState.name);
+        let isActive = (index === activeIdx);
         list.innerHTML += `
             <div onclick="switchActivePokemon(${index})" class="flex items-center justify-between p-3 rounded-xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-md' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
                 <div class="flex items-center gap-3">
@@ -429,42 +431,34 @@ function renderPartyList() {
 }
 
 function syncCurrentPokemonToRoster() {
-    let found = false;
-    for (let i = 0; i < gameState.roster.length; i++) {
-        if (gameState.roster[i].id === gameState.id) {
-            gameState.roster[i] = {
-                id: gameState.id,
-                name: gameState.name,
-                type: gameState.type || 'normal',
-                level: gameState.level,
-                maxHp: gameState.maxHp,
-                attack: gameState.attack,
-                defense: gameState.defense,
-                spAtk: gameState.spAtk,
-                spDef: gameState.spDef,
-                speed: gameState.speed,
-                xp: gameState.xp,
-                maxXp: gameState.maxXp
-            };
-            found = true;
-            break;
-        }
+    if (!gameState.roster || gameState.roster.length === 0) {
+        gameState.roster = [];
     }
-    if (!found) {
-        gameState.roster.push({
-            id: gameState.id,
-            name: gameState.name,
-            type: gameState.type || 'normal',
-            level: gameState.level,
-            maxHp: gameState.maxHp,
-            attack: gameState.attack,
-            defense: gameState.defense,
-            spAtk: gameState.spAtk,
-            spDef: gameState.spDef,
-            speed: gameState.speed,
-            xp: gameState.xp,
-            maxXp: gameState.maxXp
-        });
+
+    let idx = gameState.activeRosterIndex ?? 0;
+    if (idx < 0 || idx >= gameState.roster.length) idx = 0;
+    gameState.activeRosterIndex = idx;
+
+    let currentData = {
+        id: gameState.id,
+        name: gameState.name,
+        type: gameState.type || 'normal',
+        level: gameState.level,
+        maxHp: gameState.maxHp,
+        attack: gameState.attack,
+        defense: gameState.defense,
+        spAtk: gameState.spAtk,
+        spDef: gameState.spDef,
+        speed: gameState.speed,
+        critRate: gameState.critRate || 5.0,
+        xp: gameState.xp,
+        maxXp: gameState.maxXp
+    };
+
+    if (gameState.roster[idx]) {
+        gameState.roster[idx] = currentData;
+    } else {
+        gameState.roster.push(currentData);
     }
 }
 
@@ -472,7 +466,9 @@ function switchActivePokemon(index) {
     if (index < 0 || index >= gameState.roster.length) return;
     syncCurrentPokemonToRoster();
 
+    gameState.activeRosterIndex = index; // Sets active companion slot
     let target = gameState.roster[index];
+
     gameState.id = target.id;
     gameState.name = target.name;
     gameState.type = target.type || 'normal';
@@ -483,6 +479,7 @@ function switchActivePokemon(index) {
     gameState.spAtk = target.spAtk;
     gameState.spDef = target.spDef;
     gameState.speed = target.speed;
+    gameState.critRate = target.critRate || 5.0;
     gameState.xp = target.xp;
     gameState.maxXp = target.maxXp;
 
@@ -643,7 +640,7 @@ function levelUp(leftoverXp = 0) {
     }, 50);
 }
 
-// --- UNIVERSAL EVOLUTION SYSTEM ---
+// --- UNIVERSAL EVOLUTION SYSTEM (IN-PLACE TRANSFORMATION) ---
 function triggerEvolution(newId, newName, newType) {
     showScreen('evo-screen');
     const oldName = gameState.name;
@@ -655,7 +652,7 @@ function triggerEvolution(newId, newName, newType) {
         gameState.name = newName;
         if (newType) gameState.type = newType;
 
-        // Big Stat Boost on Evolution!
+        // Evolution Stat Boosts!
         gameState.maxHp += 40;
         gameState.attack += 25;
         gameState.defense += 25;
@@ -663,8 +660,19 @@ function triggerEvolution(newId, newName, newType) {
         gameState.spDef += 25;
         gameState.speed += 20;
         
-        // Permanently sync evolution to active slot in party roster
-        syncCurrentPokemonToRoster();
+        // Overwrite the existing roster slot directly (prevents cloning)
+        let activeIdx = gameState.activeRosterIndex ?? 0;
+        if (gameState.roster && gameState.roster[activeIdx]) {
+            gameState.roster[activeIdx].id = newId;
+            gameState.roster[activeIdx].name = newName;
+            if (newType) gameState.roster[activeIdx].type = newType;
+            gameState.roster[activeIdx].maxHp = gameState.maxHp;
+            gameState.roster[activeIdx].attack = gameState.attack;
+            gameState.roster[activeIdx].defense = gameState.defense;
+            gameState.roster[activeIdx].spAtk = gameState.spAtk;
+            gameState.roster[activeIdx].spDef = gameState.spDef;
+            gameState.roster[activeIdx].speed = gameState.speed;
+        }
 
         const evoImg = document.getElementById('evo-sprite');
         evoImg.classList.remove('brightness-0', 'animate-pulse');
