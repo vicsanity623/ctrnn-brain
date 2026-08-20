@@ -2,37 +2,7 @@
 // BATTLE ENGINE & COMBAT SYSTEM (battle.js)
 // ============================================================================
 
-// --- POKÉDEX SPAWN POOLS ---
-// Stage 1 / Base Form Pokémon ONLY (For Regular Stages)
-const BASE_POKEMON_IDS = [
-    1, 4, 7, 10, 13, 16, 19, 21, 23, 25, 27, 29, 32, 35, 37, 39, 41, 43, 46, 48, 
-    50, 52, 54, 56, 58, 60, 63, 66, 69, 72, 74, 77, 79, 81, 83, 84, 86, 88, 90, 
-    92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 114, 115, 116, 118, 120, 
-    122, 123, 124, 125, 126, 127, 128, 129, 131, 132, 133, 137, 138, 140, 142, 143, 147
-];
-
-// Evolved Forms (Exclusively for Boss Stages Every 5 Levels)
-const EVOLVED_BOSS_IDS = [
-    2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 34, 
-    36, 38, 40, 42, 44, 45, 47, 49, 51, 53, 55, 57, 59, 61, 62, 64, 65, 67, 68, 
-    70, 71, 73, 75, 76, 78, 80, 82, 85, 87, 89, 91, 93, 94, 97, 99, 101, 103, 
-    105, 106, 107, 110, 112, 117, 119, 121, 130, 134, 135, 136, 139, 141, 148, 149
-];
-
-// --- BATTLE STATE VARIABLES ---
-var eHp = 100;
-var eMaxHp = 100;
-var pHp = 40;
-var enemyLevel = 1;
-var enemyAttack = 10;
-var enemyDefense = 0;
-var isBoss = false;
-var enemyBaseName = "Wild Pokemon";
-var enemyType = "normal";
-var battleDamageDealt = 0;
-var battleDamageReceived = 0;
-var statusCooldown = 0;
-var currentWildData = { id: 1, name: "Wild Pokemon", level: 1 };
+// (Spawn pools and battle state variables are loaded globally from global.js)
 
 // --- ELEMENTAL TYPE BADGE RENDERER ---
 function updateTypeBadge(elementId, typeKey) {
