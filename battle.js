@@ -629,9 +629,9 @@ function endBattle(won) {
 
         let victoryCard = `
             <div class='bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-left text-sm space-y-2 mt-2 shadow-inner'>
-                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span>${replayTag}</div>
+                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(earnedXp)} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span>${replayTag}</div>
                 <div>🎁 <strong class='text-white'>Loot:</strong> ${lootText}</div>
-                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-blue-400 font-bold'>${battleDamageReceived}</span> Taken</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${formatNumber(battleDamageDealt)}</span> Dealt • <span class='text-blue-400 font-bold'>${formatNumber(battleDamageReceived)}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800'>${progressMsg}</div>
             </div>
         `.trim();
@@ -650,7 +650,7 @@ function endBattle(won) {
         let defeatCard = `
             <div class='bg-gray-900/80 p-4 rounded-xl border border-red-900/60 text-left text-sm space-y-2.5 mt-2 shadow-inner'>
                 <div class='text-gray-300'>${gameState.name} was overwhelmed on <strong class='text-yellow-400'>Stage ${gameState.currentStage}</strong>!</div>
-                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-red-400 font-bold'>${battleDamageReceived}</span> Taken</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${formatNumber(battleDamageDealt)}</span> Dealt • <span class='text-red-400 font-bold'>${formatNumber(battleDamageReceived)}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800 text-xs text-red-400 font-semibold'>💔 Lost 2 Hearts (Feed berries or pet to recover!)</div>
             </div>
         `.trim();
