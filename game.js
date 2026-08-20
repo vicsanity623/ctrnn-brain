@@ -169,10 +169,10 @@ function updateHub() {
     const hubBarLvl = document.getElementById('hub-bar-level');
     if (hubBarLvl) hubBarLvl.innerText = gameState.level;
 
-    document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
+    document.getElementById('xp-bar').style.width = `${Math.min(100, (gameState.xp / gameState.maxXp) * 100)}%`;
     const xpText = document.getElementById('xp-text');
     if (xpText) {
-        xpText.innerText = `${gameState.xp} / ${gameState.maxXp}`;
+        xpText.innerText = `${formatNumber(gameState.xp)} / ${formatNumber(gameState.maxXp)}`;
     }
 
     const pType = gameState.type || 'grass';
@@ -201,7 +201,7 @@ function updateHub() {
     let totalPower = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
     const hubPowerEl = document.getElementById('hub-power');
     if (hubPowerEl) {
-        hubPowerEl.innerText = totalPower;
+        hubPowerEl.innerText = formatNumber(totalPower);
     }
 
     let heartsHtml = '';
