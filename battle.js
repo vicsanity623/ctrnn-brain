@@ -518,8 +518,24 @@ function enemyTurn() {
 }
 
 function updateHealthBars() {
-    document.getElementById('player-hp').style.width = `${Math.max(0, (pHp/gameState.maxHp)*100)}%`;
-    document.getElementById('enemy-hp').style.width = `${Math.max(0, (eHp/eMaxHp)*100)}%`;
+    let playerPercent = Math.max(0, (pHp / gameState.maxHp) * 100);
+    let enemyPercent = Math.max(0, (eHp / eMaxHp) * 100);
+
+    const playerHpBar = document.getElementById('player-hp');
+    const enemyHpBar = document.getElementById('enemy-hp');
+
+    if (playerHpBar) playerHpBar.style.width = `${playerPercent}%`;
+    if (enemyHpBar) enemyHpBar.style.width = `${enemyPercent}%`;
+
+    const playerHpText = document.getElementById('player-hp-text');
+    if (playerHpText) {
+        playerHpText.innerText = `${Math.max(0, pHp)} / ${gameState.maxHp} HP`;
+    }
+
+    const enemyHpText = document.getElementById('enemy-hp-text');
+    if (enemyHpText) {
+        enemyHpText.innerText = `${Math.max(0, eHp)} / ${eMaxHp} HP`;
+    }
 }
 
 // --- END BATTLE (VICTORY / DEFEAT / REWARDS) ---
