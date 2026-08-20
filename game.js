@@ -128,14 +128,14 @@ const TYPE_DATABASE = {
         ]}
 };
 
-// Game State
+// Game State (Level 1 Starter Baseline)
 var gameState = {
-    id: 1, name: 'Bulbasaur', type: 'grass', level: 5, xp: 0, maxXp: 100, 
-    hearts: 2, attack: 10, defense: 10, maxHp: 80,
-    spAtk: 12, spDef: 12, speed: 9,
+    id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50, 
+    hearts: 2, attack: 5, defense: 5, maxHp: 40,
+    spAtk: 6, spDef: 6, speed: 5,
     berries: 5, pokeballs: 3,
     lastInteraction: Date.now(),
-    currentStage: 3, maxStage: 3,
+    currentStage: 1, maxStage: 1, // <-- Starts on Stage 1!
     gardenBerries: 1, lastGardenHarvest: Date.now(),
     roster: []
 };
