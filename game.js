@@ -1244,29 +1244,44 @@ function playerAttack(slot = 0) {
 }
 
 function enemyTurn() {
+    const pType = gameState.type || 'grass';
+    const eTypeData = TYPE_DATABASE[enemyType] || TYPE_DATABASE.normal;
+
+    // 1. Pick a Real Named Move based on Enemy Level
+    let availableMoveCount = enemyLevel >= 13 ? 4 : (enemyLevel >= 7 ? 3 : 2);
+    let moveIndex = Math.floor(Math.random() * availableMoveCount);
+    let chosenMove = eTypeData.moves[moveIndex];
+
+    // 2. Base Damage Calculation
     let baseDamage = Math.max(1, enemyAttack - Math.floor(gameState.defense / 4));
+    if (chosenMove.type === 'special' || chosenMove.type === 'ultimate') {
+        baseDamage = Math.floor(baseDamage * (chosenMove.power || 1.35));
+    }
+
+    // 3. Universal 18-Type Matchup against Player Element
+    let enemyMultiplier = getTypeMultiplier(enemyType, pType);
     let damage = baseDamage;
     let enemyEffectText = "";
 
-    // Enemy Type Counter-Buffs on Bulbasaur (Grass Type)
-    if (enemyType === 'fire') {
-        damage = Math.floor(baseDamage * 1.35); // Fire burns grass!
+    if (enemyMultiplier === 2.0) {
+        damage = Math.max(1, Math.floor(baseDamage * 1.4)); // 1.4x Super Effective hit!
         enemyEffectText = " 🔥 Super effective on you!";
-    } else if (enemyType === 'water') {
-        damage = Math.max(1, Math.floor(baseDamage * 0.75)); // Grass resists water!
+    } else if (enemyMultiplier === 0.5) {
+        damage = Math.max(1, Math.floor(baseDamage * 0.7)); // 0.7x Resisted hit!
         enemyEffectText = " 🛡️ You resisted the hit!";
     }
 
     pHp -= damage;
-    battleDamageReceived += damage; // Accumulate total damage taken
-    setBattleLog(`${enemyBaseName} attacked for ${damage} damage!${enemyEffectText}`);
+    battleDamageReceived += damage;
+    setBattleLog(`${enemyBaseName} used ${chosenMove.name} for ${damage} damage!${enemyEffectText}`);
     
     // --- PLAYER HIT REACTION & FLOATING TEXT ---
     triggerHitReaction('battle-player-sprite');
-    spawnFloatingText('player-sprite-wrapper', `-${damage}`, (enemyType === 'fire') ? 'super' : 'damage');
-    if (enemyType === 'fire') {
+    spawnFloatingText('player-sprite-wrapper', `-${damage}`, (enemyMultiplier === 2.0) ? 'super' : 'damage');
+    
+    if (enemyMultiplier === 2.0) {
         setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🔥 SUPER EFFECTIVE!', 'super'), 120);
-    } else if (enemyType === 'water') {
+    } else if (enemyMultiplier === 0.5) {
         setTimeout(() => spawnFloatingText('player-sprite-wrapper', '🛡️ RESISTED!', 'heal'), 120);
     }
 
@@ -1296,8 +1311,15 @@ function endBattle(won) {
             gameState.currentStage++; 
         }
 
-        // 1. Calculate Dynamic Stage-Scaled XP (Early stages grant balanced XP)
-        let baseStageXp = Math.floor(10 + (beatenStage * 2.5)); // Stage 1 = 12 XP, Stage 10 = 35 XP, Stage 20 = 60 XP
+        // 1. Calculate Dynamic Stage-Scaled XP (50% XP for Replay Farming!)
+        let baseStageXp = Math.floor(10 + (beatenStage * 2.5));
+        let replayTag = "";
+
+        if (!isNewRecord) {
+            baseStageXp = Math.max(5, Math.floor(baseStageXp * 0.5)); // <-- 50% XP for Replaying Old Stages!
+            replayTag = " <span class='text-[10px] text-yellow-300'>(Replay: 50% XP)</span>";
+        }
+
         let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
         let earnedXp = Math.floor(baseStageXp * multiplier);
 
@@ -1340,7 +1362,7 @@ function endBattle(won) {
 
         let victoryCard = `
             <div class='bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-left text-sm space-y-2 mt-2 shadow-inner'>
-                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span></div>
+                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span>${replayTag}</div>
                 <div>🎁 <strong class='text-white'>Loot:</strong> ${lootText}</div>
                 <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-blue-400 font-bold'>${battleDamageReceived}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800'>${progressMsg}</div>
