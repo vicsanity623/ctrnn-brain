@@ -266,6 +266,7 @@ var gameState = {
     hearts: 2, attack: 5, defense: 5, maxHp: 40,
     spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
     berries: 5, pokeballs: 3,
+    activeRosterIndex: 0, // <-- Tracks the exact slot of the active companion
     items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
