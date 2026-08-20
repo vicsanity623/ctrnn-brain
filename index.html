@@ -167,7 +167,10 @@
                     <h3 id="enemy-name" class="font-bold text-sm truncate">Wild Pidgey</h3>
                     <span id="enemy-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-gray-700 text-white shadow-sm shrink-0">Normal ⭐</span>
                 </div>
-                <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="enemy-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
+                <div class="relative w-full h-3.5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-600/80 mt-2 flex items-center justify-center shadow-inner">
+                    <div id="enemy-hp" class="absolute left-0 top-0 h-full bg-green-500 w-full transition-all duration-300"></div>
+                    <span id="enemy-hp-text" class="relative z-10 text-[9px] font-black text-white tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none">100 / 100 HP</span>
+                </div>
             </div>
             <div class="relative flex items-center justify-center" id="enemy-sprite-wrapper">
                 <div id="elemental-fx" class="elemental-slash-fx hidden"></div>
@@ -182,7 +185,10 @@
                     <h3 id="battle-player-name" class="font-bold text-sm truncate">Bulbasaur</h3>
                     <span id="player-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-green-600 text-white shadow-sm shrink-0">Grass 🌿</span>
                 </div>
-                <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div id="player-hp" class="h-full bg-green-500 w-full transition-all"></div></div>
+                <div class="relative w-full h-3.5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-600/80 mt-2 flex items-center justify-center shadow-inner">
+                    <div id="player-hp" class="absolute left-0 top-0 h-full bg-green-500 w-full transition-all duration-300"></div>
+                    <span id="player-hp-text" class="relative z-10 text-[9px] font-black text-white tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none">40 / 40 HP</span>
+                </div>
             </div>
             <div class="relative flex items-center justify-center" id="player-sprite-wrapper">
                 <img id="battle-player-sprite" src="" class="w-48 h-48 object-contain -translate-x-10 pixel-perfect">
