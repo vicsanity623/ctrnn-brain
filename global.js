@@ -164,6 +164,87 @@ const XL_ITEM_CONFIG = {
     critXL: { name: "Crit-XL", icon: "💥", desc: "Permanently boosts Crit Rate by +0.25%", color: "text-amber-400", stat: "critRate" }
 };
 
+// --- COMPLETE GEN 1 EVOLUTION DATABASE (2-STAGE & 3-STAGE) ---
+const EVOLUTION_DATABASE = {
+    // Starters (3-Stage Lines)
+    1: { toId: 2, toName: 'Ivysaur', level: 16, type: 'grass' },
+    2: { toId: 3, toName: 'Venusaur', level: 32, type: 'grass' },
+    4: { toId: 5, toName: 'Charmeleon', level: 16, type: 'fire' },
+    5: { toId: 6, toName: 'Charizard', level: 36, type: 'fire' },
+    7: { toId: 8, toName: 'Wartortle', level: 16, type: 'water' },
+    8: { toId: 9, toName: 'Blastoise', level: 36, type: 'water' },
+
+    // Bugs & Birds
+    10: { toId: 11, toName: 'Metapod', level: 7, type: 'bug' },
+    11: { toId: 12, toName: 'Butterfree', level: 10, type: 'bug' },
+    13: { toId: 14, toName: 'Kakuna', level: 7, type: 'bug' },
+    14: { toId: 15, toName: 'Beedrill', level: 10, type: 'bug' },
+    16: { toId: 17, toName: 'Pidgeotto', level: 18, type: 'flying' },
+    17: { toId: 18, toName: 'Pidgeot', level: 36, type: 'flying' },
+    19: { toId: 20, toName: 'Raticate', level: 20, type: 'normal' },
+    21: { toId: 22, toName: 'Fearow', level: 20, type: 'flying' },
+    23: { toId: 24, toName: 'Arbok', level: 22, type: 'poison' },
+    25: { toId: 26, toName: 'Raichu', level: 26, type: 'electric' },
+    27: { toId: 28, toName: 'Sandslash', level: 22, type: 'ground' },
+
+    // Nidos (3-Stage Lines)
+    29: { toId: 30, toName: 'Nidorina', level: 16, type: 'poison' },
+    30: { toId: 31, toName: 'Nidoqueen', level: 36, type: 'poison' },
+    32: { toId: 33, toName: 'Nidorino', level: 16, type: 'poison' },
+    33: { toId: 34, toName: 'Nidoking', level: 36, type: 'poison' },
+
+    // Classics & 3-Stage Powerhouses
+    35: { toId: 36, toName: 'Clefable', level: 26, type: 'fairy' },
+    37: { toId: 38, toName: 'Ninetales', level: 28, type: 'fire' },
+    39: { toId: 40, toName: 'Wigglytuff', level: 26, type: 'normal' },
+    41: { toId: 42, toName: 'Golbat', level: 22, type: 'poison' },
+    43: { toId: 44, toName: 'Gloom', level: 21, type: 'grass' },
+    44: { toId: 45, toName: 'Vileplume', level: 36, type: 'grass' },
+    46: { toId: 47, toName: 'Parasect', level: 24, type: 'bug' },
+    48: { toId: 49, toName: 'Venomoth', level: 31, type: 'bug' },
+    50: { toId: 51, toName: 'Dugtrio', level: 26, type: 'ground' },
+    52: { toId: 53, toName: 'Persian', level: 28, type: 'normal' },
+    54: { toId: 55, toName: 'Golduck', level: 33, type: 'water' },
+    56: { toId: 57, toName: 'Primeape', level: 28, type: 'fighting' },
+    58: { toId: 59, toName: 'Arcanine', level: 30, type: 'fire' },
+    60: { toId: 61, toName: 'Poliwhirl', level: 25, type: 'water' },
+    61: { toId: 62, toName: 'Poliwrath', level: 36, type: 'water' },
+    63: { toId: 64, toName: 'Kadabra', level: 16, type: 'psychic' },
+    64: { toId: 65, toName: 'Alakazam', level: 36, type: 'psychic' },
+    66: { toId: 67, toName: 'Machoke', level: 28, type: 'fighting' },
+    67: { toId: 68, toName: 'Machamp', level: 36, type: 'fighting' },
+    69: { toId: 70, toName: 'Weepinbell', level: 21, type: 'grass' },
+    70: { toId: 71, toName: 'Victreebel', level: 36, type: 'grass' },
+    72: { toId: 73, toName: 'Tentacruel', level: 30, type: 'water' },
+    74: { toId: 75, toName: 'Graveler', level: 25, type: 'rock' },
+    75: { toId: 76, toName: 'Golem', level: 36, type: 'rock' },
+    77: { toId: 78, toName: 'Rapidash', level: 40, type: 'fire' },
+    79: { toId: 80, toName: 'Slowbro', level: 37, type: 'water' },
+    81: { toId: 82, toName: 'Magneton', level: 30, type: 'electric' },
+    84: { toId: 85, toName: 'Dodrio', level: 31, type: 'flying' },
+    86: { toId: 87, toName: 'Dewgong', level: 34, type: 'ice' },
+    88: { toId: 89, toName: 'Muk', level: 38, type: 'poison' },
+    90: { toId: 91, toName: 'Cloyster', level: 30, type: 'water' },
+    92: { toId: 93, toName: 'Haunter', level: 25, type: 'ghost' },
+    93: { toId: 94, toName: 'Gengar', level: 36, type: 'ghost' },
+    96: { toId: 97, toName: 'Hypno', level: 26, type: 'psychic' },
+    98: { toId: 99, toName: 'Kingler', level: 28, type: 'water' },
+    100: { toId: 101, toName: 'Electrode', level: 30, type: 'electric' },
+    102: { toId: 103, toName: 'Exeggutor', level: 30, type: 'grass' },
+    104: { toId: 105, toName: 'Marowak', level: 28, type: 'ground' },
+    109: { toId: 110, toName: 'Weezing', level: 35, type: 'poison' },
+    111: { toId: 112, toName: 'Rhydon', level: 42, type: 'ground' },
+    116: { toId: 117, toName: 'Seadra', level: 32, type: 'water' },
+    118: { toId: 119, toName: 'Seaking', level: 33, type: 'water' },
+    120: { toId: 121, toName: 'Starmie', level: 30, type: 'water' },
+    129: { toId: 130, toName: 'Gyarados', level: 20, type: 'water' },
+    133: { toId: 134, toName: 'Vaporeon', level: 25, type: 'water' },
+    138: { toId: 139, toName: 'Omastar', level: 40, type: 'rock' },
+    140: { toId: 141, toName: 'Kabutops', level: 40, type: 'rock' },
+    147: { toId: 148, toName: 'Dragonair', level: 30, type: 'dragon' },
+    148: { toId: 149, toName: 'Dragonite', level: 55, type: 'dragon' }
+};
+
 // --- POKÉDEX SPAWN POOLS ---
 const BASE_POKEMON_IDS = [
     1, 4, 7, 10, 13, 16, 19, 21, 23, 25, 27, 29, 32, 35, 37, 39, 41, 43, 46, 48, 
