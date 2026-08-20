@@ -185,27 +185,86 @@ window.onload = () => {
     }, 500);
 };
 
+// --- NEW GAME CONFIRMATION SYSTEM ---
+function handleStartNewGame() {
+    if (localStorage.getItem('pokeSave')) {
+        // Active save file detected! Warn the player first!
+        openConfirmModal();
+    } else {
+        // First time playing, start immediately
+        executeNewGame();
+    }
+}
+
+function openConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    const content = document.getElementById('confirm-content');
+    if (!modal || !content) return;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate([50, 50]);
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    const content = document.getElementById('confirm-content');
+    if (!modal || !content) return;
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function executeNewGame() {
+    closeConfirmModal();
+    localStorage.removeItem('pokeSave');
+    startGame(true);
+}
+
 // Start or Continue
 function startGame(isNew) {
-    if(!isNew && localStorage.getItem('pokeSave')) {
+    if (isNew) {
+        // Clean Reset to Level 1 Starter Baseline
+        gameState = {
+            id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50, 
+            hearts: 2, attack: 5, defense: 5, maxHp: 40,
+            spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
+            berries: 5, pokeballs: 3,
+            lastInteraction: Date.now(),
+            currentStage: 1, maxStage: 1,
+            gardenBerries: 1, lastGardenHarvest: Date.now(),
+            roster: [{
+                id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50,
+                attack: 5, defense: 5, maxHp: 40, spAtk: 6, spDef: 6, speed: 5
+            }]
+        };
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        updateHub();
+        showScreen('intro-screen');
+    } else if (localStorage.getItem('pokeSave')) {
         gameState = JSON.parse(localStorage.getItem('pokeSave'));
         
         // Backward compatibility for old saves
         if (gameState.berries === undefined) gameState.berries = 5;
         if (gameState.pokeballs === undefined) gameState.pokeballs = 3;
-        if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 3;
+        if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 1;
         if (gameState.maxStage === undefined) gameState.maxStage = gameState.currentStage;
-        if (gameState.spAtk === undefined) gameState.spAtk = 12;
-        if (gameState.spDef === undefined) gameState.spDef = 12;
-        if (gameState.speed === undefined) gameState.speed = 9;
+        if (gameState.spAtk === undefined) gameState.spAtk = 6;
+        if (gameState.spDef === undefined) gameState.spDef = 6;
+        if (gameState.speed === undefined) gameState.speed = 5;
+        if (gameState.critRate === undefined) gameState.critRate = 5.0;
         if (gameState.gardenBerries === undefined) gameState.gardenBerries = 1;
         if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
         if (!gameState.roster || gameState.roster.length === 0) {
-            // Add starter to roster if empty
             gameState.roster = [{
                 id: gameState.id,
                 name: gameState.name,
+                type: gameState.type || 'grass',
                 level: gameState.level,
                 maxHp: gameState.maxHp,
                 attack: gameState.attack,
