@@ -808,6 +808,7 @@ var enemyBaseName = "Wild Pokemon";
 var enemyType = "normal";
 var battleDamageDealt = 0;
 var battleDamageReceived = 0;
+var statusCooldown = 0;
 
 // --- ELEMENTAL TYPE BADGE RENDERER ---
 function updateTypeBadge(elementId, typeKey) {
@@ -844,12 +845,18 @@ function updateBattleMoveButtons() {
         btn0.disabled = false;
     }
 
-    // Slot 1 (Status Debuff)
+    // Slot 1 (Status Debuff with 4-Turn Cooldown Engine)
     const btn1 = document.getElementById('btn-move-1');
     if (btn1) {
-        document.getElementById('move-name-1').innerText = typeData.moves[1].name;
-        document.getElementById('move-type-1').innerText = typeData.moves[1].desc;
-        btn1.disabled = false;
+        if (statusCooldown > 0) {
+            btn1.disabled = true;
+            document.getElementById('move-name-1').innerText = `⏳ ${typeData.moves[1].name} (${statusCooldown})`;
+            document.getElementById('move-type-1').innerText = `Cooldown (${statusCooldown}T)`;
+        } else {
+            btn1.disabled = false;
+            document.getElementById('move-name-1').innerText = typeData.moves[1].name;
+            document.getElementById('move-type-1').innerText = typeData.moves[1].desc;
+        }
     }
 
     // Slot 2 (Lv. 7 Elemental Special)
@@ -952,10 +959,10 @@ function enterBattle() {
     eHp = eMaxHp;
     pHp = gameState.maxHp;
     
-    // Reset Battle Stats for New Encounter
+    // Reset Battle Stats & Cooldowns for New Encounter
     battleDamageDealt = 0;
     battleDamageReceived = 0;
-    
+    statusCooldown = 0;
     setAttackButtonsDisabled(false);
 
     // --- CALCULATE & DISPLAY BATTLE CP BADGES ---
@@ -1152,14 +1159,20 @@ function playerAttack(slot = 0) {
         typeEffectText = " 💧 Not very effective (0.5x)...";
     }
 
-    // --- SCOPED DAMAGE VARIABLE (ACCESSIBLE EVERYWHERE) ---
+    // --- COOLDOWN TRACKING ---
+    if (move.type === 'status') {
+        statusCooldown = 4; // Set 4-turn cooldown when using status move
+    } else if (statusCooldown > 0) {
+        statusCooldown--; // Decrement cooldown when using any other move
+    }
+
     let damage = 0;
 
     if (move.type === 'status') {
         // --- SLOT 1: STATUS DEBUFF ---
         enemyAttack = Math.max(1, enemyAttack - 2);
         enemyDefense = Math.max(0, enemyDefense - 4);
-        setBattleLog(`${gameState.name} used ${move.name}! Enemy stats were shredded!`);
+        setBattleLog(`${gameState.name} used ${move.name}! Enemy stats were shredded! (4T Cooldown)`);
 
     } else if (move.type === 'special') {
         // --- SLOT 2: ELEMENTAL SPECIAL (Lv. 7, Scales with Sp. Atk) ---
@@ -1283,9 +1296,10 @@ function endBattle(won) {
             gameState.currentStage++; 
         }
 
-        // 1. Calculate XP with Mood Multiplier
+        // 1. Calculate Dynamic Stage-Scaled XP (Early stages grant balanced XP)
+        let baseStageXp = Math.floor(10 + (beatenStage * 2.5)); // Stage 1 = 12 XP, Stage 10 = 35 XP, Stage 20 = 60 XP
         let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
-        let earnedXp = Math.floor(50 * multiplier);
+        let earnedXp = Math.floor(baseStageXp * multiplier);
 
         // 2. Calculate Loot Drops (Berries + Guaranteed Pokéballs on Bosses!)
         let drops = [];
@@ -1338,7 +1352,7 @@ function endBattle(won) {
         
         // Switch to hub FIRST, then trigger XP animation
         showScreen('hub-screen');
-        setTimeout(() => addXP(50), 300);
+        setTimeout(() => addXP(baseStageXp), 300);
     } else {
         // --- RICH DEFEAT CARD ---
         gameState.hearts = Math.max(0, gameState.hearts - 2); 
