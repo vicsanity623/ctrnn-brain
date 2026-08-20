@@ -576,7 +576,7 @@ function endBattle(won) {
         let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
         let earnedXp = Math.floor(baseStageXp * multiplier);
 
-        // 2. Calculate Loot Drops (Berries, Pokéballs & Rare XL Stat Slicers!)
+        // 2. Calculate Loot Drops (XL Slicers & Jackpots Locked to First-Time Clears Only!)
         let drops = [];
         if (!gameState.pokeballs) gameState.pokeballs = 0;
         if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
@@ -584,29 +584,38 @@ function endBattle(won) {
         const xlKeys = Object.keys(XL_ITEM_CONFIG);
 
         if (isBoss) {
-            // --- GUARANTEED BOSS REWARDS ---
-            let isMilestoneBoss = (beatenStage % 25 === 0);
-            let bossBalls = isMilestoneBoss ? (Math.floor(Math.random() * 3) + 3) : (Math.floor(Math.random() * 2) + 1);
-            let bossBerries = Math.floor(Math.random() * 3) + 3;
+            if (isNewRecord) {
+                // --- 👑 FIRST TIME BOSS VICTORY JACKPOT (ONE-TIME REWARD) ---
+                let isMilestoneBoss = (beatenStage % 25 === 0);
+                let bossBalls = isMilestoneBoss ? (Math.floor(Math.random() * 3) + 3) : (Math.floor(Math.random() * 2) + 1);
+                let bossBerries = Math.floor(Math.random() * 3) + 3;
 
-            gameState.berries += bossBerries;
-            gameState.pokeballs += bossBalls;
+                gameState.berries += bossBerries;
+                gameState.pokeballs += bossBalls;
 
-            drops.push(`<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries</span>`);
-            drops.push(`<span class='text-red-400 font-bold'>+${bossBalls} 🔴 Pokéballs</span>`);
+                drops.push(`<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries</span>`);
+                drops.push(`<span class='text-red-400 font-bold'>+${bossBalls} 🔴 Pokéballs</span>`);
 
-            // Guaranteed Rare XL Stat Slicer Drop on Bosses!
-            let randomXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
-            gameState.items[randomXL] = (gameState.items[randomXL] || 0) + 1;
-            drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[randomXL].icon} ${XL_ITEM_CONFIG[randomXL].name}</span>`);
+                // ONE-TIME Guaranteed XL Stat Slicer!
+                let randomXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
+                gameState.items[randomXL] = (gameState.items[randomXL] || 0) + 1;
+                drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[randomXL].icon} ${XL_ITEM_CONFIG[randomXL].name} (First Clear!)</span>`);
 
-            if (isMilestoneBoss) {
-                let bonusXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
-                gameState.items[bonusXL] = (gameState.items[bonusXL] || 0) + 1;
-                drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[bonusXL].icon} ${XL_ITEM_CONFIG[bonusXL].name}</span>`);
+                if (isMilestoneBoss) {
+                    let bonusXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
+                    gameState.items[bonusXL] = (gameState.items[bonusXL] || 0) + 1;
+                    drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[bonusXL].icon} ${XL_ITEM_CONFIG[bonusXL].name}</span>`);
+                }
+            } else {
+                // --- 🔄 BOSS REPLAY (NO XL SLICERS • NO LOOT JACKPOT) ---
+                // Only a small farm chance for 1 berry (No XL items allowed!)
+                if (Math.random() < 0.35) {
+                    gameState.berries += 1;
+                    drops.push(`<span class='text-pink-400 font-bold'>+1 🍓 Berry</span>`);
+                }
             }
         } else {
-            // --- REGULAR WILD STAGE REWARDS ---
+            // --- REGULAR WILD STAGES ---
             if (Math.random() < 0.45) {
                 let foundBerries = Math.floor(Math.random() * 2) + 1;
                 gameState.berries += foundBerries;
@@ -616,8 +625,8 @@ function endBattle(won) {
                 gameState.pokeballs += 1;
                 drops.push(`<span class='text-red-400 font-bold'>+1 🔴 Pokéball</span>`);
             }
-            // 10% Lucky Chance to find a Rare XL Stat Slicer in the wild!
-            if (Math.random() < 0.10) {
+            // Lucky wild XL Slicer drop ONLY on first-time clears!
+            if (isNewRecord && Math.random() < 0.10) {
                 let luckyXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
                 gameState.items[luckyXL] = (gameState.items[luckyXL] || 0) + 1;
                 drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[luckyXL].icon} ${XL_ITEM_CONFIG[luckyXL].name}</span>`);
