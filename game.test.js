@@ -28,13 +28,13 @@ describe('Strict Game Logic & UI Verification', () => {
 
     test('1. Core Game State Initializes Correctly', () => {
         expect(window.gameState).toBeDefined();
-        expect(window.gameState.level).toBe(5);
+        expect(window.gameState.level).toBe(1);
         expect(window.gameState.attack).toBeDefined();
         expect(window.gameState.maxHp).toBeDefined();
         expect(window.gameState.speed).toBeDefined();
         expect(window.gameState.spAtk).toBeDefined();
         expect(window.gameState.enemyLevel).toBe(3);
-        expect(window.gameState.gardenBerries).toBeDefined(); // Berry Bush State
+        expect(window.gameState.gardenBerries).toBeDefined();
     });
 
     test('2. Required UI Elements & Modals Exist in HTML', () => {
