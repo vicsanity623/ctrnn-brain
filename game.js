@@ -128,17 +128,20 @@ const TYPE_DATABASE = {
         ]}
 };
 
-// Game State
+// Game State (With XL Stat Slicers Inventory)
 var gameState = {
     id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50, 
     hearts: 2, attack: 5, defense: 5, maxHp: 40,
-    spAtk: 6, spDef: 6, speed: 5,
-    critRate: 5.0,
+    spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
     berries: 5, pokeballs: 3,
+    items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 }, // <-- XL Slicers
     lastInteraction: Date.now(),
-    currentStage: 1, maxStage: 1, // <-- Starts on Stage 1!
+    currentStage: 1, maxStage: 1,
     gardenBerries: 1, lastGardenHarvest: Date.now(),
-    roster: []
+    roster: [{
+        id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50,
+        attack: 5, defense: 5, maxHp: 40, spAtk: 6, spDef: 6, speed: 5, critRate: 5.0
+    }]
 };
 
 // Background Interval: Handles Live Heart Loss & Berry Bush Growth
@@ -261,6 +264,7 @@ function startGame(isNew) {
         if (gameState.gardenBerries === undefined) gameState.gardenBerries = 1;
         if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
+        if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
         if (!gameState.roster || gameState.roster.length === 0) {
             gameState.roster = [{
                 id: gameState.id,
@@ -684,34 +688,125 @@ function switchActivePokemon(index) {
     showModal("Partner Swapped! 🔄", `You are now adventuring with ${gameState.name} (${(TYPE_DATABASE[gameState.type] || TYPE_DATABASE.normal).name} Type)!`);
 }
 
+// --- XL STAT SLICER ITEMS DATABASE ---
+const XL_ITEM_CONFIG = {
+    hpXL: { name: "HP-XL", icon: "💚", desc: "Permanently boosts Max HP by +2%", color: "text-green-400", stat: "maxHp" },
+    atkXL: { name: "Attack-XL", icon: "❤️", desc: "Permanently boosts Attack by +2%", color: "text-red-400", stat: "attack" },
+    defXL: { name: "Defense-XL", icon: "💙", desc: "Permanently boosts Defense by +2%", color: "text-blue-400", stat: "defense" },
+    spAtkXL: { name: "Sp.Atk-XL", icon: "💜", desc: "Permanently boosts Sp. Atk by +2%", color: "text-purple-400", stat: "spAtk" },
+    spDefXL: { name: "Sp.Def-XL", icon: "🔮", desc: "Permanently boosts Sp. Def by +2%", color: "text-indigo-400", stat: "spDef" },
+    speedXL: { name: "Speed-XL", icon: "⚡", desc: "Permanently boosts Speed by +2%", color: "text-yellow-400", stat: "speed" },
+    critXL: { name: "Crit-XL", icon: "💥", desc: "Permanently boosts Crit Rate by +0.25%", color: "text-amber-400", stat: "critRate" }
+};
+
 function renderInventory() {
     const list = document.getElementById('inventory-list');
+    if (!list) return;
     list.innerHTML = ''; 
     
+    let hasItems = false;
+
+    // 1. Render Oran Berries
     if (gameState.berries > 0) {
+        hasItems = true;
         list.innerHTML += `
-            <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
+            <div class="flex justify-between items-center bg-gray-800/90 p-3 rounded-xl border border-gray-700 shadow-md">
                 <div class="flex items-center gap-3">
-                    <span class="text-4xl drop-shadow-md">🍓</span>
+                    <span class="text-3xl drop-shadow">🍓</span>
                     <div>
-                        <h4 class="font-bold text-lg text-pink-300">Oran Berry</h4>
+                        <h4 class="font-bold text-sm text-pink-300">Oran Berry</h4>
                         <p class="text-[10px] text-gray-400">Restores mood & grants XP.</p>
                     </div>
                 </div>
                 <div class="flex flex-col items-end">
-                    <span class="font-black text-xl text-yellow-400">x${gameState.berries}</span>
-                    <button onclick="feedBerry(); renderInventory();" class="mt-1 bg-pink-600 px-4 py-1 rounded-lg text-xs font-bold active:scale-90 transition-transform shadow-lg">Use</button>
+                    <span class="font-black text-lg text-yellow-400">x${gameState.berries}</span>
+                    <button onclick="feedBerry(); renderInventory();" class="mt-1 bg-pink-600 px-3 py-1 rounded-lg text-xs font-bold active:scale-90 transition-all shadow">Use</button>
                 </div>
             </div>
         `;
-    } else {
-        list.innerHTML = `
-            <div class="text-center text-gray-500 mt-10 p-6 bg-gray-800/50 rounded-xl border border-dashed border-gray-700">
-                <span class="text-4xl opacity-50 block mb-2">🕸️</span>
-                Your bag is empty.<br>Win battles to find items!
+    }
+
+    // 2. Render Pokéballs
+    if (gameState.pokeballs > 0) {
+        hasItems = true;
+        list.innerHTML += `
+            <div class="flex justify-between items-center bg-gray-800/90 p-3 rounded-xl border border-gray-700 shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl drop-shadow">🔴</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-red-300">Pokéball</h4>
+                        <p class="text-[10px] text-gray-400">Catch weakened wild Pokémon in battle.</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="font-black text-lg text-yellow-400">x${gameState.pokeballs}</span>
+                    <span class="text-[10px] text-gray-400 font-semibold mt-1">In Battle</span>
+                </div>
             </div>
         `;
     }
+
+    // 3. Render Rare XL Stat Enhancers
+    if (gameState.items) {
+        Object.keys(XL_ITEM_CONFIG).forEach(key => {
+            let count = gameState.items[key] || 0;
+            if (count > 0) {
+                hasItems = true;
+                let item = XL_ITEM_CONFIG[key];
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-800/90 p-3 rounded-xl border border-gray-700 shadow-md">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl drop-shadow">${item.icon}</span>
+                            <div>
+                                <h4 class="font-bold text-sm ${item.color}">${item.name}</h4>
+                                <p class="text-[10px] text-gray-400">${item.desc}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-black text-lg text-yellow-400">x${count}</span>
+                            <button onclick="useStatXL('${key}')" class="mt-1 bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg text-xs font-bold active:scale-90 transition-all shadow">Use</button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    if (!hasItems) {
+        list.innerHTML = `
+            <div class="text-center text-gray-500 mt-10 p-6 bg-gray-800/50 rounded-xl border border-dashed border-gray-700">
+                <span class="text-4xl opacity-50 block mb-2">🕸️</span>
+                Your bag is empty.<br>Win battles & bosses to find rare items!
+            </div>
+        `;
+    }
+}
+
+// --- USE PERMANENT STAT ENHANCER ---
+function useStatXL(key) {
+    if (!gameState.items || (gameState.items[key] || 0) <= 0) return;
+
+    gameState.items[key]--;
+    const item = XL_ITEM_CONFIG[key];
+    let gainText = "";
+
+    if (key === 'critXL') {
+        gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.25).toFixed(2));
+        gainText = `+0.25% (${gameState.critRate}% Total)`;
+    } else {
+        let statKey = item.stat;
+        let currentValue = gameState[statKey] || 10;
+        let gain = Math.max(1, Math.floor(currentValue * 0.02)); // +2% (Minimum +1)
+        gameState[statKey] += gain;
+        gainText = `+${gain} (${gameState[statKey]} Total)`;
+    }
+
+    // Sync permanent boost to active companion in roster
+    syncCurrentPokemonToRoster();
+    updateHub();
+    renderInventory();
+
+    showModal("✨ STAT PERMANENTLY BOOSTED!", `${gameState.name} consumed <strong class='text-yellow-400'>${item.name}</strong>!<br>Permanently gained <strong class='text-green-400'>${gainText}</strong>!`, [40, 60, 40]);
 }
 
 // --- PETTING SWIRL MECHANIC ---
@@ -1447,21 +1542,35 @@ function endBattle(won) {
         let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
         let earnedXp = Math.floor(baseStageXp * multiplier);
 
-        // 2. Calculate Loot Drops (Berries + Guaranteed Pokéballs on Bosses!)
+        // 2. Calculate Loot Drops (Berries, Pokéballs & Rare XL Stat Slicers!)
         let drops = [];
         if (!gameState.pokeballs) gameState.pokeballs = 0;
+        if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
+
+        const xlKeys = Object.keys(XL_ITEM_CONFIG);
 
         if (isBoss) {
             // --- GUARANTEED BOSS REWARDS ---
             let isMilestoneBoss = (beatenStage % 25 === 0);
-            let bossBalls = isMilestoneBoss ? (Math.floor(Math.random() * 3) + 3) : (Math.floor(Math.random() * 2) + 1); // 1-2 Balls (or 3-5 on Milestones!)
-            let bossBerries = Math.floor(Math.random() * 3) + 3; // 3-5 Berries
+            let bossBalls = isMilestoneBoss ? (Math.floor(Math.random() * 3) + 3) : (Math.floor(Math.random() * 2) + 1);
+            let bossBerries = Math.floor(Math.random() * 3) + 3;
 
             gameState.berries += bossBerries;
             gameState.pokeballs += bossBalls;
 
             drops.push(`<span class='text-pink-400 font-bold'>+${bossBerries} 🍓 Berries</span>`);
-            drops.push(`<span class='text-red-400 font-bold'>+${bossBalls} 🔴 Pokéball${bossBalls > 1 ? 's' : ''} (Boss Drop!)</span>`);
+            drops.push(`<span class='text-red-400 font-bold'>+${bossBalls} 🔴 Pokéballs</span>`);
+
+            // Guaranteed Rare XL Stat Slicer Drop on Bosses!
+            let randomXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
+            gameState.items[randomXL] = (gameState.items[randomXL] || 0) + 1;
+            drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[randomXL].icon} ${XL_ITEM_CONFIG[randomXL].name}</span>`);
+
+            if (isMilestoneBoss) {
+                let bonusXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
+                gameState.items[bonusXL] = (gameState.items[bonusXL] || 0) + 1;
+                drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[bonusXL].icon} ${XL_ITEM_CONFIG[bonusXL].name}</span>`);
+            }
         } else {
             // --- REGULAR WILD STAGE REWARDS ---
             if (Math.random() < 0.45) {
@@ -1469,10 +1578,15 @@ function endBattle(won) {
                 gameState.berries += foundBerries;
                 drops.push(`<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berry</span>`);
             }
-            // 11% Lucky chance for a wild Pokéball find!
             if (Math.random() < 0.11) {
                 gameState.pokeballs += 1;
                 drops.push(`<span class='text-red-400 font-bold'>+1 🔴 Pokéball</span>`);
+            }
+            // 10% Lucky Chance to find a Rare XL Stat Slicer in the wild!
+            if (Math.random() < 0.10) {
+                let luckyXL = xlKeys[Math.floor(Math.random() * xlKeys.length)];
+                gameState.items[luckyXL] = (gameState.items[luckyXL] || 0) + 1;
+                drops.push(`<span class='text-yellow-400 font-bold'>+1 ${XL_ITEM_CONFIG[luckyXL].icon} ${XL_ITEM_CONFIG[luckyXL].name}</span>`);
             }
         }
 
