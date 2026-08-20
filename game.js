@@ -1,148 +1,4 @@
-// --- 18 OFFICIAL ELEMENTAL TYPE DATABASE ---
-const TYPE_DATABASE = {
-    normal: { name: "Normal", icon: "⭐", bg: "bg-gray-600", superVs: [], weakVs: ["fighting"],
-        moves: [
-            { name: "💥 Tackle", type: "physical", desc: "Physical" },
-            { name: "🗣️ Growl", type: "status", desc: "Shreds Stats" },
-            { name: "✨ Swift", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.3 },
-            { name: "🌟 Hyper Beam", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    fire: { name: "Fire", icon: "🔥", bg: "bg-red-600", superVs: ["grass", "ice", "bug", "steel"], weakVs: ["water", "ground", "rock"],
-        moves: [
-            { name: "🔥 Scratch", type: "physical", desc: "Physical" },
-            { name: "💨 Smokescreen", type: "status", desc: "Shreds Stats" },
-            { name: "🔥 Flame Burst", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.4 },
-            { name: "☄️ Fire Blast", type: "ultimate", desc: "Lv. 13 High Crit", power: 1.9 }
-        ]},
-    water: { name: "Water", icon: "💧", bg: "bg-blue-600", superVs: ["fire", "ground", "rock"], weakVs: ["electric", "grass"],
-        moves: [
-            { name: "💧 Water Gun", type: "physical", desc: "Physical" },
-            { name: "🌊 Withdraw", type: "status", desc: "Boosts Armor" },
-            { name: "💦 Water Pulse", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🌊 Hydro Pump", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    grass: { name: "Grass", icon: "🌿", bg: "bg-green-600", superVs: ["water", "ground", "rock"], weakVs: ["fire", "ice", "poison", "flying", "bug"],
-        moves: [
-            { name: "💥 Tackle", type: "physical", desc: "Physical" },
-            { name: "🗣️ Growl", type: "status", desc: "Shreds Stats" },
-            { name: "🌿 Vine Whip", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🌱 Leech Seed", type: "ultimate", desc: "Lv. 13 Drain HP", power: 1.5 }
-        ]},
-    electric: { name: "Electric", icon: "⚡", bg: "bg-yellow-500 text-black", superVs: ["water", "flying"], weakVs: ["ground"],
-        moves: [
-            { name: "⚡ Spark", type: "physical", desc: "Physical" },
-            { name: "🔊 Screech", type: "status", desc: "Shreds Stats" },
-            { name: "⚡ Shock Wave", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.4 },
-            { name: "🌩️ Thunderbolt", type: "ultimate", desc: "Lv. 13 High Crit", power: 1.95 }
-        ]},
-    bug: { name: "Bug", icon: "🐛", bg: "bg-lime-600", superVs: ["grass", "psychic", "dark"], weakVs: ["fire", "flying", "rock"],
-        moves: [
-            { name: "📌 Fury Attack", type: "physical", desc: "Physical" },
-            { name: "🕸️ String Shot", type: "status", desc: "Shreds Stats" },
-            { name: "🪲 Pin Missile", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.3 },
-            { name: "🐝 Bug Buzz", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 1.85 }
-        ]},
-    poison: { name: "Poison", icon: "🧪", bg: "bg-purple-600", superVs: ["grass", "fairy"], weakVs: ["ground", "psychic"],
-        moves: [
-            { name: "🧪 Poison Sting", type: "physical", desc: "Physical" },
-            { name: "💨 Toxic Gas", type: "status", desc: "Shreds Stats" },
-            { name: "🟣 Sludge", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "☣️ Sludge Bomb", type: "ultimate", desc: "Lv. 13 Drain HP", power: 1.7 }
-        ]},
-    fighting: { name: "Fighting", icon: "🥊", bg: "bg-amber-800", superVs: ["normal", "ice", "rock", "dark", "steel"], weakVs: ["flying", "psychic", "fairy"],
-        moves: [
-            { name: "🥊 Karate Chop", type: "physical", desc: "Physical" },
-            { name: "😤 Bulk Up", type: "status", desc: "Shreds Stats" },
-            { name: "🥋 Brick Break", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "💥 Close Combat", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.1 }
-        ]},
-    psychic: { name: "Psychic", icon: "🔮", bg: "bg-pink-600", superVs: ["fighting", "poison"], weakVs: ["bug", "ghost", "dark"],
-        moves: [
-            { name: "👁️ Confusion", type: "physical", desc: "Physical" },
-            { name: "💫 Hypnosis", type: "status", desc: "Shreds Stats" },
-            { name: "🔮 Psybeam", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.4 },
-            { name: "🧠 Psychic", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    ground: { name: "Ground", icon: "🏜️", bg: "bg-yellow-700", superVs: ["fire", "electric", "poison", "rock", "steel"], weakVs: ["water", "grass", "ice"],
-        moves: [
-            { name: "🪨 Mud-Slap", type: "physical", desc: "Physical" },
-            { name: "🏜️ Sand Attack", type: "status", desc: "Shreds Stats" },
-            { name: "💥 Bulldoze", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🌋 Earthquake", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    rock: { name: "Rock", icon: "🪨", bg: "bg-yellow-800", superVs: ["fire", "ice", "flying", "bug"], weakVs: ["water", "grass", "fighting", "ground", "steel"],
-        moves: [
-            { name: "🪨 Rock Throw", type: "physical", desc: "Physical" },
-            { name: "🛡️ Harden", type: "status", desc: "Shreds Stats" },
-            { name: "🪨 Rock Tomb", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🗿 Rock Slide", type: "ultimate", desc: "Lv. 13 High Crit", power: 1.9 }
-        ]},
-    flying: { name: "Flying", icon: "🪽", bg: "bg-indigo-400", superVs: ["grass", "fighting", "bug"], weakVs: ["electric", "ice", "rock"],
-        moves: [
-            { name: "🪽 Gust", type: "physical", desc: "Physical" },
-            { name: "🌪️ Whirlwind", type: "status", desc: "Shreds Stats" },
-            { name: "🪽 Wing Attack", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🦅 Brave Bird", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    ghost: { name: "Ghost", icon: "👻", bg: "bg-purple-900", superVs: ["psychic", "ghost"], weakVs: ["ghost", "dark"],
-        moves: [
-            { name: "👻 Lick", type: "physical", desc: "Physical" },
-            { name: "👁️ Spite", type: "status", desc: "Shreds Stats" },
-            { name: "🔮 Shadow Sneak", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "💀 Shadow Ball", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 1.9 }
-        ]},
-    ice: { name: "Ice", icon: "❄️", bg: "bg-cyan-500", superVs: ["grass", "ground", "flying", "dragon"], weakVs: ["fire", "fighting", "rock", "steel"],
-        moves: [
-            { name: "❄️ Powder Snow", type: "physical", desc: "Physical" },
-            { name: "💨 Mist", type: "status", desc: "Shreds Stats" },
-            { name: "🧊 Ice Shard", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🌨️ Blizzard", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]},
-    dragon: { name: "Dragon", icon: "🐉", bg: "bg-indigo-800", superVs: ["dragon"], weakVs: ["ice", "dragon", "fairy"],
-        moves: [
-            { name: "🐉 Dragon Breath", type: "physical", desc: "Physical" },
-            { name: "😤 Dragon Dance", type: "status", desc: "Shreds Stats" },
-            { name: "🐲 Dragon Claw", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.4 },
-            { name: "🔥 Outrage", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.1 }
-        ]},
-    steel: { name: "Steel", icon: "⚙️", bg: "bg-slate-500", superVs: ["ice", "rock", "fairy"], weakVs: ["fire", "fighting", "ground"],
-        moves: [
-            { name: "⚙️ Metal Claw", type: "physical", desc: "Physical" },
-            { name: "🛡️ Iron Defense", type: "status", desc: "Shreds Stats" },
-            { name: "🔩 Flash Cannon", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "⚔️ Iron Head", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 1.95 }
-        ]},
-    dark: { name: "Dark", icon: "🌑", bg: "bg-zinc-800", superVs: ["psychic", "ghost"], weakVs: ["fighting", "bug", "fairy"],
-        moves: [
-            { name: "🌑 Bite", type: "physical", desc: "Physical" },
-            { name: "😈 Taunt", type: "status", desc: "Shreds Stats" },
-            { name: "🗡️ Night Slash", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🖤 Dark Pulse", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 1.9 }
-        ]},
-    fairy: { name: "Fairy", icon: "✨", bg: "bg-pink-400", superVs: ["fighting", "dragon", "dark"], weakVs: ["poison", "steel"],
-        moves: [
-            { name: "✨ Fairy Wind", type: "physical", desc: "Physical" },
-            { name: "💖 Sweet Kiss", type: "status", desc: "Shreds Stats" },
-            { name: "🌸 Draining Kiss", type: "special", desc: "Lv. 7 (Sp. Atk)", power: 1.35 },
-            { name: "🌟 Moonblast", type: "ultimate", desc: "Lv. 13 Heavy Dmg", power: 2.0 }
-        ]}
-};
-
-// Game State (With XL Stat Slicers Inventory)
-var gameState = {
-    id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50, 
-    hearts: 2, attack: 5, defense: 5, maxHp: 40,
-    spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
-    berries: 5, pokeballs: 3,
-    items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
-    lastInteraction: Date.now(),
-    currentStage: 1, maxStage: 1,
-    gardenBerries: 1, lastGardenHarvest: Date.now(),
-    roster: [{
-        id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50,
-        attack: 5, defense: 5, maxHp: 40, spAtk: 6, spDef: 6, speed: 5, critRate: 5.0
-    }]
-};
+// (TYPE_DATABASE and gameState are loaded globally from global.js)
 
 // Background Interval: Handles Live Heart Loss & Berry Bush Growth
 setInterval(() => {
@@ -166,8 +22,7 @@ setInterval(() => {
     if (isHubVisible) updateHub();
 }, 15000);
 
-// UI Elements
-const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'battle-screen', 'evo-screen'];
+// UI Elements (screens array loaded from global.js)
 function showScreen(id) {
     screens.forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -295,13 +150,7 @@ function startGame(isNew) {
     }
 }
 
-// Story Sequence
-let storyStep = 0;
-const storyLines = [
-    "Welcome to the world of Pokemon! Your dream to become a Master begins now.",
-    "I am the Professor. I'm gifting you this Bulbasaur to start your journey!",
-    "Take good care of it. Feed it, pet it, and battle to grow stronger!"
-];
+// Story Sequence (storyStep & storyLines loaded from global.js)
 function nextStory() {
     storyStep++;
     if(storyStep >= storyLines.length) {
@@ -320,10 +169,10 @@ function updateHub() {
     const hubBarLvl = document.getElementById('hub-bar-level');
     if (hubBarLvl) hubBarLvl.innerText = gameState.level;
 
-    document.getElementById('xp-bar').style.width = `${(gameState.xp / gameState.maxXp) * 100}%`;
+    document.getElementById('xp-bar').style.width = `${Math.min(100, (gameState.xp / gameState.maxXp) * 100)}%`;
     const xpText = document.getElementById('xp-text');
     if (xpText) {
-        xpText.innerText = `${gameState.xp} / ${gameState.maxXp}`;
+        xpText.innerText = `${formatNumber(gameState.xp)} / ${formatNumber(gameState.maxXp)}`;
     }
 
     const pType = gameState.type || 'grass';
@@ -352,7 +201,7 @@ function updateHub() {
     let totalPower = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
     const hubPowerEl = document.getElementById('hub-power');
     if (hubPowerEl) {
-        hubPowerEl.innerText = totalPower;
+        hubPowerEl.innerText = formatNumber(totalPower);
     }
 
     let heartsHtml = '';
@@ -432,8 +281,7 @@ function harvestBush() {
 }
 
 // --- SMART MODAL QUEUE ENGINE ---
-var modalQueue = [];
-var isModalActive = false;
+// (modalQueue & isModalActive loaded from global.js)
 
 function showModal(title, text = '', vibratePattern = [50]) {
     modalQueue.push({ title, text, vibratePattern });
@@ -558,8 +406,10 @@ function renderPartyList() {
 
     syncCurrentPokemonToRoster();
 
+    let activeIdx = gameState.activeRosterIndex ?? 0;
+
     gameState.roster.forEach((p, index) => {
-        let isActive = (p.id === gameState.id && p.name === gameState.name);
+        let isActive = (index === activeIdx);
         list.innerHTML += `
             <div onclick="switchActivePokemon(${index})" class="flex items-center justify-between p-3 rounded-xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-md' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
                 <div class="flex items-center gap-3">
@@ -581,42 +431,34 @@ function renderPartyList() {
 }
 
 function syncCurrentPokemonToRoster() {
-    let found = false;
-    for (let i = 0; i < gameState.roster.length; i++) {
-        if (gameState.roster[i].id === gameState.id) {
-            gameState.roster[i] = {
-                id: gameState.id,
-                name: gameState.name,
-                type: gameState.type || 'normal',
-                level: gameState.level,
-                maxHp: gameState.maxHp,
-                attack: gameState.attack,
-                defense: gameState.defense,
-                spAtk: gameState.spAtk,
-                spDef: gameState.spDef,
-                speed: gameState.speed,
-                xp: gameState.xp,
-                maxXp: gameState.maxXp
-            };
-            found = true;
-            break;
-        }
+    if (!gameState.roster || gameState.roster.length === 0) {
+        gameState.roster = [];
     }
-    if (!found) {
-        gameState.roster.push({
-            id: gameState.id,
-            name: gameState.name,
-            type: gameState.type || 'normal',
-            level: gameState.level,
-            maxHp: gameState.maxHp,
-            attack: gameState.attack,
-            defense: gameState.defense,
-            spAtk: gameState.spAtk,
-            spDef: gameState.spDef,
-            speed: gameState.speed,
-            xp: gameState.xp,
-            maxXp: gameState.maxXp
-        });
+
+    let idx = gameState.activeRosterIndex ?? 0;
+    if (idx < 0 || idx >= gameState.roster.length) idx = 0;
+    gameState.activeRosterIndex = idx;
+
+    let currentData = {
+        id: gameState.id,
+        name: gameState.name,
+        type: gameState.type || 'normal',
+        level: gameState.level,
+        maxHp: gameState.maxHp,
+        attack: gameState.attack,
+        defense: gameState.defense,
+        spAtk: gameState.spAtk,
+        spDef: gameState.spDef,
+        speed: gameState.speed,
+        critRate: gameState.critRate || 5.0,
+        xp: gameState.xp,
+        maxXp: gameState.maxXp
+    };
+
+    if (gameState.roster[idx]) {
+        gameState.roster[idx] = currentData;
+    } else {
+        gameState.roster.push(currentData);
     }
 }
 
@@ -624,7 +466,9 @@ function switchActivePokemon(index) {
     if (index < 0 || index >= gameState.roster.length) return;
     syncCurrentPokemonToRoster();
 
+    gameState.activeRosterIndex = index; // Sets active companion slot
     let target = gameState.roster[index];
+
     gameState.id = target.id;
     gameState.name = target.name;
     gameState.type = target.type || 'normal';
@@ -635,6 +479,7 @@ function switchActivePokemon(index) {
     gameState.spAtk = target.spAtk;
     gameState.spDef = target.spDef;
     gameState.speed = target.speed;
+    gameState.critRate = target.critRate || 5.0;
     gameState.xp = target.xp;
     gameState.maxXp = target.maxXp;
 
@@ -711,7 +556,7 @@ function feedBerry() {
             let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
             gameState.xp += bonusXp;
             
-            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${bonusXp} XP (5% boost)!`);
+            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
             if (navigator.vibrate) navigator.vibrate(30);
 
             if (gameState.xp >= gameState.maxXp) {
@@ -780,41 +625,61 @@ function levelUp(leftoverXp = 0) {
         xpBar.style.transition = 'all 0.5s ease';
         updateHub();
         
-        if (gameState.level === 7) {
-            showModal("NEW MOVE UNLOCKED! 🌿", `${gameState.name} learned Vine Whip! A powerful attack driven by your Sp. Atk!`);
+        // Check for Multi-Stage Evolution
+        const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
+
+        if (evo && gameState.level >= evo.level) {
+            triggerEvolution(evo.toId, evo.toName, evo.type);
+        } else if (gameState.level === 7) {
+            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
         } else if (gameState.level === 13) {
-            showModal("NEW MOVE UNLOCKED! 🌱", `${gameState.name} learned Leech Seed! Drains enemy health to heal your HP!`);
-        } else if (gameState.level === 18) {
-            showModal("NEW MOVE UNLOCKED! 🍃", `${gameState.name} learned Razor Leaf! Slices foes with high Critical Hit power!`);
-        } else if (gameState.level > 10 && Math.random() > 0.5 && gameState.id === 1) {
-            triggerEvolution(2, 'Ivysaur');
+            showModal("NEW MOVE UNLOCKED! 🌟", `${gameState.name} unlocked Slot 3 Ultimate Move! Massive combat power!`);
         } else {
             showModal(`${gameState.name} grew to Level ${gameState.level}!`);
         }
     }, 50);
 }
 
-// --- EVOLUTION SYSTEM ---
-function triggerEvolution(newId, newName) {
+// --- UNIVERSAL EVOLUTION SYSTEM (IN-PLACE TRANSFORMATION) ---
+function triggerEvolution(newId, newName, newType) {
     showScreen('evo-screen');
-    document.getElementById('evo-old-name').innerText = gameState.name;
+    const oldName = gameState.name;
+    document.getElementById('evo-old-name').innerText = oldName;
     document.getElementById('evo-sprite').src = document.getElementById('hub-sprite').src;
     
     setTimeout(() => {
         gameState.id = newId;
         gameState.name = newName;
-        gameState.maxHp += 30;
-        gameState.attack += 20;
-        gameState.defense += 20;
-        gameState.spAtk += 20;
-        gameState.spDef += 20;
-        gameState.speed += 15;
+        if (newType) gameState.type = newType;
+
+        // Evolution Stat Boosts!
+        gameState.maxHp += 40;
+        gameState.attack += 25;
+        gameState.defense += 25;
+        gameState.spAtk += 25;
+        gameState.spDef += 25;
+        gameState.speed += 20;
         
-        document.getElementById('evo-sprite').classList.remove('brightness-0', 'animate-pulse');
-        document.getElementById('evo-sprite').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${newId}.gif`;
+        // Overwrite the existing roster slot directly (prevents cloning)
+        let activeIdx = gameState.activeRosterIndex ?? 0;
+        if (gameState.roster && gameState.roster[activeIdx]) {
+            gameState.roster[activeIdx].id = newId;
+            gameState.roster[activeIdx].name = newName;
+            if (newType) gameState.roster[activeIdx].type = newType;
+            gameState.roster[activeIdx].maxHp = gameState.maxHp;
+            gameState.roster[activeIdx].attack = gameState.attack;
+            gameState.roster[activeIdx].defense = gameState.defense;
+            gameState.roster[activeIdx].spAtk = gameState.spAtk;
+            gameState.roster[activeIdx].spDef = gameState.spDef;
+            gameState.roster[activeIdx].speed = gameState.speed;
+        }
+
+        const evoImg = document.getElementById('evo-sprite');
+        evoImg.classList.remove('brightness-0', 'animate-pulse');
+        evoImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${newId}.gif`;
         
         setTimeout(() => {
-            showModal(`Your Pokemon evolved into ${newName}!`);
+            showModal("✨ EVOLUTION COMPLETE! ✨", `Congratulations! Your ${oldName} evolved into a powerful <strong>${newName}</strong>!`, [50, 100, 50]);
             updateHub();
             showScreen('hub-screen');
         }, 2000);

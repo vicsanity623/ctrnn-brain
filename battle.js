@@ -2,37 +2,7 @@
 // BATTLE ENGINE & COMBAT SYSTEM (battle.js)
 // ============================================================================
 
-// --- POKÉDEX SPAWN POOLS ---
-// Stage 1 / Base Form Pokémon ONLY (For Regular Stages)
-const BASE_POKEMON_IDS = [
-    1, 4, 7, 10, 13, 16, 19, 21, 23, 25, 27, 29, 32, 35, 37, 39, 41, 43, 46, 48, 
-    50, 52, 54, 56, 58, 60, 63, 66, 69, 72, 74, 77, 79, 81, 83, 84, 86, 88, 90, 
-    92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 114, 115, 116, 118, 120, 
-    122, 123, 124, 125, 126, 127, 128, 129, 131, 132, 133, 137, 138, 140, 142, 143, 147
-];
-
-// Evolved Forms (Exclusively for Boss Stages Every 5 Levels)
-const EVOLVED_BOSS_IDS = [
-    2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 34, 
-    36, 38, 40, 42, 44, 45, 47, 49, 51, 53, 55, 57, 59, 61, 62, 64, 65, 67, 68, 
-    70, 71, 73, 75, 76, 78, 80, 82, 85, 87, 89, 91, 93, 94, 97, 99, 101, 103, 
-    105, 106, 107, 110, 112, 117, 119, 121, 130, 134, 135, 136, 139, 141, 148, 149
-];
-
-// --- BATTLE STATE VARIABLES ---
-var eHp = 100;
-var eMaxHp = 100;
-var pHp = 40;
-var enemyLevel = 1;
-var enemyAttack = 10;
-var enemyDefense = 0;
-var isBoss = false;
-var enemyBaseName = "Wild Pokemon";
-var enemyType = "normal";
-var battleDamageDealt = 0;
-var battleDamageReceived = 0;
-var statusCooldown = 0;
-var currentWildData = { id: 1, name: "Wild Pokemon", level: 1 };
+// (Spawn pools and battle state variables are loaded globally from global.js)
 
 // --- ELEMENTAL TYPE BADGE RENDERER ---
 function updateTypeBadge(elementId, typeKey) {
@@ -196,8 +166,8 @@ function enterBattle() {
 
     const playerCpEl = document.getElementById('battle-player-cp');
     const enemyCpEl = document.getElementById('battle-enemy-cp');
-    if (playerCpEl) playerCpEl.innerText = `CP ${playerCP}`;
-    if (enemyCpEl) enemyCpEl.innerText = `CP ${enemyCP}`;
+    if (playerCpEl) playerCpEl.innerText = `CP ${formatNumber(playerCP)}`;
+    if (enemyCpEl) enemyCpEl.innerText = `CP ${formatNumber(enemyCP)}`;
 
     updateStageNavigatorUI();
 
@@ -298,27 +268,61 @@ function throwPokeBall() {
             // SUCCESSFUL CATCH!
             setBattleLog(`Gotcha! ${enemyBaseName} was caught! 🎉`);
             
-            // Generate clean stats for caught Pokemon based on its stage level
+            // --- FRESH LEVEL 1 COMPANION WITH RNG STAT VARIATION ---
+            let cleanName = currentWildData.name.replace('Wild ', '').replace('👑 BOSS ', '');
+            
+            // Individual RNG rolls (Base Stat IV variation)
+            let rollHp = 38 + Math.floor(Math.random() * 9);      // 38 - 46 HP
+            let rollAtk = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Attack
+            let rollDef = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Defense
+            let rollSpAtk = 5 + Math.floor(Math.random() * 5);    // 5 - 9 Sp. Atk
+            let rollSpDef = 5 + Math.floor(Math.random() * 5);    // 5 - 9 Sp. Def
+            let rollSpd = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Speed
+            let rollCrit = parseFloat((4.5 + Math.random() * 1.5).toFixed(2)); // 4.50% - 6.00% Crit
+
             let caughtPokemon = {
                 id: currentWildData.id,
-                name: currentWildData.name.replace('Wild ', '').replace('👑 BOSS ', ''),
+                name: cleanName,
                 type: enemyType || 'normal',
-                level: enemyLevel,
-                maxHp: Math.floor(60 + (enemyLevel * 6)),
-                attack: Math.floor(8 + (enemyLevel * 1.5)),
-                defense: Math.floor(8 + (enemyLevel * 1.5)),
-                spAtk: Math.floor(10 + (enemyLevel * 1.8)),
-                spDef: Math.floor(10 + (enemyLevel * 1.8)),
-                speed: Math.floor(7 + (enemyLevel * 1.2)),
+                level: 1,
+                maxHp: rollHp,
+                attack: rollAtk,
+                defense: rollDef,
+                spAtk: rollSpAtk,
+                spDef: rollSpDef,
+                speed: rollSpd,
+                critRate: rollCrit,
                 xp: 0,
-                maxXp: Math.floor(100 * Math.pow(1.3, enemyLevel - 5))
+                maxXp: 50
             };
 
             if (!gameState.roster) gameState.roster = [];
             gameState.roster.push(caughtPokemon);
 
+            let totalPower = rollHp + rollAtk + rollDef + rollSpAtk + rollSpDef + rollSpd;
+
             setTimeout(() => {
-                showModal("🎉 POKÉMON CAUGHT!", `You successfully caught a Lv. ${enemyLevel} ${caughtPokemon.name}! It has been added to your Party roster.`);
+                let catchCard = `
+                    <div class='bg-gray-900/80 p-3.5 rounded-xl border border-indigo-500/40 text-left text-xs space-y-1.5 mt-2 shadow-inner'>
+                        <div class='flex justify-between items-center pb-1 border-b border-gray-700'>
+                            <span class='font-bold text-white text-sm'>${caughtPokemon.name}</span>
+                            <span class='text-yellow-400 font-black'>Lv. 1 Baseline</span>
+                        </div>
+                        <div class='grid grid-cols-2 gap-2 text-gray-300 pt-1'>
+                            <div>💚 HP: <strong class='text-green-400'>${rollHp}</strong></div>
+                            <div>⚡ SPD: <strong class='text-yellow-400'>${rollSpd}</strong></div>
+                            <div>❤️ ATK: <strong class='text-red-400'>${rollAtk}</strong></div>
+                            <div>💜 SP.ATK: <strong class='text-purple-400'>${rollSpAtk}</strong></div>
+                            <div>💙 DEF: <strong class='text-blue-400'>${rollDef}</strong></div>
+                            <div>🔮 SP.DEF: <strong class='text-indigo-400'>${rollSpDef}</strong></div>
+                        </div>
+                        <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                            Total Base Power: ⚡${totalPower} CP
+                        </div>
+                    </div>
+                `.trim();
+
+                showModal("🎉 POKÉMON CAUGHT!", catchCard, [40, 80, 40]);
                 endBattle(true);
             }, 1000);
         } else {
@@ -548,8 +552,24 @@ function enemyTurn() {
 }
 
 function updateHealthBars() {
-    document.getElementById('player-hp').style.width = `${Math.max(0, (pHp/gameState.maxHp)*100)}%`;
-    document.getElementById('enemy-hp').style.width = `${Math.max(0, (eHp/eMaxHp)*100)}%`;
+    let playerPercent = Math.max(0, (pHp / gameState.maxHp) * 100);
+    let enemyPercent = Math.max(0, (eHp / eMaxHp) * 100);
+
+    const playerHpBar = document.getElementById('player-hp');
+    const enemyHpBar = document.getElementById('enemy-hp');
+
+    if (playerHpBar) playerHpBar.style.width = `${playerPercent}%`;
+    if (enemyHpBar) enemyHpBar.style.width = `${enemyPercent}%`;
+
+    const playerHpText = document.getElementById('player-hp-text');
+    if (playerHpText) {
+        playerHpText.innerText = `${formatNumber(Math.max(0, pHp))} / ${formatNumber(gameState.maxHp)} HP`;
+    }
+
+    const enemyHpText = document.getElementById('enemy-hp-text');
+    if (enemyHpText) {
+        enemyHpText.innerText = `${formatNumber(Math.max(0, eHp))} / ${formatNumber(eMaxHp)} HP`;
+    }
 }
 
 // --- END BATTLE (VICTORY / DEFEAT / REWARDS) ---
@@ -643,9 +663,9 @@ function endBattle(won) {
 
         let victoryCard = `
             <div class='bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-left text-sm space-y-2 mt-2 shadow-inner'>
-                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${earnedXp} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span>${replayTag}</div>
+                <div>⚡ <strong class='text-white'>XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(earnedXp)} XP</span> <span class='text-[10px] text-gray-400'>(${multiplier}x Mood)</span>${replayTag}</div>
                 <div>🎁 <strong class='text-white'>Loot:</strong> ${lootText}</div>
-                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-blue-400 font-bold'>${battleDamageReceived}</span> Taken</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${formatNumber(battleDamageDealt)}</span> Dealt • <span class='text-blue-400 font-bold'>${formatNumber(battleDamageReceived)}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800'>${progressMsg}</div>
             </div>
         `.trim();
@@ -664,7 +684,7 @@ function endBattle(won) {
         let defeatCard = `
             <div class='bg-gray-900/80 p-4 rounded-xl border border-red-900/60 text-left text-sm space-y-2.5 mt-2 shadow-inner'>
                 <div class='text-gray-300'>${gameState.name} was overwhelmed on <strong class='text-yellow-400'>Stage ${gameState.currentStage}</strong>!</div>
-                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${battleDamageDealt}</span> Dealt • <span class='text-red-400 font-bold'>${battleDamageReceived}</span> Taken</div>
+                <div>⚔️ <strong class='text-white'>Combat:</strong> <span class='text-orange-400 font-bold'>${formatNumber(battleDamageDealt)}</span> Dealt • <span class='text-red-400 font-bold'>${formatNumber(battleDamageReceived)}</span> Taken</div>
                 <div class='pt-2 border-t border-gray-800 text-xs text-red-400 font-semibold'>💔 Lost 2 Hearts (Feed berries or pet to recover!)</div>
             </div>
         `.trim();

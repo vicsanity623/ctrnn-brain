@@ -1,9 +1,10 @@
-const CACHE_NAME = 'poke-cache-v1.2.29';
+const CACHE_NAME = 'poke-cache-v1.2.35';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './style.css',
     './game.js',
+    './global.js',
     './inventory.js',
     './battle.js'
 ];
