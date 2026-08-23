@@ -164,6 +164,15 @@ const XL_ITEM_CONFIG = {
     critXL: { name: "Crit-XL", icon: "💥", desc: "Permanently boosts Crit Rate by +0.25%", color: "text-amber-400", stat: "critRate" }
 };
 
+// --- AFK TRAINING EXPEDITION TIERS ---
+const EXPEDITION_TIERS = [
+    { id: 'scout', name: 'Quick Scout', icon: '🌲', durationLabel: '2 Min', growthLabel: '+2% XP', timeMs: 2 * 60 * 1000, xpPct: 0.02 },
+    { id: 'drill', name: 'Field Drill', icon: '🥋', durationLabel: '10 Min', growthLabel: '+50% XP', timeMs: 10 * 60 * 1000, xpPct: 0.50 },
+    { id: 'trek', name: 'Mountain Trek', icon: '⛰️', durationLabel: '1 Hour', growthLabel: '+100% XP', timeMs: 60 * 60 * 1000, xpPct: 1.00 },
+    { id: 'ruins', name: 'Ancient Ruins', icon: '🏛️', durationLabel: '6 Hours', growthLabel: '+250% XP', timeMs: 6 * 60 * 60 * 1000, xpPct: 2.50 },
+    { id: 'sanctuary', name: 'Deep Sanctuary', icon: '🌌', durationLabel: '24 Hours', growthLabel: '+500% XP', timeMs: 24 * 60 * 60 * 1000, xpPct: 5.00 }
+];
+
 // --- COMPLETE GEN 1 EVOLUTION DATABASE (2-STAGE & 3-STAGE) ---
 const EVOLUTION_DATABASE = {
     // Starters (3-Stage Lines)
@@ -266,7 +275,8 @@ var gameState = {
     hearts: 2, attack: 5, defense: 5, maxHp: 40,
     spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
     berries: 5, pokeballs: 3,
-    activeRosterIndex: 0, // <-- Tracks the exact slot of the active companion
+    activeRosterIndex: 0,
+    activeJourney: null,
     items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
