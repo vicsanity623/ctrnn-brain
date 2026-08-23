@@ -126,6 +126,12 @@ function updateStageNavigatorUI() {
 
 // --- ENTER BATTLE ---
 function enterBattle() {
+    // Check if active buddy is currently away on an AFK Training Journey
+    if (gameState.activeJourney && gameState.activeJourney.rosterIndex === gameState.activeRosterIndex) {
+        showModal("🏕️ BUSY TRAINING!", `${gameState.name} is currently away on an AFK Expedition! Swap to another party member or claim your training rewards first.`);
+        return;
+    }
+
     if(gameState.hearts <= 1) {
         showModal(`${gameState.name} is too sad to battle!`); return;
     }
