@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poke-cache-v1.2.36';
+const CACHE_NAME = 'poke-cache-v1.2.37';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
     './effects.js',
     './global.js',
     './inventory.js',
+    './journey.js',
     './battle.js'
 ];
 self.addEventListener('install', (e) => {
