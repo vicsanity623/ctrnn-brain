@@ -309,12 +309,15 @@ function throwPokeBall() {
 
             setTimeout(() => {
                 let catchCard = `
-                    <div class='bg-gray-900/80 p-3.5 rounded-xl border border-indigo-500/40 text-left text-xs space-y-1.5 mt-2 shadow-inner'>
+                    <div class='bg-gray-900/80 p-3.5 rounded-xl border border-indigo-500/40 text-left text-xs space-y-2 mt-2 shadow-inner'>
                         <div class='flex justify-between items-center pb-1 border-b border-gray-700'>
                             <span class='font-bold text-white text-sm'>${caughtPokemon.name}</span>
                             <span class='text-yellow-400 font-black'>Lv. 1 Baseline</span>
                         </div>
-                        <div class='grid grid-cols-2 gap-2 text-gray-300 pt-1'>
+                        <div class='flex items-center justify-center py-1'>
+                            <img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${caughtPokemon.id}.gif' class='w-20 h-20 object-contain pixel-perfect drop-shadow-lg animate-bounce'>
+                        </div>
+                        <div class='grid grid-cols-2 gap-2 text-gray-300 pt-1 border-t border-gray-800'>
                             <div>💚 HP: <strong class='text-green-400'>${rollHp}</strong></div>
                             <div>⚡ SPD: <strong class='text-yellow-400'>${rollSpd}</strong></div>
                             <div>❤️ ATK: <strong class='text-red-400'>${rollAtk}</strong></div>
