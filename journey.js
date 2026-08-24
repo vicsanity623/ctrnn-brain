@@ -227,7 +227,7 @@ function claimJourneyReward() {
     while (target.xp >= target.maxXp) {
         target.xp -= target.maxXp;
         target.level++;
-        target.maxXp = Math.floor(target.maxXp * 1.5);
+        target.maxXp = Math.floor(target.maxXp * 1.11);
         target.maxHp = Math.floor(target.maxHp * 1.08) + 1;
         target.attack = Math.floor(target.attack * 1.08) + 1;
         target.defense = Math.floor(target.defense * 1.08) + 1;
