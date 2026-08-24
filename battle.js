@@ -567,12 +567,19 @@ function endBattle(won) {
             gameState.currentStage++; 
         }
 
-        // 1. Calculate Dynamic Stage-Scaled XP (50% XP for Replay Farming!)
-        let baseStageXp = Math.floor(10 + (beatenStage * 2.5));
+        // 1. Calculate Dynamic Stage-Compounded XP (Stage # * 1.3 + 2x Boss Multiplier)
+        let rawStageXp = Math.floor((10 + (beatenStage * 2.5)) * beatenStage * 1.3);
+        
+        // Boss stages grant 2x massive bonus XP!
+        if (isBoss) {
+            rawStageXp = Math.floor(rawStageXp * 2.0);
+        }
+
+        let baseStageXp = rawStageXp;
         let replayTag = "";
 
         if (!isNewRecord) {
-            baseStageXp = Math.max(5, Math.floor(baseStageXp * 0.5)); // <-- 50% XP for Replaying Old Stages!
+            baseStageXp = Math.max(10, Math.floor(rawStageXp * 0.5)); // <-- 50% XP for Replaying Old Stages
             replayTag = " <span class='text-[10px] text-yellow-300'>(Replay: 50% XP)</span>";
         }
 
