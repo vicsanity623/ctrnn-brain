@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poke-cache-v1.2.41';
+const CACHE_NAME = 'poke-cache-v1.2.42';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
