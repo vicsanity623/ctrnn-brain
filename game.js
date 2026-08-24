@@ -548,7 +548,7 @@ function addXP(baseXp) {
 function levelUp(leftoverXp = 0) {
     gameState.level++;
     gameState.xp = leftoverXp;
-    gameState.maxXp = Math.floor(gameState.maxXp * 1.5);
+    gameState.maxXp = Math.floor(gameState.maxXp * 1.11);
     
     let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
     gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
