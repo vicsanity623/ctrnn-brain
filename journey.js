@@ -208,37 +208,60 @@ function formatTimeRemaining(ms) {
     return `${mins}m ${secs}s`;
 }
 
-// --- CLAIM EXPEDITION REWARD ---
+// --- CLAIM EXPEDITION REWARD (SYNCHRONIZED STATE ENGINE - 1.67) ---
 function claimJourneyReward() {
     const active = gameState.activeJourney;
     if (!active || Date.now() < active.endTime) return;
 
-    let target = gameState.roster[active.rosterIndex];
-    if (!target) target = gameState.roster[0];
+    let activeIdx = active.rosterIndex ?? 0;
+    let target = gameState.roster[activeIdx] || gameState.roster[0];
 
     // Calculate XP reward
     let gainedXp = Math.max(10, Math.floor(target.maxXp * active.xpPct));
     let oldLevel = target.level;
 
-    // Apply XP to the target Pokemon
+    // Apply XP with your 1.67 scaling multiplier
     target.xp += gainedXp;
     let levelUps = 0;
 
     while (target.xp >= target.maxXp) {
         target.xp -= target.maxXp;
         target.level++;
-        target.maxXp = Math.floor(target.maxXp * 1.67);
-        target.maxHp = Math.floor(target.maxHp * 1.08) + 1;
-        target.attack = Math.floor(target.attack * 1.08) + 1;
-        target.defense = Math.floor(target.defense * 1.08) + 1;
-        target.spAtk = Math.floor(target.spAtk * 1.08) + 1;
-        target.spDef = Math.floor(target.spDef * 1.08) + 1;
-        target.speed = Math.floor(target.speed * 1.08) + 1;
         levelUps++;
+        target.maxXp = Math.floor(target.maxXp * 1.67);
+        
+        let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
+        target.maxHp = Math.max(target.maxHp + 1, Math.floor(target.maxHp * statBuff));
+        target.attack = Math.max(target.attack + 1, Math.floor(target.attack * statBuff));
+        target.defense = Math.max(target.defense + 1, Math.floor(target.defense * statBuff));
+        target.spAtk = Math.max(target.spAtk + 1, Math.floor(target.spAtk * statBuff));
+        target.spDef = Math.max(target.spDef + 1, Math.floor(target.spDef * statBuff));
+        target.speed = Math.max(target.speed + 1, Math.floor(target.speed * statBuff));
+        target.critRate = parseFloat(((target.critRate || 5.0) + 0.05).toFixed(2));
     }
 
-    // If active companion was the one training, sync back live stats
-    if (active.rosterIndex === gameState.activeRosterIndex) {
+    // Check for evolution
+    const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[target.id] : null;
+    let evolvedNotice = "";
+    if (evo && target.level >= evo.level) {
+        evolvedNotice = `<br><span class="text-pink-400 font-bold">✨ Evolved into ${evo.toName}!</span>`;
+        target.id = evo.toId;
+        target.name = evo.toName;
+        if (evo.type) target.type = evo.type;
+        target.maxHp += 40;
+        target.attack += 25;
+        target.defense += 25;
+        target.spAtk += 25;
+        target.spDef += 25;
+        target.speed += 20;
+    }
+
+    // Guaranteed Sync to Active Game State
+    let currentActiveIdx = gameState.activeRosterIndex ?? 0;
+    if (activeIdx === currentActiveIdx) {
+        gameState.id = target.id;
+        gameState.name = target.name;
+        gameState.type = target.type || 'normal';
         gameState.level = target.level;
         gameState.xp = target.xp;
         gameState.maxXp = target.maxXp;
@@ -248,23 +271,15 @@ function claimJourneyReward() {
         gameState.spAtk = target.spAtk;
         gameState.spDef = target.spDef;
         gameState.speed = target.speed;
-    }
-
-    // Check for evolution
-    const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[target.id] : null;
-    let evolvedNotice = "";
-    if (evo && target.level >= evo.level) {
-        evolvedNotice = `<br><span class="text-pink-400 font-bold">✨ Ready to evolve into ${evo.toName}!</span>`;
-        if (active.rosterIndex === gameState.activeRosterIndex) {
-            setTimeout(() => triggerEvolution(evo.toId, evo.toName, evo.type), 1200);
-        } else {
-            target.id = evo.toId;
-            target.name = evo.toName;
-            if (evo.type) target.type = evo.type;
-        }
+        gameState.critRate = target.critRate || 5.0;
     }
 
     gameState.activeJourney = null;
+    
+    // Permanently write to roster memory and save file
+    if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
     closeJourneyModal();
     updateHub();
 
