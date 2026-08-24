@@ -516,13 +516,9 @@ function feedBerry() {
     }
 }
 
-// --- XP AND MOOD SYSTEM ---
+//// --- XP AND MULTI-LEVEL LEVEL-UP SYSTEM ---
 function addXP(baseXp) {
-    let multiplier = 0;
-    if (gameState.hearts <= 1) multiplier = 0; 
-    else if (gameState.hearts <= 3) multiplier = 0.5; 
-    else if (gameState.hearts <= 5) multiplier = 2; 
-    else multiplier = 3; 
+    let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
 
     if (multiplier === 0) {
         showModal(`${gameState.name} is in a bad mood and refuses! Pet it or feed it.`);
@@ -531,53 +527,73 @@ function addXP(baseXp) {
     }
 
     let gainedXp = Math.floor(baseXp * multiplier);
-    let newTotalXp = gameState.xp + gainedXp;
+    let totalXp = gameState.xp + gainedXp;
 
-    if (newTotalXp >= gameState.maxXp) {
+    if (totalXp >= gameState.maxXp) {
         document.getElementById('xp-bar').style.width = '100%';
         setTimeout(() => {
-            let leftoverXp = newTotalXp - gameState.maxXp;
-            levelUp(leftoverXp);
+            levelUp(totalXp);
         }, 600);
     } else {
-        gameState.xp = newTotalXp;
+        gameState.xp = totalXp;
         updateHub();
     }
 }
 
-function levelUp(leftoverXp = 0) {
-    gameState.level++;
-    gameState.xp = leftoverXp;
-    gameState.maxXp = Math.floor(gameState.maxXp * 1.11);
-    
-    let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
-    gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
-    gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * statBuff));
-    gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * statBuff));
-    gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
-    gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
-    gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
-    gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
+function levelUp(totalXp) {
+    let oldLevel = gameState.level;
+    let currentXp = (typeof totalXp === 'number') ? totalXp : (gameState.xp || 0);
+    let levelsGained = 0;
 
+    // Continuous Loop: Consumes XP and handles 1, 2, 3, or more level jumps in a single victory!
+    while (currentXp >= gameState.maxXp) {
+        currentXp -= gameState.maxXp;
+        gameState.level++;
+        levelsGained++;
+        
+        // Next Level XP Requirement
+        gameState.maxXp = Math.floor(gameState.maxXp * 1.11);
+
+        // Stat Growth per Level
+        let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
+        gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
+        gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * statBuff));
+        gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * statBuff));
+        gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
+        gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
+        gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
+        gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
+    }
+
+    // Set remaining clean overflow XP
+    gameState.xp = currentXp;
+    syncCurrentPokemonToRoster();
+
+    // Reset UI Bar smoothly
     let xpBar = document.getElementById('xp-bar');
-    xpBar.style.transition = 'none';
-    xpBar.style.width = '0%';
+    if (xpBar) {
+        xpBar.style.transition = 'none';
+        xpBar.style.width = '0%';
+    }
 
     setTimeout(() => {
-        xpBar.style.transition = 'all 0.5s ease';
+        if (xpBar) xpBar.style.transition = 'all 0.5s ease';
         updateHub();
-        
-        // Check for Multi-Stage Evolution
+
+        // Check for Multi-Stage Evolution or Move Unlocks
         const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
 
         if (evo && gameState.level >= evo.level) {
             triggerEvolution(evo.toId, evo.toName, evo.type);
-        } else if (gameState.level === 7) {
-            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
-        } else if (gameState.level === 13) {
+        } else if (gameState.level >= 13 && oldLevel < 13) {
             showModal("NEW MOVE UNLOCKED! 🌟", `${gameState.name} unlocked Slot 3 Ultimate Move! Massive combat power!`);
+        } else if (gameState.level >= 7 && oldLevel < 7) {
+            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
         } else {
-            showModal(`${gameState.name} grew to Level ${gameState.level}!`);
+            let msg = (levelsGained > 1) 
+                ? `🎉 ${gameState.name} jumped +${levelsGained} Levels to Level ${gameState.level}!` 
+                : `${gameState.name} grew to Level ${gameState.level}!`;
+            showModal(msg);
         }
     }, 50);
 }
