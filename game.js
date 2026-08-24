@@ -552,7 +552,7 @@ function levelUp(totalXp) {
         levelsGained++;
         
         // Next Level XP Requirement
-        gameState.maxXp = Math.floor(gameState.maxXp * 1.11);
+        gameState.maxXp = Math.floor(gameState.maxXp * 1.43);
 
         // Stat Growth per Level
         let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
