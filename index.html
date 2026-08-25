@@ -245,7 +245,7 @@
     </div>
 
     <!-- STATS MODAL -->
-    <div id="stats-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="stats-modal" onclick="if(event.target === this) closeStats()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-blue-500 p-6 rounded-2xl w-10/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white" id="stats-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-blue-400">UNIT STATS</h3>
@@ -274,7 +274,7 @@
     </div>
 
     <!-- INVENTORY MODAL -->
-    <div id="inventory-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="inventory-modal" onclick="if(event.target === this) closeInventory()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-t-2 border-yellow-500 p-6 rounded-t-3xl w-full max-w-md shadow-2xl transform translate-y-full transition-transform duration-300 text-white h-2/3 flex flex-col" id="inventory-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-yellow-400">🎒 INVENTORY</h3>
@@ -291,7 +291,7 @@
     </div>
 
     <!-- PARTY / TEAM ROSTER MODAL -->
-    <div id="party-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="party-modal" onclick="if(event.target === this) closeParty()" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-indigo-500 p-6 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[80vh]" id="party-content">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                 <h3 class="text-xl font-black text-indigo-400">🐾 POKÉMON ROSTER</h3>
@@ -305,7 +305,7 @@
     </div>
 
     <!-- TRAINING / EXPEDITIONS MODAL -->
-    <div id="journey-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[96] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="journey-modal" onclick="if(event.target === this) closeJourneyModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[96] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-purple-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="journey-content">
             
             <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
@@ -351,8 +351,8 @@
     </div>
 
     <!-- ARE YOU SURE? CONFIRMATION MODAL -->
-    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
-        <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="confirm-content">
+    <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
+        <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="confirm-content">
             <h3 class="text-2xl font-black text-white mb-2">⚠️ Are You Sure?</h3>
             <p class="text-gray-300 mb-6 text-sm leading-relaxed">Starting a new game will <strong class="text-red-400">permanently erase</strong> your existing save file and all caught Pokémon!</p>
             <div class="grid grid-cols-2 gap-3">
@@ -363,7 +363,7 @@
     </div>
 
     <!-- CUSTOM ALERT MODAL (QUEUE COMPATIBLE) -->
-    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div id="custom-modal" onclick="if(event.target === this) closeModal()" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
         <div class="bg-gray-800 border border-gray-600 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
             <h3 id="modal-title" class="text-2xl font-black text-white mb-2">Notification</h3>
             <p id="modal-desc" class="text-gray-300 mb-6 text-sm leading-relaxed">Message goes here</p>
