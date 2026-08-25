@@ -465,25 +465,15 @@ function gainHeart() {
         gameState.hearts++;
         const effect = document.getElementById('swirl-effect');
         const sprite = document.getElementById('hub-sprite');
-        effect.classList.add('animate-swirl');
-        sprite.classList.add('flash-white');
+        if (effect) effect.classList.add('animate-swirl');
+        if (sprite) sprite.classList.add('flash-white');
         
         let heartXp = Math.max(1, Math.floor(gameState.maxXp * 0.005));
-        gameState.xp += heartXp;
         
         setTimeout(() => {
-            effect.classList.remove('animate-swirl');
-            sprite.classList.remove('flash-white');
-            
-            if (gameState.xp >= gameState.maxXp) {
-                document.getElementById('xp-bar').style.width = '100%';
-                setTimeout(() => {
-                    let leftoverXp = gameState.xp - gameState.maxXp;
-                    levelUp(leftoverXp);
-                }, 600);
-            } else {
-                updateHub();
-            }
+            if (effect) effect.classList.remove('animate-swirl');
+            if (sprite) sprite.classList.remove('flash-white');
+            addXP(heartXp, false); // Direct XP (no mood multiplier)
         }, 1000);
     }
 }
@@ -494,48 +484,44 @@ function feedBerry() {
             gameState.berries--;
             gainHeart();
         } else {
+            // --- FULL 10/10 HEARTS: 5% XP TREAT BONUS ---
             gameState.berries--;
             let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
-            gameState.xp += bonusXp;
             
             showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
             if (navigator.vibrate) navigator.vibrate(30);
 
-            if (gameState.xp >= gameState.maxXp) {
-                document.getElementById('xp-bar').style.width = '100%';
-                setTimeout(() => {
-                    let leftoverXp = gameState.xp - gameState.maxXp;
-                    levelUp(leftoverXp);
-                }, 600);
-            } else {
-                updateHub();
-            }
+            addXP(bonusXp, false); // Direct XP (no mood multiplier)
         }
     } else {
         showModal("Out of Berries!", "You don't have any berries left! Harvest your garden bush or win battles to find more.");
     }
 }
 
-//// --- XP AND MULTI-LEVEL LEVEL-UP SYSTEM ---
-function addXP(baseXp) {
-    let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
-
-    if (multiplier === 0) {
-        showModal(`${gameState.name} is in a bad mood and refuses! Pet it or feed it.`);
-        updateHub();
-        return;
+// --- UNIFIED XP AND MULTI-LEVEL LEVEL-UP SYSTEM ---
+function addXP(amount, applyMoodMultiplier = true) {
+    let gainedXp = amount;
+    if (applyMoodMultiplier) {
+        let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
+        if (multiplier === 0) {
+            showModal(`${gameState.name} is in a bad mood and refuses! Pet it or feed it.`);
+            updateHub();
+            return;
+        }
+        gainedXp = Math.floor(amount * multiplier);
     }
 
-    let gainedXp = Math.floor(baseXp * multiplier);
     let totalXp = gameState.xp + gainedXp;
 
     if (totalXp >= gameState.maxXp) {
-        document.getElementById('xp-bar').style.width = '100%';
+        const xpBar = document.getElementById('xp-bar');
+        if (xpBar) xpBar.style.width = '100%';
         setTimeout(() => {
             levelUp(totalXp);
         }, 600);
     } else {
         gameState.xp = totalXp;
+        syncCurrentPokemonToRoster();
         updateHub();
     }
 }
@@ -545,13 +531,13 @@ function levelUp(totalXp) {
     let currentXp = (typeof totalXp === 'number') ? totalXp : (gameState.xp || 0);
     let levelsGained = 0;
 
-    // Continuous Loop: Consumes XP and handles 1, 2, 3, or more level jumps in a single victory!
+    // Continuous Loop: Consumes full accumulated XP and handles 1, 2, 3+ level jumps smoothly!
     while (currentXp >= gameState.maxXp) {
         currentXp -= gameState.maxXp;
         gameState.level++;
         levelsGained++;
         
-        // Next Level XP Requirement
+        // Exact 1.67 scaling
         gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
 
         // Stat Growth per Level
@@ -565,9 +551,10 @@ function levelUp(totalXp) {
         gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
     }
 
-    // Set remaining clean overflow XP
-    gameState.xp = currentXp;
+    // Set remaining clean overflow XP (Never negative!)
+    gameState.xp = Math.max(0, currentXp);
     syncCurrentPokemonToRoster();
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
     // Reset UI Bar smoothly
     let xpBar = document.getElementById('xp-bar');
