@@ -240,6 +240,155 @@ function renderStageScoutPreview() {
             ${isBossStage ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-black bg-yellow-900/60 text-yellow-300 border border-yellow-500/50">✨ XL Items</span>' : ''}
         `;
     }
+
+    // Update Sweep Button Status
+    const sweepBtn = document.getElementById('btn-scout-sweep');
+    const sweepLabel = document.getElementById('scout-sweep-label');
+    let isStageCleared = (stage < gameState.maxStage);
+
+    if (sweepBtn && sweepLabel) {
+        if (!isStageCleared) {
+            sweepBtn.disabled = true;
+            sweepBtn.className = "w-full py-2.5 bg-gray-800 text-gray-500 font-bold rounded-2xl text-xs cursor-not-allowed opacity-60 border border-gray-700";
+            sweepLabel.innerText = "🔒 Clear Stage Once to Unlock Sweep";
+        } else if ((gameState.berries || 0) <= 0) {
+            sweepBtn.disabled = true;
+            sweepBtn.className = "w-full py-2.5 bg-gray-800 text-pink-400/80 font-bold rounded-2xl text-xs cursor-not-allowed border border-pink-500/30";
+            sweepLabel.innerText = "🍓 Need Berries to Sweep";
+        } else {
+            sweepBtn.disabled = false;
+            sweepBtn.className = "w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 active:scale-95 text-white font-black rounded-2xl text-sm tracking-wider shadow-xl transition-all flex items-center justify-center gap-2 border border-yellow-300/30";
+            sweepLabel.innerText = `SWEEP REPLAY (Have: ${gameState.berries} 🍓)`;
+        }
+    }
+}
+
+// --- SWEEP MODAL & INSTANT FARM SIMULATION ---
+var currentSweepCount = 1;
+
+function openSweepModal() {
+    let maxBerries = gameState.berries || 0;
+    if (maxBerries <= 0) {
+        showModal("No Berries Available!", "You need at least 1 Oran Berry to sweep stages. Harvest your garden bush or battle to find more.");
+        return;
+    }
+
+    currentSweepCount = 1;
+    updateSweepModalUI();
+
+    const modal = document.getElementById('sweep-modal');
+    const content = document.getElementById('sweep-content');
+    if (!modal || !content) return;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function closeSweepModal() {
+    const modal = document.getElementById('sweep-modal');
+    const content = document.getElementById('sweep-content');
+    if (!modal || !content) return;
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function changeSweepCount(delta) {
+    let maxBerries = gameState.berries || 0;
+    currentSweepCount = Math.max(1, Math.min(maxBerries, currentSweepCount + delta));
+    updateSweepModalUI();
+}
+
+function setSweepCount(val) {
+    let maxBerries = gameState.berries || 0;
+    if (val === 'max') {
+        currentSweepCount = Math.max(1, maxBerries);
+    } else {
+        currentSweepCount = Math.max(1, Math.min(maxBerries, val));
+    }
+    updateSweepModalUI();
+}
+
+function updateSweepModalUI() {
+    const countDisplay = document.getElementById('sweep-count-display');
+    const costLabel = document.getElementById('sweep-cost-label');
+    const availBerries = document.getElementById('sweep-avail-berries');
+
+    if (countDisplay) countDisplay.innerText = currentSweepCount;
+    if (costLabel) costLabel.innerText = `${currentSweepCount} 🍓`;
+    if (availBerries) availBerries.innerText = `🍓 ${gameState.berries || 0}`;
+}
+
+// --- EXECUTE INSTANT MULTI-SWEEP SIMULATION ---
+function executeStageSweep() {
+    let count = currentSweepCount;
+    let availableBerries = gameState.berries || 0;
+    if (count <= 0 || availableBerries < count) return;
+
+    let stage = gameState.currentStage;
+    let isBossStage = (stage % 5 === 0);
+
+    // 1. Consume Berries
+    gameState.berries -= count;
+
+    // 2. Calculate Replay XP per Run (50% Replay rate)
+    let rawStageXp = Math.max(5, Math.floor(((10 + (stage * 2.5)) * stage) / 2));
+    if (isBossStage) rawStageXp = Math.floor(rawStageXp * 2.0);
+
+    let replayBaseXp = Math.max(5, Math.floor(rawStageXp * 0.5));
+    let moodMult = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
+    let totalExpGained = Math.floor(replayBaseXp * moodMult) * count;
+
+    // 3. Simulate Random Drops over N Battles
+    let foundBerries = 0;
+    let foundPokeballs = 0;
+
+    for (let i = 0; i < count; i++) {
+        if (isBossStage) {
+            if (Math.random() < 0.35) foundBerries += 1;
+        } else {
+            if (Math.random() < 0.45) foundBerries += Math.floor(Math.random() * 2) + 1;
+            if (Math.random() < 0.11) foundPokeballs += 1;
+        }
+    }
+
+    gameState.berries += foundBerries;
+    gameState.pokeballs = (gameState.pokeballs || 0) + foundPokeballs;
+
+    closeSweepModal();
+
+    // 4. Assemble Summary Card
+    let oldLevel = gameState.level;
+    let drops = [];
+    if (foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berries</span>`);
+    if (foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${foundPokeballs} 🔴 Pokéballs</span>`);
+    let lootText = drops.length > 0 ? drops.join(" • ") : "<span class='text-gray-400'>None</span>";
+
+    let sweepCard = `
+        <div class='bg-gray-900/90 p-4 rounded-2xl border border-orange-500/40 text-xs space-y-2 mt-2 shadow-inner text-left'>
+            <div class='flex justify-between items-center pb-1.5 border-b border-gray-700'>
+                <span class='font-bold text-white text-sm'>Stage ${stage} Sweep (x${count})</span>
+                <span class='text-orange-400 font-black'>-${count} 🍓 Consumed</span>
+            </div>
+            <div>⚡ <strong class='text-white'>Total XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(totalExpGained)} XP</span> <span class='text-[10px] text-gray-400'>(${moodMult}x Mood)</span></div>
+            <div>🎁 <strong class='text-white'>Loot Recovered:</strong> ${lootText}</div>
+            <div class='pt-1 border-t border-gray-800 text-gray-300'>
+                ${gameState.name} gained instant combat experience across ${count} simulated battles!
+            </div>
+        </div>
+    `.trim();
+
+    showModal(`⚡ SWEEP COMPLETE! (x${count})`, sweepCard, [50, 100, 50]);
+
+    // Apply XP through our Multi-Level Engine
+    addXP(totalExpGained, false);
+    renderStageScoutPreview();
+    updateHub();
 }
 
 function startBattleFromSelect() {
