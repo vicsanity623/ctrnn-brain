@@ -591,26 +591,33 @@ function levelUp(totalXp) {
             moveNotice = `<div class='bg-blue-900/60 p-2 rounded-lg border border-blue-400/50 text-center font-bold text-yellow-300 text-[11px] mt-1'>✨ Unlocked Slot 2 Special Attack!</div>`;
         }
 
-        // Rich Level-Up Comparison Card
+        //// Rich Level-Up Comparison Card (Centered & Symmetrical)
         let levelUpCard = `
-            <div class='bg-gray-900/80 p-3.5 rounded-2xl border border-yellow-500/40 text-xs space-y-2 mt-2 shadow-inner'>
-                <div class='flex justify-between items-center pb-1.5 border-b border-gray-700'>
+            <div class='bg-gray-900/90 p-4 rounded-2xl border border-yellow-500/40 text-xs space-y-2 mt-2 shadow-inner w-full'>
+                <div class='flex justify-between items-center pb-2 border-b border-gray-700'>
                     <span class='font-bold text-white text-sm'>${gameState.name}</span>
-                    <span class='text-yellow-400 font-black'>Lv. ${oldStats.level} ➔ Lv. ${gameState.level}</span>
+                    <span class='text-yellow-400 font-black tracking-wide'>Lv. ${oldStats.level} ➔ Lv. ${gameState.level}</span>
                 </div>
+                
                 <div class='flex items-center justify-center py-1'>
                     <img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif' class='w-20 h-20 object-contain pixel-perfect drop-shadow-lg animate-bounce'>
                 </div>
-                <div class='grid grid-cols-2 gap-x-4 gap-y-1 text-gray-300 pt-1 border-t border-gray-800 text-left text-[11px]'>
-                    <div class='flex justify-between'><span>💚 HP:</span> <span><span class='text-gray-400'>${oldStats.maxHp}</span> ➔ <strong class='text-green-400'>${gameState.maxHp}</strong></span></div>
-                    <div class='flex justify-between'><span>⚡ SPD:</span> <span><span class='text-gray-400'>${oldStats.speed}</span> ➔ <strong class='text-yellow-400'>${gameState.speed}</strong></span></div>
-                    <div class='flex justify-between'><span>❤️ ATK:</span> <span><span class='text-gray-400'>${oldStats.attack}</span> ➔ <strong class='text-red-400'>${gameState.attack}</strong></span></div>
-                    <div class='flex justify-between'><span>💜 SP.ATK:</span> <span><span class='text-gray-400'>${oldStats.spAtk}</span> ➔ <strong class='text-purple-400'>${gameState.spAtk}</strong></span></div>
-                    <div class='flex justify-between'><span>💙 DEF:</span> <span><span class='text-gray-400'>${oldStats.defense}</span> ➔ <strong class='text-blue-400'>${gameState.defense}</strong></span></div>
-                    <div class='flex justify-between'><span>🔮 SP.DEF:</span> <span><span class='text-gray-400'>${oldStats.spDef}</span> ➔ <strong class='text-indigo-400'>${gameState.spDef}</strong></span></div>
+
+                <!-- Centered Symmetrical 2-Column Stats Grid -->
+                <div class='w-full max-w-[270px] mx-auto grid grid-cols-2 gap-x-5 gap-y-1.5 text-gray-300 pt-2 border-t border-gray-800 text-[11px]'>
+                    <div class='flex justify-between items-center'><span>💚 HP:</span> <span><span class='text-gray-400'>${oldStats.maxHp}</span> ➔ <strong class='text-green-400'>${gameState.maxHp}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>⚡ SPD:</span> <span><span class='text-gray-400'>${oldStats.speed}</span> ➔ <strong class='text-yellow-400'>${gameState.speed}</strong></span></div>
+                    
+                    <div class='flex justify-between items-center'><span>❤️ ATK:</span> <span><span class='text-gray-400'>${oldStats.attack}</span> ➔ <strong class='text-red-400'>${gameState.attack}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>💜 SP.ATK:</span> <span><span class='text-gray-400'>${oldStats.spAtk}</span> ➔ <strong class='text-purple-400'>${gameState.spAtk}</strong></span></div>
+                    
+                    <div class='flex justify-between items-center'><span>💙 DEF:</span> <span><span class='text-gray-400'>${oldStats.defense}</span> ➔ <strong class='text-blue-400'>${gameState.defense}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>🔮 SP.DEF:</span> <span><span class='text-gray-400'>${oldStats.spDef}</span> ➔ <strong class='text-indigo-400'>${gameState.spDef}</strong></span></div>
                 </div>
+
                 ${moveNotice}
-                <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
+
+                <div class='pt-2.5 border-t border-gray-700 text-center text-orange-400 font-bold'>
                     Total Power: ⚡ ${oldStats.cp} ➔ <strong class='text-orange-300 font-black'>${newCp} CP</strong> <span class='text-green-400 text-[10px]'>(+${cpGain})</span>
                 </div>
             </div>
