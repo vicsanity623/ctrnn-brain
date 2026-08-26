@@ -531,6 +531,18 @@ function levelUp(totalXp) {
     let currentXp = (typeof totalXp === 'number') ? totalXp : (gameState.xp || 0);
     let levelsGained = 0;
 
+    // Snapshot Previous Stats for Comparison
+    let oldStats = {
+        level: gameState.level,
+        maxHp: gameState.maxHp,
+        attack: gameState.attack,
+        defense: gameState.defense,
+        spAtk: gameState.spAtk,
+        spDef: gameState.spDef,
+        speed: gameState.speed,
+        cp: (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0)
+    };
+
     // Continuous Loop: Consumes full accumulated XP and handles 1, 2, 3+ level jumps smoothly!
     while (currentXp >= gameState.maxXp) {
         currentXp -= gameState.maxXp;
@@ -567,20 +579,50 @@ function levelUp(totalXp) {
         if (xpBar) xpBar.style.transition = 'all 0.5s ease';
         updateHub();
 
-        // Check for Multi-Stage Evolution or Move Unlocks
-        const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
+        // Calculate New Total Combat Power
+        let newCp = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
+        let cpGain = newCp - oldStats.cp;
 
-        if (evo && gameState.level >= evo.level) {
-            triggerEvolution(evo.toId, evo.toName, evo.type);
-        } else if (gameState.level >= 13 && oldLevel < 13) {
-            showModal("NEW MOVE UNLOCKED! 🌟", `${gameState.name} unlocked Slot 3 Ultimate Move! Massive combat power!`);
+        // Check for Move Unlock Notice
+        let moveNotice = "";
+        if (gameState.level >= 13 && oldLevel < 13) {
+            moveNotice = `<div class='bg-purple-900/60 p-2 rounded-lg border border-purple-400/50 text-center font-bold text-yellow-300 text-[11px] mt-1'>🌟 Unlocked Slot 3 Ultimate Move!</div>`;
         } else if (gameState.level >= 7 && oldLevel < 7) {
-            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
-        } else {
-            let msg = (levelsGained > 1) 
-                ? `🎉 ${gameState.name} jumped +${levelsGained} Levels to Level ${gameState.level}!` 
-                : `${gameState.name} grew to Level ${gameState.level}!`;
-            showModal(msg);
+            moveNotice = `<div class='bg-blue-900/60 p-2 rounded-lg border border-blue-400/50 text-center font-bold text-yellow-300 text-[11px] mt-1'>✨ Unlocked Slot 2 Special Attack!</div>`;
+        }
+
+        // Rich Level-Up Comparison Card
+        let levelUpCard = `
+            <div class='bg-gray-900/80 p-3.5 rounded-2xl border border-yellow-500/40 text-xs space-y-2 mt-2 shadow-inner'>
+                <div class='flex justify-between items-center pb-1.5 border-b border-gray-700'>
+                    <span class='font-bold text-white text-sm'>${gameState.name}</span>
+                    <span class='text-yellow-400 font-black'>Lv. ${oldStats.level} ➔ Lv. ${gameState.level}</span>
+                </div>
+                <div class='flex items-center justify-center py-1'>
+                    <img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif' class='w-20 h-20 object-contain pixel-perfect drop-shadow-lg animate-bounce'>
+                </div>
+                <div class='grid grid-cols-2 gap-x-4 gap-y-1 text-gray-300 pt-1 border-t border-gray-800 text-left text-[11px]'>
+                    <div class='flex justify-between'><span>💚 HP:</span> <span><span class='text-gray-400'>${oldStats.maxHp}</span> ➔ <strong class='text-green-400'>${gameState.maxHp}</strong></span></div>
+                    <div class='flex justify-between'><span>⚡ SPD:</span> <span><span class='text-gray-400'>${oldStats.speed}</span> ➔ <strong class='text-yellow-400'>${gameState.speed}</strong></span></div>
+                    <div class='flex justify-between'><span>❤️ ATK:</span> <span><span class='text-gray-400'>${oldStats.attack}</span> ➔ <strong class='text-red-400'>${gameState.attack}</strong></span></div>
+                    <div class='flex justify-between'><span>💜 SP.ATK:</span> <span><span class='text-gray-400'>${oldStats.spAtk}</span> ➔ <strong class='text-purple-400'>${gameState.spAtk}</strong></span></div>
+                    <div class='flex justify-between'><span>💙 DEF:</span> <span><span class='text-gray-400'>${oldStats.defense}</span> ➔ <strong class='text-blue-400'>${gameState.defense}</strong></span></div>
+                    <div class='flex justify-between'><span>🔮 SP.DEF:</span> <span><span class='text-gray-400'>${oldStats.spDef}</span> ➔ <strong class='text-indigo-400'>${gameState.spDef}</strong></span></div>
+                </div>
+                ${moveNotice}
+                <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                    Total Power: ⚡ ${oldStats.cp} ➔ <strong class='text-orange-300 font-black'>${newCp} CP</strong> <span class='text-green-400 text-[10px]'>(+${cpGain})</span>
+                </div>
+            </div>
+        `.trim();
+
+        let title = (levelsGained > 1) ? `🎉 LEVEL UP! (+${levelsGained})` : `🎉 LEVEL UP!`;
+        showModal(title, levelUpCard, [40, 80, 40]);
+
+        // Check for Multi-Stage Evolution
+        const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
+        if (evo && gameState.level >= evo.level) {
+            setTimeout(() => triggerEvolution(evo.toId, evo.toName, evo.type), 800);
         }
     }, 50);
 }
