@@ -270,7 +270,12 @@ function processNextModal() {
     const current = modalQueue.shift();
 
     document.getElementById('modal-title').innerText = current.title;
-    document.getElementById('modal-desc').innerHTML = current.text ? current.text.replace(/\n/g, '<br>') : '';
+    // Render raw HTML cleanly without injecting <br> tags into CSS grids
+    if (current.text && current.text.includes('<')) {
+        document.getElementById('modal-desc').innerHTML = current.text;
+    } else {
+        document.getElementById('modal-desc').innerHTML = current.text ? current.text.replace(/\n/g, '<br>') : '';
+    }
     
     const btn = document.getElementById('modal-btn');
     if (btn) {
