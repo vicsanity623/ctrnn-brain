@@ -96,14 +96,155 @@ function setBattleLog(msg) {
     if (logEl) logEl.innerText = msg;
 }
 
-// --- STAGE NAVIGATOR FUNCTION ---
+// --- 1. OPEN STAGE SCOUT / SELECTION SCREEN ---
+function openStageSelect() {
+    if (gameState.activeJourney && gameState.activeJourney.rosterIndex === gameState.activeRosterIndex) {
+        showModal("🏕️ BUSY TRAINING!", `${gameState.name} is currently away on an AFK Expedition! Swap to another party member or claim your training rewards first.`);
+        return;
+    }
+
+    if (gameState.hearts <= 1) {
+        showModal(`${gameState.name} is too sad to battle! Pet it or feed it berries to cheer it up.`);
+        return;
+    }
+
+    showScreen('stage-select-screen');
+    renderStageScoutPreview();
+}
+
+function leaveStageSelect() {
+    showScreen('hub-screen');
+    updateHub();
+}
+
 function changeStage(delta) {
     let targetStage = gameState.currentStage + delta;
     if (targetStage >= 1 && targetStage <= gameState.maxStage) {
         gameState.currentStage = targetStage;
-        updateHub();
-        enterBattle(); // Re-rolls an enemy matching the chosen stage!
+        renderStageScoutPreview();
+        updateStageNavigatorUI();
     }
+}
+
+// --- 2. RENDER SCOUT PREVIEW & MATCHUP ANALYSIS ---
+function renderStageScoutPreview() {
+    let stage = gameState.currentStage;
+    let isBossStage = (stage % 5 === 0);
+
+    // Calculate Stage Enemy Stats
+    let levelDiff = Math.max(0, stage - 3);
+    let previewMaxHp = Math.floor(60 * Math.pow(1.085, levelDiff));
+    let previewAtk = Math.floor(6 * Math.pow(1.07, levelDiff));
+    let previewDef = Math.floor(4 * Math.pow(1.06, levelDiff));
+
+    if (isBossStage) {
+        previewMaxHp = Math.floor(previewMaxHp * 2.5);
+        previewAtk = Math.floor(previewAtk * 1.3);
+        previewDef = Math.floor(previewDef * 1.5);
+    }
+
+    let enemyCP = previewMaxHp + Math.floor(previewAtk * 1.5) + Math.floor(previewDef * 1.5) + Math.floor(stage * 2);
+    let playerCP = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
+
+    // Update Top Navigator
+    const titleEl = document.getElementById('scout-stage-title');
+    const subEl = document.getElementById('scout-stage-subtitle');
+    const btnPrev = document.getElementById('scout-btn-prev');
+    const btnNext = document.getElementById('scout-btn-next');
+
+    if (titleEl) {
+        titleEl.innerText = isBossStage ? `👑 BOSS STAGE ${stage}` : `STAGE ${stage}`;
+        titleEl.className = isBossStage ? "text-sm font-black text-pink-400 animate-pulse tracking-wider" : "text-sm font-black text-yellow-400 tracking-wider";
+    }
+    if (subEl) subEl.innerText = `(Max Unlocked: ${gameState.maxStage})`;
+    if (btnPrev) btnPrev.disabled = (stage <= 1);
+    if (btnNext) btnNext.disabled = (stage >= gameState.maxStage);
+
+    // Determine Stage-Locked Wild Pokémon ID
+    let wildId;
+    if (stage === 100) wildId = 150;
+    else if (stage === 90) wildId = 151;
+    else if (stage === 80) wildId = 146;
+    else if (stage === 70) wildId = 145;
+    else if (stage === 60) wildId = 144;
+    else if (isBossStage) {
+        let bossIndex = (stage * 7) % EVOLVED_BOSS_IDS.length;
+        wildId = EVOLVED_BOSS_IDS[bossIndex];
+    } else {
+        let baseIndex = (stage * 13 + 5) % BASE_POKEMON_IDS.length;
+        wildId = BASE_POKEMON_IDS[baseIndex];
+    }
+
+    // Set Enemy Sprite & Fallback
+    const spriteEl = document.getElementById('scout-enemy-sprite');
+    if (spriteEl) {
+        spriteEl.src = `assets/sprites/${wildId}_animated.gif`;
+        spriteEl.onerror = function() {
+            this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
+        };
+    }
+
+    const nameEl = document.getElementById('scout-enemy-name');
+    if (nameEl) nameEl.innerText = isBossStage ? `👑 BOSS (Lv. ${stage})` : `Wild Pokemon (Lv. ${stage})`;
+
+    const allTypes = Object.keys(TYPE_DATABASE);
+    let scoutType = allTypes[(stage * 3) % allTypes.length];
+    updateTypeBadge('scout-enemy-badge', scoutType);
+
+    // Fetch accurate name & type from PokeAPI
+    fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
+        .then(res => res.json())
+        .then(data => {
+            let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+            if (nameEl) nameEl.innerText = isBossStage ? `👑 BOSS ${capitalized} (Lv. ${stage})` : `Wild ${capitalized} (Lv. ${stage})`;
+            if (data.types && data.types[0]) {
+                scoutType = data.types[0].type.name.toLowerCase();
+                if (!TYPE_DATABASE[scoutType]) scoutType = 'normal';
+                updateTypeBadge('scout-enemy-badge', scoutType);
+            }
+        })
+        .catch(() => {});
+
+    // Render CP Matchup & Advantage
+    const playerCpEl = document.getElementById('scout-player-cp');
+    const enemyCpEl = document.getElementById('scout-enemy-cp');
+    const statusEl = document.getElementById('scout-matchup-status');
+
+    if (playerCpEl) playerCpEl.innerText = `⚡ ${formatNumber(playerCP)} CP`;
+    if (enemyCpEl) enemyCpEl.innerText = `⚡ ${formatNumber(enemyCP)} CP`;
+
+    if (statusEl) {
+        if (playerCP >= enemyCP * 1.25) {
+            statusEl.innerText = "Massive Advantage 🔥";
+            statusEl.className = "text-xs font-black text-green-400";
+        } else if (playerCP >= enemyCP) {
+            statusEl.innerText = "Fair Fight ⚖️";
+            statusEl.className = "text-xs font-black text-yellow-400";
+        } else {
+            statusEl.innerText = "Dangerous Challenge ⚠️";
+            statusEl.className = "text-xs font-black text-red-400 animate-pulse";
+        }
+    }
+
+    // Render Potential Rewards Preview Row
+    const rewardsRow = document.getElementById('scout-rewards-row');
+    if (rewardsRow) {
+        let expEstimate = Math.max(5, Math.floor(((10 + (stage * 2.5)) * stage) / 2));
+        if (isBossStage) expEstimate *= 2;
+        let expMood = expEstimate * 3; // Estimated at 3x full mood
+
+        rewardsRow.innerHTML = `
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-900/60 text-blue-300 border border-blue-500/40">⚡ ~${formatNumber(expMood)} XP</span>
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-pink-900/60 text-pink-300 border border-pink-500/40">🍓 Berries</span>
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-900/60 text-red-300 border border-red-500/40">🔴 Pokéballs</span>
+            ${isBossStage ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-black bg-yellow-900/60 text-yellow-300 border border-yellow-500/50">✨ XL Items</span>' : ''}
+        `;
+    }
+}
+
+function startBattleFromSelect() {
+    showScreen('battle-screen');
+    enterBattle();
 }
 
 function updateStageNavigatorUI() {
@@ -118,13 +259,45 @@ function updateStageNavigatorUI() {
         stageText.className = isBossStage ? "text-xs font-black text-pink-400 animate-pulse tracking-wider" : "text-xs font-black text-yellow-400 tracking-wider";
         stageMax.innerText = `(Max: ${gameState.maxStage})`;
         
-        // Disable buttons at boundaries
         if (btnPrev) btnPrev.disabled = (gameState.currentStage <= 1);
         if (btnNext) btnNext.disabled = (gameState.currentStage >= gameState.maxStage);
     }
 }
 
-// --- ENTER BATTLE ---
+// --- MOBILE SWIPE GESTURE DETECTOR FOR STAGE BROWSING ---
+let touchStartX = 0;
+let touchEndX = 0;
+
+function initScoutSwipeControls() {
+    const swipeArea = document.getElementById('scout-swipe-area');
+    if (!swipeArea) return;
+
+    swipeArea.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleScoutSwipe();
+    }, { passive: true });
+}
+
+function handleScoutSwipe() {
+    let diff = touchEndX - touchStartX;
+    if (Math.abs(diff) > 45) {
+        if (diff > 0) {
+            // Swipe Right ➔ Previous Stage
+            changeStage(-1);
+        } else {
+            // Swipe Left ➔ Next Stage
+            changeStage(1);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initScoutSwipeControls);
+
+// --- 3. ENTER BATTLE ---
 function enterBattle() {
     // Check if active buddy is currently away on an AFK Training Journey
     if (gameState.activeJourney && gameState.activeJourney.rosterIndex === gameState.activeRosterIndex) {
