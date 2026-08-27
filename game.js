@@ -119,15 +119,15 @@ function startGame(isNew) {
         if (gameState.activeJourney === undefined) gameState.activeJourney = null;
         if (gameState.activeSweep === undefined) gameState.activeSweep = null;
         
-        // Migrate Defense State
-        if (!gameState.defenseState) {
+        // Migrate Defense State & Repair Unrealistic Stage 1200+ Glitch
+        if (!gameState.defenseState || gameState.defenseState.stage > 100) {
             gameState.defenseState = {
                 stage: 1,
                 kills: 0,
                 remaining: 500,
                 towerHp: null,
                 towerMaxHp: null,
-                slots: [0, null, null],
+                slots: (gameState.defenseState && gameState.defenseState.slots) ? gameState.defenseState.slots : [0, null, null],
                 lastTick: Date.now()
             };
         }
