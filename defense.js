@@ -479,7 +479,8 @@ function grantDefenseTrickleXP() {
     slots.forEach(rIdx => {
         if (rIdx !== null && gameState.roster[rIdx]) {
             let p = gameState.roster[rIdx];
-            let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.001));
+            // 0.02% per kill = 10% XP per 500-enemy wave
+            let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.0002));
             p.xp = (p.xp || 0) + trickle;
 
             // Handle multi-level jumps for defenders in real time
@@ -655,7 +656,8 @@ setInterval(() => {
         slots.forEach(rIdx => {
             if (rIdx !== null && gameState.roster[rIdx]) {
                 let p = gameState.roster[rIdx];
-                let totalTrickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.001)) * killsEarned;
+                // 0.02% per kill = 10% XP per 500-enemy wave
+                let totalTrickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.0002)) * killsEarned;
                 p.xp = (p.xp || 0) + totalTrickle;
 
                 while (p.xp >= p.maxXp) {
