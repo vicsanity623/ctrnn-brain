@@ -175,6 +175,11 @@ function startGame(isNew) {
             gameState.lastGardenHarvest = Date.now();
         }
 
+        // Process 24/7 Offline Defense Progress & Roster XP
+        if (typeof processOfflineDefenseCatchUp === 'function') {
+            processOfflineDefenseCatchUp();
+        }
+
         updateHub();
         showScreen('hub-screen');
     } else {
