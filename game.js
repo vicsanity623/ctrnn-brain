@@ -150,15 +150,24 @@ function startGame(isNew) {
                 maxXp: gameState.maxXp
             }];
         } else {
-            // Repair any missing stats on caught teammates
-            gameState.roster.forEach(p => {
-                if (!p.type) p.type = 'normal';
-                if (!p.spAtk) p.spAtk = 6;
-                if (!p.spDef) p.spDef = 6;
-                if (!p.speed) p.speed = 5;
-                if (!p.critRate) p.critRate = 5.0;
-                if (!p.maxXp) p.maxXp = 50;
-            });
+            // Repair any missing stats & Fix Out-of-Control Billion XP Requirements
+        gameState.roster.forEach(p => {
+            if (!p.type) p.type = 'normal';
+            if (!p.spAtk) p.spAtk = 6;
+            if (!p.spDef) p.spDef = 6;
+            if (!p.speed) p.speed = 5;
+            if (!p.critRate) p.critRate = 5.0;
+            
+            // Recalculate balanced RPG XP capacity based on current level
+            let balancedMax = Math.max(50, Math.floor(50 * Math.pow(p.level || 1, 1.85)));
+            p.maxXp = balancedMax;
+            if (p.xp >= p.maxXp) p.xp = Math.floor(p.maxXp * 0.4);
+        });
+
+        // Repair Active Companion's XP Bar
+        let activeMax = Math.max(50, Math.floor(50 * Math.pow(gameState.level || 1, 1.85)));
+        gameState.maxXp = activeMax;
+        if (gameState.xp >= gameState.maxXp) gameState.xp = Math.floor(gameState.maxXp * 0.4);
         }
 
         localStorage.setItem('pokeSave', JSON.stringify(gameState));
@@ -618,8 +627,8 @@ function levelUp(totalXp) {
         gameState.level++;
         levelsGained++;
         
-        // Exact 1.67 scaling
-        gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
+        // Balanced Standard RPG Power Curve (Scales smoothly from Lv 1 to Lv 100)
+        gameState.maxXp = Math.max(50, Math.floor(50 * Math.pow(gameState.level, 1.85)));
 
         // Stat Growth per Level
         let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
