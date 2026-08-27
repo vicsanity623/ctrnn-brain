@@ -102,8 +102,10 @@ function startGame(isNew) {
     } else if (localStorage.getItem('pokeSave')) {
         gameState = JSON.parse(localStorage.getItem('pokeSave'));
         
+        // --- UNIVERSAL SAVE FILE MIGRATION & REPAIR ENGINE ---
         if (gameState.berries === undefined) gameState.berries = 5;
         if (gameState.pokeballs === undefined) gameState.pokeballs = 3;
+        if (gameState.activeRosterIndex === undefined) gameState.activeRosterIndex = 0;
         if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 1;
         if (gameState.maxStage === undefined) gameState.maxStage = gameState.currentStage;
         if (gameState.spAtk === undefined) gameState.spAtk = 6;
@@ -114,6 +116,23 @@ function startGame(isNew) {
         if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
         if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
+        if (gameState.activeJourney === undefined) gameState.activeJourney = null;
+        if (gameState.activeSweep === undefined) gameState.activeSweep = null;
+        
+        // Migrate Defense State
+        if (!gameState.defenseState) {
+            gameState.defenseState = {
+                stage: 1,
+                kills: 0,
+                remaining: 500,
+                towerHp: null,
+                towerMaxHp: null,
+                slots: [0, null, null],
+                lastTick: Date.now()
+            };
+        }
+
+        // Migrate Roster Schema
         if (!gameState.roster || gameState.roster.length === 0) {
             gameState.roster = [{
                 id: gameState.id,
@@ -126,10 +145,23 @@ function startGame(isNew) {
                 spAtk: gameState.spAtk,
                 spDef: gameState.spDef,
                 speed: gameState.speed,
+                critRate: gameState.critRate || 5.0,
                 xp: gameState.xp,
                 maxXp: gameState.maxXp
             }];
+        } else {
+            // Repair any missing stats on caught teammates
+            gameState.roster.forEach(p => {
+                if (!p.type) p.type = 'normal';
+                if (!p.spAtk) p.spAtk = 6;
+                if (!p.spDef) p.spDef = 6;
+                if (!p.speed) p.speed = 5;
+                if (!p.critRate) p.critRate = 5.0;
+                if (!p.maxXp) p.maxXp = 50;
+            });
         }
+
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
         let offlinePeriods = Math.floor((Date.now() - gameState.lastInteraction) / (30 * 60000));
         if (offlinePeriods > 0) {
