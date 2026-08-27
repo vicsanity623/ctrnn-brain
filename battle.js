@@ -995,7 +995,14 @@ function endBattle(won) {
         
         // Boss stages grant 2x bonus XP!
         if (isBoss) {
-            rawStageXp = Math.floor(rawStageXp * 1.6);
+            rawStageXp = Math.floor(rawStageXp * 2.0);
+        }
+
+        // 🔥 Underdog Punch-Up Bonus: Earn up to +100% extra XP when beating higher-level stages!
+        if (beatenStage > gameState.level) {
+            let levelLead = beatenStage - gameState.level;
+            let underdogMultiplier = Math.min(2.0, 1.0 + (levelLead * 0.04));
+            rawStageXp = Math.floor(rawStageXp * underdogMultiplier);
         }
 
         let baseStageXp = rawStageXp;
