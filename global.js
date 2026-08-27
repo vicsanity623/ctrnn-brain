@@ -289,7 +289,7 @@ var gameState = {
 };
 
 // --- SCREEN LIST & STORY ---
-const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'stage-select-screen', 'battle-screen', 'evo-screen'];
+const screens = ['loading-screen', 'main-menu', 'intro-screen', 'hub-screen', 'stage-select-screen', 'battle-screen', 'defense-screen', 'evo-screen'];
 let storyStep = 0;
 const storyLines = [
     "Welcome to the world of Pokemon! Your dream to become a Master begins now.",
