@@ -278,6 +278,15 @@ var gameState = {
     activeRosterIndex: 0,
     activeJourney: null,
     activeSweep: null,
+    defenseState: {
+        stage: 1,
+        kills: 0,
+        remaining: 500,
+        towerHp: null,
+        towerMaxHp: null,
+        slots: [0, null, null], // Unique roster indices
+        lastTick: Date.now()
+    },
     items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
