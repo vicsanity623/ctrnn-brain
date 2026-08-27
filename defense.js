@@ -245,39 +245,65 @@ function drawCastleDefenseBase() {
     defenseCtx.stroke();
 }
 
+// --- DRAW DEFENDER GLOWING ELEMENTAL FLOOR PADS ---
 function drawDefenderSprites() {
     let w = defenseCanvas.width;
     let h = defenseCanvas.height;
     let positions = [w * 0.22, w * 0.50, w * 0.78];
-    let yPos = h - 65;
+    let yPos = h - 50;
     let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
 
     positions.forEach((x, index) => {
         let rIdx = slots[index];
-        if (rIdx === null || rIdx === undefined || !gameState.roster[rIdx]) {
-            // Empty Tower Pad
+        let p = (rIdx !== null && gameState.roster[rIdx]) ? gameState.roster[rIdx] : null;
+
+        if (!p) {
+            // Empty Slot Pad
             defenseCtx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
-            defenseCtx.lineWidth = 1;
+            defenseCtx.lineWidth = 1.5;
             defenseCtx.setLineDash([4, 4]);
             defenseCtx.beginPath();
-            defenseCtx.arc(x, yPos + 18, 14, 0, Math.PI * 2);
+            defenseCtx.arc(x, yPos + 10, 15, 0, Math.PI * 2);
             defenseCtx.stroke();
             defenseCtx.setLineDash([]);
             return;
         }
 
-        let p = gameState.roster[rIdx];
-        let sprite = getCachedSprite(p.id);
-        if (sprite && sprite.complete) {
-            defenseCtx.drawImage(sprite, x - 24, yPos - 24, 48, 48);
-        }
+        // Glowing Elemental Ring Pad under Defender
+        let elemColor = getElementColor(p.type || 'normal');
+        defenseCtx.strokeStyle = elemColor;
+        defenseCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+        defenseCtx.lineWidth = 2;
+        defenseCtx.shadowColor = elemColor;
+        defenseCtx.shadowBlur = 8;
 
-        defenseCtx.strokeStyle = getElementColor(p.type || 'normal');
-        defenseCtx.lineWidth = 1.5;
         defenseCtx.beginPath();
-        defenseCtx.arc(x, yPos + 18, 16, 0, Math.PI * 2);
+        defenseCtx.ellipse(x, yPos + 10, 20, 9, 0, 0, Math.PI * 2);
+        defenseCtx.fill();
         defenseCtx.stroke();
+        defenseCtx.shadowBlur = 0;
     });
+}
+
+// --- UPDATE LIVE ANIMATED DEFENDER GIFS & ASPECT RATIOS ---
+function updateLiveDefenderDOMSprites() {
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
+
+    for (let i = 0; i < 3; i++) {
+        let imgEl = document.getElementById(`defender-live-img-${i}`);
+        let rIdx = slots[i];
+
+        if (imgEl) {
+            if (rIdx !== null && rIdx !== undefined && gameState.roster[rIdx]) {
+                let p = gameState.roster[rIdx];
+                imgEl.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif`;
+                imgEl.classList.remove('hidden');
+            } else {
+                imgEl.src = '';
+                imgEl.classList.add('hidden');
+            }
+        }
+    }
 }
 
 // --- SPAWN SWARM ENEMY ---
@@ -437,8 +463,16 @@ function updateAndDrawEnemies() {
         e.y += e.speed;
 
         let sprite = getCachedSprite(e.id);
-        if (sprite && sprite.complete) {
-            defenseCtx.drawImage(sprite, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+            let aspect = sprite.naturalWidth / sprite.naturalHeight;
+            let drawW = e.size;
+            let drawH = e.size;
+            if (aspect > 1) {
+                drawH = e.size / aspect;
+            } else {
+                drawW = e.size * aspect;
+            }
+            defenseCtx.drawImage(sprite, e.x - drawW / 2, e.y - drawH / 2, drawW, drawH);
         }
 
         let barW = e.size * 1.1;
@@ -725,6 +759,7 @@ function updateTowerHealthBar() {
 }
 
 function renderDefenderUIChips() {
+    updateLiveDefenderDOMSprites();
     let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
 
     for (let i = 0; i < 3; i++) {
