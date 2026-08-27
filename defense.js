@@ -469,21 +469,21 @@ function regenerateTowerHealth() {
     }
 }
 
-// --- GRANT TRICKLE XP TO ALL DEFENDERS (REAL-TIME LIVE SCALING) ---
+// --- GRANT TRICKLE XP TO ALL DEFENDERS & ROSTER (INSTANT SYNC) ---
 function grantDefenseTrickleXP() {
     if (!gameState.roster || gameState.roster.length === 0) return;
 
     let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
+    let activeIdx = gameState.activeRosterIndex ?? 0;
 
-    // Distribute Trickle XP to all assigned defenders on the field!
     slots.forEach(rIdx => {
         if (rIdx !== null && gameState.roster[rIdx]) {
             let p = gameState.roster[rIdx];
             let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.001));
-            p.xp += trickle;
+            p.xp = (p.xp || 0) + trickle;
 
-            // Defender Level-Up
-            if (p.xp >= p.maxXp) {
+            // Handle multi-level jumps for defenders in real time
+            while (p.xp >= p.maxXp) {
                 p.xp -= p.maxXp;
                 p.level++;
                 p.maxXp = Math.floor(p.maxXp * 1.67);
@@ -495,8 +495,8 @@ function grantDefenseTrickleXP() {
                 p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
                 p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
 
-                // If active buddy leveled up, sync to live state
-                if (rIdx === (gameState.activeRosterIndex ?? 0)) {
+                // If active buddy leveled up, sync to live state immediately
+                if (rIdx === activeIdx) {
                     gameState.level = p.level;
                     gameState.xp = p.xp;
                     gameState.maxXp = p.maxXp;
@@ -508,14 +508,16 @@ function grantDefenseTrickleXP() {
                     gameState.speed = p.speed;
                 }
 
-                // Recalculate Live Tower Power
                 calculateTowerStats();
                 renderDefenderUIChips();
             }
+
+            // Sync active companion's live XP bar
+            if (rIdx === activeIdx) {
+                gameState.xp = p.xp;
+            }
         }
     });
-
-    if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
 }
 
 // --- FLOATING TEXTS & PARTICLES ---
@@ -619,9 +621,9 @@ function handleTowerDefeated() {
     leaveDefenseMode();
 }
 
-// --- 24/7 BACKGROUND SIMULATION ENGINE ---
+// --- 24/7 BACKGROUND SIMULATION ENGINE (FULL TEAM XP GROWER) ---
 setInterval(() => {
-    if (isDefenseRunning || !gameState.defenseState) return;
+    if (isDefenseRunning || !gameState.defenseState || !gameState.roster) return;
 
     let def = gameState.defenseState;
     let now = Date.now();
@@ -630,7 +632,7 @@ setInterval(() => {
 
     def.lastTick = now;
 
-    // Calculate Assigned Team DPS
+    // Calculate Total Assigned Team DPS
     let teamDps = 0;
     let slots = def.slots || [0, null, null];
     slots.forEach(rIdx => {
@@ -642,21 +644,50 @@ setInterval(() => {
 
     if (teamDps <= 0) return;
 
-    // Simulate Background Kills (1 kill every ~200 / DPS seconds)
     let killsEarned = Math.floor((teamDps * elapsedSec) / 120);
     if (killsEarned > 0) {
         def.kills = (def.kills || 0) + killsEarned;
         def.remaining = Math.max(0, (def.remaining || 500) - killsEarned);
 
-        // Grant Idle Trickle XP
-        let totalTrickle = Math.max(1, Math.floor((gameState.maxXp || 50) * 0.001)) * killsEarned;
-        gameState.xp += totalTrickle;
+        let activeIdx = gameState.activeRosterIndex ?? 0;
 
-        if (gameState.xp >= gameState.maxXp) {
-            gameState.xp -= gameState.maxXp;
-            gameState.level++;
-            gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
-        }
+        // Distribute Offline Trickle XP to All Defenders
+        slots.forEach(rIdx => {
+            if (rIdx !== null && gameState.roster[rIdx]) {
+                let p = gameState.roster[rIdx];
+                let totalTrickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.001)) * killsEarned;
+                p.xp = (p.xp || 0) + totalTrickle;
+
+                while (p.xp >= p.maxXp) {
+                    p.xp -= p.maxXp;
+                    p.level++;
+                    p.maxXp = Math.floor(p.maxXp * 1.67);
+
+                    p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
+                    p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
+                    p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
+                    p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
+                    p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
+                    p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
+
+                    if (rIdx === activeIdx) {
+                        gameState.level = p.level;
+                        gameState.xp = p.xp;
+                        gameState.maxXp = p.maxXp;
+                        gameState.maxHp = p.maxHp;
+                        gameState.attack = p.attack;
+                        gameState.defense = p.defense;
+                        gameState.spAtk = p.spAtk;
+                        gameState.spDef = p.spDef;
+                        gameState.speed = p.speed;
+                    }
+                }
+
+                if (rIdx === activeIdx) {
+                    gameState.xp = p.xp;
+                }
+            }
+        });
 
         // Advance Stage if 500 enemies cleared in background
         if (def.remaining <= 0) {
@@ -666,10 +697,9 @@ setInterval(() => {
             def.towerHp = def.towerMaxHp;
         }
 
-        if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
         localStorage.setItem('pokeSave', JSON.stringify(gameState));
     }
-}, 4000);
+}, 3000);
 
 // --- UI UPDATE HELPERS ---
 function updateDefenseTopUI() {
