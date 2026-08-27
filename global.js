@@ -277,6 +277,7 @@ var gameState = {
     berries: 5, pokeballs: 3,
     activeRosterIndex: 0,
     activeJourney: null,
+    activeSweep: null,
     items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
