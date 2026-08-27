@@ -74,12 +74,20 @@
             </div>
         </div>
 
-        <!-- Idle Berry Bush Widget (With Fanned Card Stack Container) -->
-        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
-            <!-- Dynamic 20-Berry Fanned Stack Container -->
-            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0">
-                <!-- Stacked Berries Injected Dynamically by JS -->
+        <!-- Symmetrical Active Sweep Widget (Top-Left Hub) -->
+        <div id="sweep-widget" onclick="claimSweepRewards()" class="hidden absolute top-36 left-6 z-30 cursor-pointer bg-black/60 backdrop-blur-md border border-orange-500/50 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-lg active:scale-95 transition-all min-w-[135px]">
+            <div class="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <span id="sweep-widget-icon" class="text-2xl select-none animate-pulse">⚔️</span>
             </div>
+            <div class="flex flex-col text-left">
+                <span id="sweep-widget-title" class="text-[10px] text-orange-400 font-bold uppercase tracking-wider truncate max-w-[85px]">Sweeping...</span>
+                <span id="sweep-widget-timer" class="text-xs font-black text-yellow-300">00s</span>
+            </div>
+        </div>
+
+        <!-- Idle Berry Bush Widget (Top-Right Hub) -->
+        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
+            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0"></div>
             
             <div class="flex flex-col text-left">
                 <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
@@ -121,18 +129,128 @@
                 <span id="xp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">0 / 50</span>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-3 gap-2">
-                <button onclick="feedBerry()" class="py-3 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm">
-                    <span class="text-2xl">🍓</span> Feed (<span id="berry-count">5</span>)
+            <!-- Action Buttons (Feed / Bag / Train / Battle) -->
+            <div class="grid grid-cols-4 gap-1.5">
+                <button onclick="feedBerry()" class="py-2.5 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs">
+                    <span class="text-xl">🍓</span> Feed (<span id="berry-count">5</span>)
                 </button>
-                <button onclick="openInventory()" class="py-3 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm text-yellow-100">
-                    <span class="text-2xl">🎒</span> Bag
+                <button onclick="openInventory()" class="py-2.5 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs text-yellow-100">
+                    <span class="text-xl">🎒</span> Bag
                 </button>
-                <button onclick="enterBattle()" class="py-3 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-sm">
-                    <span class="text-2xl">⚔️</span> Battle
+                <button onclick="openJourneyModal()" class="py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs text-purple-100 border border-purple-400/30">
+                    <span class="text-xl">🏕️</span> Train
+                </button>
+                <button onclick="openStageSelect()" class="py-2.5 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs">
+                    <span class="text-xl">⚔️</span> Battle
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- 4.5 STAGE SCOUT / PRE-BATTLE SELECTION SCREEN -->
+    <div id="stage-select-screen" class="screen flex flex-col h-full bg-gradient-to-b from-gray-950 via-slate-900 to-gray-950 w-full absolute hidden p-4 justify-between select-none">
+        
+        <!-- Top Stage Navigator -->
+        <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border border-white/10 shadow-lg">
+            <button id="scout-btn-prev" onclick="changeStage(-1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
+            
+            <div class="text-center flex flex-col items-center">
+                <span id="scout-stage-title" class="text-sm font-black text-yellow-400 tracking-wider">STAGE 1</span>
+                <span id="scout-stage-subtitle" class="text-[10px] text-gray-400 font-semibold">(Max: 1)</span>
+            </div>
+
+            <button id="scout-btn-next" onclick="changeStage(1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
+        </div>
+
+        <!-- Center Enemy Preview Card (Swipe Enabled on Mobile) -->
+        <div id="scout-swipe-area" class="glass-panel p-5 rounded-3xl flex flex-col items-center text-center my-auto border border-white/10 shadow-2xl relative">
+            <div class="flex items-center gap-2 mb-2">
+                <span id="scout-enemy-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase bg-gray-700 text-white shadow">Normal ⭐</span>
+            </div>
+            
+            <h2 id="scout-enemy-name" class="text-xl font-black text-white mb-2 truncate max-w-[260px]">Wild Pokemon</h2>
+            
+            <div class="w-40 h-40 flex items-center justify-center relative my-2">
+                <img id="scout-enemy-sprite" src="" class="w-36 h-36 object-contain pixel-perfect drop-shadow-2xl animate-pulse">
+            </div>
+
+            <!-- CP Matchup Card -->
+            <div class="w-full bg-gray-900/80 p-3 rounded-2xl border border-gray-700 mt-2 space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-400 font-bold">Your Power:</span>
+                    <span id="scout-player-cp" class="font-black text-yellow-400">⚡ 180 CP</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-400 font-bold">Enemy Power:</span>
+                    <span id="scout-enemy-cp" class="font-black text-red-400">⚡ 150 CP</span>
+                </div>
+                <div class="pt-1.5 border-t border-gray-800 flex justify-between items-center">
+                    <span class="text-[10px] text-gray-400 font-semibold">Forecast:</span>
+                    <span id="scout-matchup-status" class="text-xs font-black text-green-400">Great Matchup 🔥</span>
+                </div>
+            </div>
+
+            <!-- Potential Rewards Preview -->
+            <div class="w-full mt-3 pt-2 border-t border-gray-800 text-left">
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1.5">Potential Rewards:</span>
+                <div id="scout-rewards-row" class="flex items-center gap-1.5 flex-wrap">
+                    <!-- Reward Badges injected dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sweep Button (Energy / Quick Farm) -->
+        <div class="w-full pt-2">
+            <button id="btn-scout-sweep" onclick="openSweepModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 active:scale-95 text-white font-black rounded-2xl text-sm tracking-wider shadow-xl transition-all flex items-center justify-center gap-2 border border-yellow-300/30">
+                <span class="text-lg">⚡</span>
+                <span id="scout-sweep-label">SWEEP REPLAY (Cost: 1 🍓)</span>
+            </button>
+        </div>
+
+        <!-- Bottom Action Buttons: Leave vs Start Battle -->
+        <div class="grid grid-cols-2 gap-3 pt-1">
+            <button onclick="leaveStageSelect()" class="py-3 bg-gray-800 hover:bg-gray-700 active:scale-95 text-white font-bold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-1.5 border border-white/10">
+                <span>🏃 Leave</span>
+            </button>
+            <button onclick="startBattleFromSelect()" class="py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-black rounded-2xl text-sm shadow-xl transition-all flex items-center justify-center gap-1.5 border border-red-400/30">
+                <span>⚔️ Battle!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- SWEEP COUNT SELECTOR MODAL -->
+    <div id="sweep-modal" onclick="if(event.target === this) closeSweepModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[105] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-orange-500 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default text-white" id="sweep-content">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                <h3 class="text-lg font-black text-orange-400">⚡ QUICK SWEEP</h3>
+                <button onclick="closeSweepModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+
+            <p class="text-xs text-gray-300 mb-2">Simulate multiple instant battle replays using berries as stamina!</p>
+            
+            <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 my-3 flex items-center justify-between">
+                <span class="text-xs text-gray-400">Available Berries:</span>
+                <span id="sweep-avail-berries" class="text-sm font-black text-pink-400">🍓 25</span>
+            </div>
+
+            <!-- Sweep Counter -->
+            <div class="flex items-center justify-center gap-4 my-3">
+                <button onclick="changeSweepCount(-1)" class="w-10 h-10 bg-gray-800 hover:bg-gray-700 active:scale-90 rounded-xl text-lg font-black text-white shadow border border-gray-600">-</button>
+                <span id="sweep-count-display" class="text-2xl font-black text-yellow-400 min-w-[3rem]">1</span>
+                <button onclick="changeSweepCount(1)" class="w-10 h-10 bg-gray-800 hover:bg-gray-700 active:scale-90 rounded-xl text-lg font-black text-white shadow border border-gray-600">+</button>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="grid grid-cols-4 gap-2 my-3">
+                <button onclick="setSweepCount(1)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x1</button>
+                <button onclick="setSweepCount(5)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x5</button>
+                <button onclick="setSweepCount(10)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x10</button>
+                <button onclick="setSweepCount('max')" class="py-1.5 bg-orange-600 hover:bg-orange-500 active:scale-95 rounded-lg text-xs font-black text-white shadow">MAX</button>
+            </div>
+
+            <button onclick="executeStageSweep()" id="btn-confirm-sweep" class="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 active:scale-95 font-black text-white rounded-xl shadow-lg transition-all text-sm mt-2">
+                ⚡ Sweep Now (<span id="sweep-cost-label">1 🍓</span>)
+            </button>
         </div>
     </div>
 
@@ -242,7 +360,7 @@
     </div>
 
     <!-- STATS MODAL -->
-    <div id="stats-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="stats-modal" onclick="if(event.target === this) closeStats()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-blue-500 p-6 rounded-2xl w-10/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white" id="stats-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-blue-400">UNIT STATS</h3>
@@ -271,7 +389,7 @@
     </div>
 
     <!-- INVENTORY MODAL -->
-    <div id="inventory-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="inventory-modal" onclick="if(event.target === this) closeInventory()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-t-2 border-yellow-500 p-6 rounded-t-3xl w-full max-w-md shadow-2xl transform translate-y-full transition-transform duration-300 text-white h-2/3 flex flex-col" id="inventory-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-yellow-400">🎒 INVENTORY</h3>
@@ -288,7 +406,7 @@
     </div>
 
     <!-- PARTY / TEAM ROSTER MODAL -->
-    <div id="party-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md">
+    <div id="party-modal" onclick="if(event.target === this) closeParty()" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-indigo-500 p-6 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[80vh]" id="party-content">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                 <h3 class="text-xl font-black text-indigo-400">🐾 POKÉMON ROSTER</h3>
@@ -301,9 +419,55 @@
         </div>
     </div>
 
+    <!-- TRAINING / EXPEDITIONS MODAL -->
+    <div id="journey-modal" onclick="if(event.target === this) closeJourneyModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[96] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-purple-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="journey-content">
+            
+            <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🏕️</span>
+                    <h3 class="text-lg font-black text-purple-400 uppercase">AFK Training</h3>
+                </div>
+                <button onclick="closeJourneyModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+
+            <!-- 1. Active In-Progress Journey Display -->
+            <div id="journey-active-box" class="hidden flex flex-col items-center text-center p-4 bg-gray-800/80 rounded-2xl border border-purple-500/50 shadow-inner">
+                <img id="journey-active-sprite" src="" class="w-20 h-20 object-contain pixel-perfect drop-shadow animate-bounce mb-2">
+                <h4 id="journey-active-name" class="font-bold text-sm text-white mb-1">Pikachu (Mountain Trek)</h4>
+                <div id="journey-active-timer" class="text-xs font-bold text-yellow-400 mb-3">Time Remaining: 00:00</div>
+                
+                <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-4 border border-gray-600">
+                    <div id="journey-active-progress" class="h-full bg-purple-500 transition-all duration-500 w-0"></div>
+                </div>
+                <button id="journey-active-btn" class="w-full py-3 bg-gray-700 text-gray-400 rounded-xl font-bold">In Training...</button>
+            </div>
+
+            <!-- 2. Select Tier List -->
+            <div id="journey-tiers-box" class="flex flex-col gap-2 overflow-y-auto no-scrollbar">
+                <p class="text-xs text-gray-400 mb-1">Send a Pokémon to train offline and earn massive XP!</p>
+                <div id="journey-tier-list" class="flex flex-col gap-2">
+                    <!-- Tiers injected dynamically -->
+                </div>
+            </div>
+
+            <!-- 3. Select Pokemon Roster Sub-View -->
+            <div id="journey-roster-box" class="hidden flex flex-col gap-2 flex-1 overflow-y-auto no-scrollbar">
+                <div class="flex items-center justify-between mb-1">
+                    <span id="journey-select-header" class="text-xs font-bold text-purple-300">Choose Trainee:</span>
+                    <button onclick="cancelTierSelect()" class="text-xs text-gray-400 underline active:scale-95">◀ Back</button>
+                </div>
+                <div id="journey-select-list" class="flex flex-col gap-2">
+                    <!-- Roster injected dynamically -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <!-- ARE YOU SURE? CONFIRMATION MODAL -->
-    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
-        <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="confirm-content">
+    <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
+        <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="confirm-content">
             <h3 class="text-2xl font-black text-white mb-2">⚠️ Are You Sure?</h3>
             <p class="text-gray-300 mb-6 text-sm leading-relaxed">Starting a new game will <strong class="text-red-400">permanently erase</strong> your existing save file and all caught Pokémon!</p>
             <div class="grid grid-cols-2 gap-3">
@@ -314,10 +478,10 @@
     </div>
 
     <!-- CUSTOM ALERT MODAL (QUEUE COMPATIBLE) -->
-    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
-        <div class="bg-gray-800 border border-gray-600 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+    <div id="custom-modal" onclick="if(event.target === this) closeModal()" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
+        <div class="bg-gray-800 border border-gray-600 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="modal-content">
             <h3 id="modal-title" class="text-2xl font-black text-white mb-2">Notification</h3>
-            <p id="modal-desc" class="text-gray-300 mb-6 text-sm leading-relaxed">Message goes here</p>
+            <div id="modal-desc" class="text-gray-300 mb-4 text-sm leading-relaxed w-full">Message goes here</div>
             <button id="modal-btn" onclick="closeModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all">Awesome!</button>
         </div>
     </div>
@@ -342,6 +506,7 @@
     <script src="effects.js"></script>
     <script src="game.js"></script>
     <script src="inventory.js"></script>
+    <script src="journey.js"></script>
     <script src="battle.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

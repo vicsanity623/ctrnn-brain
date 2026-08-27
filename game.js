@@ -270,7 +270,12 @@ function processNextModal() {
     const current = modalQueue.shift();
 
     document.getElementById('modal-title').innerText = current.title;
-    document.getElementById('modal-desc').innerHTML = current.text ? current.text.replace(/\n/g, '<br>') : '';
+    // Render raw HTML cleanly without injecting <br> tags into CSS grids
+    if (current.text && current.text.includes('<')) {
+        document.getElementById('modal-desc').innerHTML = current.text;
+    } else {
+        document.getElementById('modal-desc').innerHTML = current.text ? current.text.replace(/\n/g, '<br>') : '';
+    }
     
     const btn = document.getElementById('modal-btn');
     if (btn) {
@@ -465,25 +470,15 @@ function gainHeart() {
         gameState.hearts++;
         const effect = document.getElementById('swirl-effect');
         const sprite = document.getElementById('hub-sprite');
-        effect.classList.add('animate-swirl');
-        sprite.classList.add('flash-white');
+        if (effect) effect.classList.add('animate-swirl');
+        if (sprite) sprite.classList.add('flash-white');
         
         let heartXp = Math.max(1, Math.floor(gameState.maxXp * 0.005));
-        gameState.xp += heartXp;
         
         setTimeout(() => {
-            effect.classList.remove('animate-swirl');
-            sprite.classList.remove('flash-white');
-            
-            if (gameState.xp >= gameState.maxXp) {
-                document.getElementById('xp-bar').style.width = '100%';
-                setTimeout(() => {
-                    let leftoverXp = gameState.xp - gameState.maxXp;
-                    levelUp(leftoverXp);
-                }, 600);
-            } else {
-                updateHub();
-            }
+            if (effect) effect.classList.remove('animate-swirl');
+            if (sprite) sprite.classList.remove('flash-white');
+            addXP(heartXp, false); // Direct XP (no mood multiplier)
         }, 1000);
     }
 }
@@ -494,90 +489,152 @@ function feedBerry() {
             gameState.berries--;
             gainHeart();
         } else {
+            // --- FULL 10/10 HEARTS: 5% XP TREAT BONUS ---
             gameState.berries--;
             let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
-            gameState.xp += bonusXp;
             
             showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
             if (navigator.vibrate) navigator.vibrate(30);
 
-            if (gameState.xp >= gameState.maxXp) {
-                document.getElementById('xp-bar').style.width = '100%';
-                setTimeout(() => {
-                    let leftoverXp = gameState.xp - gameState.maxXp;
-                    levelUp(leftoverXp);
-                }, 600);
-            } else {
-                updateHub();
-            }
+            addXP(bonusXp, false); // Direct XP (no mood multiplier)
         }
     } else {
         showModal("Out of Berries!", "You don't have any berries left! Harvest your garden bush or win battles to find more.");
     }
 }
 
-// --- XP AND MOOD SYSTEM ---
-function addXP(baseXp) {
-    let multiplier = 0;
-    if (gameState.hearts <= 1) multiplier = 0; 
-    else if (gameState.hearts <= 3) multiplier = 0.5; 
-    else if (gameState.hearts <= 5) multiplier = 2; 
-    else multiplier = 3; 
-
-    if (multiplier === 0) {
-        showModal(`${gameState.name} is in a bad mood and refuses! Pet it or feed it.`);
-        updateHub();
-        return;
+// --- UNIFIED XP AND MULTI-LEVEL LEVEL-UP SYSTEM ---
+function addXP(amount, applyMoodMultiplier = true) {
+    let gainedXp = amount;
+    if (applyMoodMultiplier) {
+        let multiplier = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
+        if (multiplier === 0) {
+            showModal(`${gameState.name} is in a bad mood and refuses! Pet it or feed it.`);
+            updateHub();
+            return;
+        }
+        gainedXp = Math.floor(amount * multiplier);
     }
 
-    let gainedXp = Math.floor(baseXp * multiplier);
-    let newTotalXp = gameState.xp + gainedXp;
+    let totalXp = gameState.xp + gainedXp;
 
-    if (newTotalXp >= gameState.maxXp) {
-        document.getElementById('xp-bar').style.width = '100%';
+    if (totalXp >= gameState.maxXp) {
+        const xpBar = document.getElementById('xp-bar');
+        if (xpBar) xpBar.style.width = '100%';
         setTimeout(() => {
-            let leftoverXp = newTotalXp - gameState.maxXp;
-            levelUp(leftoverXp);
+            levelUp(totalXp);
         }, 600);
     } else {
-        gameState.xp = newTotalXp;
+        gameState.xp = totalXp;
+        syncCurrentPokemonToRoster();
         updateHub();
     }
 }
 
-function levelUp(leftoverXp = 0) {
-    gameState.level++;
-    gameState.xp = leftoverXp;
-    gameState.maxXp = Math.floor(gameState.maxXp * 1.5);
-    
-    let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
-    gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
-    gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * statBuff));
-    gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * statBuff));
-    gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
-    gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
-    gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
-    gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
+function levelUp(totalXp) {
+    let oldLevel = gameState.level;
+    let currentXp = (typeof totalXp === 'number') ? totalXp : (gameState.xp || 0);
+    let levelsGained = 0;
 
+    // Snapshot Previous Stats for Comparison
+    let oldStats = {
+        level: gameState.level,
+        maxHp: gameState.maxHp,
+        attack: gameState.attack,
+        defense: gameState.defense,
+        spAtk: gameState.spAtk,
+        spDef: gameState.spDef,
+        speed: gameState.speed,
+        cp: (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0)
+    };
+
+    // Continuous Loop: Consumes full accumulated XP and handles 1, 2, 3+ level jumps smoothly!
+    while (currentXp >= gameState.maxXp) {
+        currentXp -= gameState.maxXp;
+        gameState.level++;
+        levelsGained++;
+        
+        // Exact 1.67 scaling
+        gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
+
+        // Stat Growth per Level
+        let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
+        gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * statBuff));
+        gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * statBuff));
+        gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * statBuff));
+        gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * statBuff));
+        gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * statBuff));
+        gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * statBuff));
+        gameState.critRate = parseFloat(((gameState.critRate || 5.0) + 0.05).toFixed(2));
+    }
+
+    // Set remaining clean overflow XP (Never negative!)
+    gameState.xp = Math.max(0, currentXp);
+    syncCurrentPokemonToRoster();
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
+    // Reset UI Bar smoothly
     let xpBar = document.getElementById('xp-bar');
-    xpBar.style.transition = 'none';
-    xpBar.style.width = '0%';
+    if (xpBar) {
+        xpBar.style.transition = 'none';
+        xpBar.style.width = '0%';
+    }
 
     setTimeout(() => {
-        xpBar.style.transition = 'all 0.5s ease';
+        if (xpBar) xpBar.style.transition = 'all 0.5s ease';
         updateHub();
-        
+
+        // Calculate New Total Combat Power
+        let newCp = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
+        let cpGain = newCp - oldStats.cp;
+
+        // Check for Move Unlock Notice
+        let moveNotice = "";
+        if (gameState.level >= 13 && oldLevel < 13) {
+            moveNotice = `<div class='bg-purple-900/60 p-2 rounded-lg border border-purple-400/50 text-center font-bold text-yellow-300 text-[11px] mt-1'>🌟 Unlocked Slot 3 Ultimate Move!</div>`;
+        } else if (gameState.level >= 7 && oldLevel < 7) {
+            moveNotice = `<div class='bg-blue-900/60 p-2 rounded-lg border border-blue-400/50 text-center font-bold text-yellow-300 text-[11px] mt-1'>✨ Unlocked Slot 2 Special Attack!</div>`;
+        }
+
+        //// Rich Level-Up Comparison Card (Centered & Symmetrical)
+        let levelUpCard = `
+            <div class='bg-gray-900/90 p-4 rounded-2xl border border-yellow-500/40 text-xs space-y-2 mt-2 shadow-inner w-full'>
+                <div class='flex justify-between items-center pb-2 border-b border-gray-700'>
+                    <span class='font-bold text-white text-sm'>${gameState.name}</span>
+                    <span class='text-yellow-400 font-black tracking-wide'>Lv. ${oldStats.level} ➔ Lv. ${gameState.level}</span>
+                </div>
+                
+                <div class='flex items-center justify-center py-1'>
+                    <img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${gameState.id}.gif' class='w-20 h-20 object-contain pixel-perfect drop-shadow-lg animate-bounce'>
+                </div>
+
+                <!-- Centered Symmetrical 2-Column Stats Grid -->
+                <div class='w-full max-w-[270px] mx-auto grid grid-cols-2 gap-x-5 gap-y-1.5 text-gray-300 pt-2 border-t border-gray-800 text-[11px]'>
+                    <div class='flex justify-between items-center'><span>💚 HP:</span> <span><span class='text-gray-400'>${oldStats.maxHp}</span> ➔ <strong class='text-green-400'>${gameState.maxHp}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>⚡ SPD:</span> <span><span class='text-gray-400'>${oldStats.speed}</span> ➔ <strong class='text-yellow-400'>${gameState.speed}</strong></span></div>
+                    
+                    <div class='flex justify-between items-center'><span>❤️ ATK:</span> <span><span class='text-gray-400'>${oldStats.attack}</span> ➔ <strong class='text-red-400'>${gameState.attack}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>💜 SP.ATK:</span> <span><span class='text-gray-400'>${oldStats.spAtk}</span> ➔ <strong class='text-purple-400'>${gameState.spAtk}</strong></span></div>
+                    
+                    <div class='flex justify-between items-center'><span>💙 DEF:</span> <span><span class='text-gray-400'>${oldStats.defense}</span> ➔ <strong class='text-blue-400'>${gameState.defense}</strong></span></div>
+                    <div class='flex justify-between items-center'><span>🔮 SP.DEF:</span> <span><span class='text-gray-400'>${oldStats.spDef}</span> ➔ <strong class='text-indigo-400'>${gameState.spDef}</strong></span></div>
+                </div>
+
+                ${moveNotice}
+
+                <div class='pt-2.5 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                    Total Power: ⚡ ${oldStats.cp} ➔ <strong class='text-orange-300 font-black'>${newCp} CP</strong> <span class='text-green-400 text-[10px]'>(+${cpGain})</span>
+                </div>
+            </div>
+        `.trim();
+
+        let title = (levelsGained > 1) ? `🎉 LEVEL UP! (+${levelsGained})` : `🎉 LEVEL UP!`;
+        showModal(title, levelUpCard, [40, 80, 40]);
+
         // Check for Multi-Stage Evolution
         const evo = (typeof EVOLUTION_DATABASE !== 'undefined') ? EVOLUTION_DATABASE[gameState.id] : null;
-
         if (evo && gameState.level >= evo.level) {
-            triggerEvolution(evo.toId, evo.toName, evo.type);
-        } else if (gameState.level === 7) {
-            showModal("NEW MOVE UNLOCKED! ✨", `${gameState.name} unlocked Slot 2 Special Attack! Driven by your Sp. Atk!`);
-        } else if (gameState.level === 13) {
-            showModal("NEW MOVE UNLOCKED! 🌟", `${gameState.name} unlocked Slot 3 Ultimate Move! Massive combat power!`);
-        } else {
-            showModal(`${gameState.name} grew to Level ${gameState.level}!`);
+            setTimeout(() => triggerEvolution(evo.toId, evo.toName, evo.type), 800);
         }
     }, 50);
 }

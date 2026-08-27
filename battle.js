@@ -96,14 +96,399 @@ function setBattleLog(msg) {
     if (logEl) logEl.innerText = msg;
 }
 
-// --- STAGE NAVIGATOR FUNCTION ---
+// --- 1. OPEN STAGE SCOUT / SELECTION SCREEN ---
+function openStageSelect() {
+    if (gameState.activeJourney && gameState.activeJourney.rosterIndex === gameState.activeRosterIndex) {
+        showModal("🏕️ BUSY TRAINING!", `${gameState.name} is currently away on an AFK Expedition! Swap to another party member or claim your training rewards first.`);
+        return;
+    }
+
+    if (gameState.hearts <= 1) {
+        showModal(`${gameState.name} is too sad to battle! Pet it or feed it berries to cheer it up.`);
+        return;
+    }
+
+    showScreen('stage-select-screen');
+    renderStageScoutPreview();
+}
+
+function leaveStageSelect() {
+    showScreen('hub-screen');
+    updateHub();
+}
+
 function changeStage(delta) {
     let targetStage = gameState.currentStage + delta;
     if (targetStage >= 1 && targetStage <= gameState.maxStage) {
         gameState.currentStage = targetStage;
-        updateHub();
-        enterBattle(); // Re-rolls an enemy matching the chosen stage!
+        renderStageScoutPreview();
+        updateStageNavigatorUI();
     }
+}
+
+// --- 2. RENDER SCOUT PREVIEW & MATCHUP ANALYSIS ---
+function renderStageScoutPreview() {
+    let stage = gameState.currentStage;
+    let isBossStage = (stage % 5 === 0);
+
+    // Calculate Stage Enemy Stats
+    let levelDiff = Math.max(0, stage - 3);
+    let previewMaxHp = Math.floor(60 * Math.pow(1.085, levelDiff));
+    let previewAtk = Math.floor(6 * Math.pow(1.07, levelDiff));
+    let previewDef = Math.floor(4 * Math.pow(1.06, levelDiff));
+
+    if (isBossStage) {
+        previewMaxHp = Math.floor(previewMaxHp * 2.5);
+        previewAtk = Math.floor(previewAtk * 1.3);
+        previewDef = Math.floor(previewDef * 1.5);
+    }
+
+    let enemyCP = previewMaxHp + Math.floor(previewAtk * 1.5) + Math.floor(previewDef * 1.5) + Math.floor(stage * 2);
+    let playerCP = (gameState.maxHp || 0) + (gameState.attack || 0) + (gameState.defense || 0) + (gameState.spAtk || 0) + (gameState.spDef || 0) + (gameState.speed || 0);
+
+    // Update Top Navigator
+    const titleEl = document.getElementById('scout-stage-title');
+    const subEl = document.getElementById('scout-stage-subtitle');
+    const btnPrev = document.getElementById('scout-btn-prev');
+    const btnNext = document.getElementById('scout-btn-next');
+
+    if (titleEl) {
+        titleEl.innerText = isBossStage ? `👑 BOSS STAGE ${stage}` : `STAGE ${stage}`;
+        titleEl.className = isBossStage ? "text-sm font-black text-pink-400 animate-pulse tracking-wider" : "text-sm font-black text-yellow-400 tracking-wider";
+    }
+    if (subEl) subEl.innerText = `(Max Unlocked: ${gameState.maxStage})`;
+    if (btnPrev) btnPrev.disabled = (stage <= 1);
+    if (btnNext) btnNext.disabled = (stage >= gameState.maxStage);
+
+    // Determine Stage-Locked Wild Pokémon ID
+    let wildId;
+    if (stage === 100) wildId = 150;
+    else if (stage === 90) wildId = 151;
+    else if (stage === 80) wildId = 146;
+    else if (stage === 70) wildId = 145;
+    else if (stage === 60) wildId = 144;
+    else if (isBossStage) {
+        let bossIndex = (stage * 7) % EVOLVED_BOSS_IDS.length;
+        wildId = EVOLVED_BOSS_IDS[bossIndex];
+    } else {
+        let baseIndex = (stage * 13 + 5) % BASE_POKEMON_IDS.length;
+        wildId = BASE_POKEMON_IDS[baseIndex];
+    }
+
+    // Set Enemy Sprite & Fallback
+    const spriteEl = document.getElementById('scout-enemy-sprite');
+    if (spriteEl) {
+        spriteEl.src = `assets/sprites/${wildId}_animated.gif`;
+        spriteEl.onerror = function() {
+            this.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${wildId}.gif`;
+        };
+    }
+
+    const nameEl = document.getElementById('scout-enemy-name');
+    if (nameEl) nameEl.innerText = isBossStage ? `👑 BOSS (Lv. ${stage})` : `Wild Pokemon (Lv. ${stage})`;
+
+    const allTypes = Object.keys(TYPE_DATABASE);
+    let scoutType = allTypes[(stage * 3) % allTypes.length];
+    updateTypeBadge('scout-enemy-badge', scoutType);
+
+    // Fetch accurate name & type from PokeAPI
+    fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`)
+        .then(res => res.json())
+        .then(data => {
+            let capitalized = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+            if (nameEl) nameEl.innerText = isBossStage ? `👑 BOSS ${capitalized} (Lv. ${stage})` : `Wild ${capitalized} (Lv. ${stage})`;
+            if (data.types && data.types[0]) {
+                scoutType = data.types[0].type.name.toLowerCase();
+                if (!TYPE_DATABASE[scoutType]) scoutType = 'normal';
+                updateTypeBadge('scout-enemy-badge', scoutType);
+            }
+        })
+        .catch(() => {});
+
+    // Render CP Matchup & Advantage
+    const playerCpEl = document.getElementById('scout-player-cp');
+    const enemyCpEl = document.getElementById('scout-enemy-cp');
+    const statusEl = document.getElementById('scout-matchup-status');
+
+    if (playerCpEl) playerCpEl.innerText = `⚡ ${formatNumber(playerCP)} CP`;
+    if (enemyCpEl) enemyCpEl.innerText = `⚡ ${formatNumber(enemyCP)} CP`;
+
+    if (statusEl) {
+        if (playerCP >= enemyCP * 1.25) {
+            statusEl.innerText = "Massive Advantage 🔥";
+            statusEl.className = "text-xs font-black text-green-400";
+        } else if (playerCP >= enemyCP) {
+            statusEl.innerText = "Fair Fight ⚖️";
+            statusEl.className = "text-xs font-black text-yellow-400";
+        } else {
+            statusEl.innerText = "Dangerous Challenge ⚠️";
+            statusEl.className = "text-xs font-black text-red-400 animate-pulse";
+        }
+    }
+
+    // Render Potential Rewards Preview Row
+    const rewardsRow = document.getElementById('scout-rewards-row');
+    if (rewardsRow) {
+        let expEstimate = Math.max(5, Math.floor(((10 + (stage * 2.5)) * stage) / 2));
+        if (isBossStage) expEstimate *= 2;
+        let expMood = expEstimate * 3; // Estimated at 3x full mood
+
+        rewardsRow.innerHTML = `
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-900/60 text-blue-300 border border-blue-500/40">⚡ ~${formatNumber(expMood)} XP</span>
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-pink-900/60 text-pink-300 border border-pink-500/40">🍓 Berries</span>
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-900/60 text-red-300 border border-red-500/40">🔴 Pokéballs</span>
+            ${isBossStage ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-black bg-yellow-900/60 text-yellow-300 border border-yellow-500/50">✨ XL Items</span>' : ''}
+        `;
+    }
+
+    // Update Sweep Button Status
+    const sweepBtn = document.getElementById('btn-scout-sweep');
+    const sweepLabel = document.getElementById('scout-sweep-label');
+    let isStageCleared = (stage < gameState.maxStage);
+
+    if (sweepBtn && sweepLabel) {
+        if (!isStageCleared) {
+            sweepBtn.disabled = true;
+            sweepBtn.className = "w-full py-2.5 bg-gray-800 text-gray-500 font-bold rounded-2xl text-xs cursor-not-allowed opacity-60 border border-gray-700";
+            sweepLabel.innerText = "🔒 Clear Stage Once to Unlock Sweep";
+        } else if ((gameState.berries || 0) <= 0) {
+            sweepBtn.disabled = true;
+            sweepBtn.className = "w-full py-2.5 bg-gray-800 text-pink-400/80 font-bold rounded-2xl text-xs cursor-not-allowed border border-pink-500/30";
+            sweepLabel.innerText = "🍓 Need Berries to Sweep";
+        } else {
+            sweepBtn.disabled = false;
+            sweepBtn.className = "w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 active:scale-95 text-white font-black rounded-2xl text-sm tracking-wider shadow-xl transition-all flex items-center justify-center gap-2 border border-yellow-300/30";
+            sweepLabel.innerText = `SWEEP REPLAY (Have: ${gameState.berries} 🍓)`;
+        }
+    }
+}
+
+// --- SWEEP MODAL & INSTANT FARM SIMULATION ---
+var currentSweepCount = 1;
+
+function openSweepModal() {
+    let maxBerries = gameState.berries || 0;
+    if (maxBerries <= 0) {
+        showModal("No Berries Available!", "You need at least 1 Oran Berry to sweep stages. Harvest your garden bush or battle to find more.");
+        return;
+    }
+
+    currentSweepCount = 1;
+    updateSweepModalUI();
+
+    const modal = document.getElementById('sweep-modal');
+    const content = document.getElementById('sweep-content');
+    if (!modal || !content) return;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function closeSweepModal() {
+    const modal = document.getElementById('sweep-modal');
+    const content = document.getElementById('sweep-content');
+    if (!modal || !content) return;
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function changeSweepCount(delta) {
+    let maxBerries = gameState.berries || 0;
+    currentSweepCount = Math.max(1, Math.min(maxBerries, currentSweepCount + delta));
+    updateSweepModalUI();
+}
+
+function setSweepCount(val) {
+    let maxBerries = gameState.berries || 0;
+    if (val === 'max') {
+        currentSweepCount = Math.max(1, maxBerries);
+    } else {
+        currentSweepCount = Math.max(1, Math.min(maxBerries, val));
+    }
+    updateSweepModalUI();
+}
+
+function updateSweepModalUI() {
+    const countDisplay = document.getElementById('sweep-count-display');
+    const costLabel = document.getElementById('sweep-cost-label');
+    const availBerries = document.getElementById('sweep-avail-berries');
+
+    if (countDisplay) countDisplay.innerText = currentSweepCount;
+    if (costLabel) costLabel.innerText = `${currentSweepCount} 🍓`;
+    if (availBerries) availBerries.innerText = `🍓 ${gameState.berries || 0}`;
+}
+
+// --- TIMED MULTI-SWEEP SIMULATION (3 SECONDS PER BERRY) ---
+function executeStageSweep() {
+    let count = currentSweepCount;
+    let availableBerries = gameState.berries || 0;
+    if (count <= 0 || availableBerries < count) return;
+
+    if (gameState.activeSweep) {
+        showModal("Sweep Already in Progress!", "A stage sweep simulation is already running! Check your Hub to view countdown.");
+        return;
+    }
+
+    let stage = gameState.currentStage;
+    let isBossStage = (stage % 5 === 0);
+
+    // 1. Deduct Berries Immediately
+    gameState.berries -= count;
+
+    // 2. Pre-calculate Replay XP & Drops
+    let rawStageXp = Math.max(5, Math.floor(((10 + (stage * 2.5)) * stage) / 2));
+    if (isBossStage) rawStageXp = Math.floor(rawStageXp * 2.0);
+
+    let replayBaseXp = Math.max(5, Math.floor(rawStageXp * 0.5));
+    let moodMult = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
+    let totalExpGained = Math.floor(replayBaseXp * moodMult) * count;
+
+    let foundBerries = 0;
+    let foundPokeballs = 0;
+
+    for (let i = 0; i < count; i++) {
+        if (isBossStage) {
+            if (Math.random() < 0.35) foundBerries += 1;
+        } else {
+            if (Math.random() < 0.45) foundBerries += Math.floor(Math.random() * 2) + 1;
+            if (Math.random() < 0.11) foundPokeballs += 1;
+        }
+    }
+
+    // 3. Set Active Sweep Timer (3 Seconds per Berry)
+    let durationSeconds = count * 3;
+    let now = Date.now();
+
+    gameState.activeSweep = {
+        stage: stage,
+        count: count,
+        startTime: now,
+        endTime: now + (durationSeconds * 1000),
+        durationSeconds: durationSeconds,
+        totalExpGained: totalExpGained,
+        foundBerries: foundBerries,
+        foundPokeballs: foundPokeballs,
+        moodMult: moodMult
+    };
+
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
+    closeSweepModal();
+    
+    // Return smoothly to the Main Hub
+    showScreen('hub-screen');
+    updateHub();
+    updateSweepWidgetUI();
+
+    showModal("⚡ SWEEP SIMULATION STARTED!", `Sweeping <strong>Stage ${stage}</strong> (x${count} Battles).<br>Consuming ${count} 🍓 Berries (${durationSeconds}s duration).<br>Watch the countdown on your Hub!`, [40, 60]);
+}
+
+// --- LIVE HUB SWEEP WIDGET ENGINE ---
+function updateSweepWidgetUI() {
+    const widget = document.getElementById('sweep-widget');
+    if (!widget) return;
+
+    const active = gameState.activeSweep;
+    if (!active) {
+        widget.classList.add('hidden');
+        return;
+    }
+
+    widget.classList.remove('hidden');
+
+    const titleEl = document.getElementById('sweep-widget-title');
+    const timerEl = document.getElementById('sweep-widget-timer');
+    const iconEl = document.getElementById('sweep-widget-icon');
+
+    let now = Date.now();
+    let timeLeftMs = Math.max(0, active.endTime - now);
+    let secondsLeft = Math.ceil(timeLeftMs / 1000);
+
+    if (secondsLeft <= 0) {
+        if (titleEl) titleEl.innerText = "Complete! 🎉";
+        if (timerEl) {
+            timerEl.innerText = "Claim Loot! 🎁";
+            timerEl.className = "text-xs font-black text-green-400 animate-pulse";
+        }
+        if (iconEl) iconEl.innerText = "🎁";
+        widget.className = "absolute top-36 left-6 z-30 cursor-pointer bg-green-950/70 backdrop-blur-md border border-green-400/60 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl active:scale-95 transition-all min-w-[135px] animate-pulse";
+    } else {
+        if (titleEl) titleEl.innerText = `Stage ${active.stage} (x${active.count})`;
+        if (timerEl) {
+            timerEl.innerText = `${secondsLeft}s left`;
+            timerEl.className = "text-xs font-black text-yellow-300";
+        }
+        if (iconEl) iconEl.innerText = "⚔️";
+        widget.className = "absolute top-36 left-6 z-30 cursor-pointer bg-black/60 backdrop-blur-md border border-orange-500/50 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-lg active:scale-95 transition-all min-w-[135px]";
+    }
+}
+
+// --- CLAIM SWEEP REWARDS ON COMPLETION ---
+function claimSweepRewards() {
+    const active = gameState.activeSweep;
+    if (!active) return;
+
+    let now = Date.now();
+    let timeLeftMs = active.endTime - now;
+
+    if (timeLeftMs > 0) {
+        let secondsLeft = Math.ceil(timeLeftMs / 1000);
+        showModal("⚔️ SWEEP IN PROGRESS", `Simulating ${active.count} battles on Stage ${active.stage}...<br>Time Remaining: <strong class='text-yellow-400'>${secondsLeft}s</strong>`);
+        return;
+    }
+
+    // Award Drops
+    gameState.berries += active.foundBerries;
+    gameState.pokeballs = (gameState.pokeballs || 0) + active.foundPokeballs;
+
+    let drops = [];
+    if (active.foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${active.foundBerries} 🍓 Berries</span>`);
+    if (active.foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${active.foundPokeballs} 🔴 Pokéballs</span>`);
+    let lootText = drops.length > 0 ? drops.join(" • ") : "<span class='text-gray-400'>None</span>";
+
+    let sweepCard = `
+        <div class='bg-gray-900/90 p-4 rounded-2xl border border-orange-500/40 text-xs space-y-2 mt-2 shadow-inner text-left'>
+            <div class='flex justify-between items-center pb-1.5 border-b border-gray-700'>
+                <span class='font-bold text-white text-sm'>Stage ${active.stage} Sweep (x${active.count})</span>
+                <span class='text-orange-400 font-black'>-${active.count} 🍓 Consumed</span>
+            </div>
+            <div>⚡ <strong class='text-white'>Total XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(active.totalExpGained)} XP</span> <span class='text-[10px] text-gray-400'>(${active.moodMult}x Mood)</span></div>
+            <div>🎁 <strong class='text-white'>Loot Recovered:</strong> ${lootText}</div>
+            <div class='pt-1 border-t border-gray-800 text-gray-300'>
+                ${gameState.name} completed ${active.count} battles in ${active.durationSeconds} seconds!
+            </div>
+        </div>
+    `.trim();
+
+    let totalXp = active.totalExpGained;
+    gameState.activeSweep = null;
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
+    updateHub();
+    updateSweepWidgetUI();
+
+    showModal(`⚡ SWEEP COMPLETE! (x${active.count})`, sweepCard, [50, 100, 50]);
+
+    // Apply XP to Level-Up Engine
+    addXP(totalXp, false);
+}
+
+// Live timer interval for Sweep Widget
+setInterval(() => {
+    if (gameState.activeSweep) {
+        updateSweepWidgetUI();
+    }
+}, 1000);
+
+function startBattleFromSelect() {
+    showScreen('battle-screen');
+    enterBattle();
 }
 
 function updateStageNavigatorUI() {
@@ -118,14 +503,52 @@ function updateStageNavigatorUI() {
         stageText.className = isBossStage ? "text-xs font-black text-pink-400 animate-pulse tracking-wider" : "text-xs font-black text-yellow-400 tracking-wider";
         stageMax.innerText = `(Max: ${gameState.maxStage})`;
         
-        // Disable buttons at boundaries
         if (btnPrev) btnPrev.disabled = (gameState.currentStage <= 1);
         if (btnNext) btnNext.disabled = (gameState.currentStage >= gameState.maxStage);
     }
 }
 
-// --- ENTER BATTLE ---
+// --- MOBILE SWIPE GESTURE DETECTOR FOR STAGE BROWSING ---
+let touchStartX = 0;
+let touchEndX = 0;
+
+function initScoutSwipeControls() {
+    const swipeArea = document.getElementById('scout-swipe-area');
+    if (!swipeArea) return;
+
+    swipeArea.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleScoutSwipe();
+    }, { passive: true });
+}
+
+function handleScoutSwipe() {
+    let diff = touchEndX - touchStartX;
+    if (Math.abs(diff) > 45) {
+        if (diff > 0) {
+            // Swipe Right ➔ Previous Stage
+            changeStage(-1);
+        } else {
+            // Swipe Left ➔ Next Stage
+            changeStage(1);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initScoutSwipeControls);
+
+// --- 3. ENTER BATTLE ---
 function enterBattle() {
+    // Check if active buddy is currently away on an AFK Training Journey
+    if (gameState.activeJourney && gameState.activeJourney.rosterIndex === gameState.activeRosterIndex) {
+        showModal("🏕️ BUSY TRAINING!", `${gameState.name} is currently away on an AFK Expedition! Swap to another party member or claim your training rewards first.`);
+        return;
+    }
+
     if(gameState.hearts <= 1) {
         showModal(`${gameState.name} is too sad to battle!`); return;
     }
@@ -303,21 +726,30 @@ function throwPokeBall() {
 
             setTimeout(() => {
                 let catchCard = `
-                    <div class='bg-gray-900/80 p-3.5 rounded-xl border border-indigo-500/40 text-left text-xs space-y-1.5 mt-2 shadow-inner'>
-                        <div class='flex justify-between items-center pb-1 border-b border-gray-700'>
+                    <div class='bg-gray-900/90 p-4 rounded-2xl border border-indigo-500/40 text-xs space-y-2 mt-2 shadow-inner w-full'>
+                        <div class='flex justify-between items-center pb-2 border-b border-gray-700'>
                             <span class='font-bold text-white text-sm'>${caughtPokemon.name}</span>
-                            <span class='text-yellow-400 font-black'>Lv. 1 Baseline</span>
+                            <span class='text-yellow-400 font-black tracking-wide'>Lv. 1 Baseline</span>
                         </div>
-                        <div class='grid grid-cols-2 gap-2 text-gray-300 pt-1'>
-                            <div>💚 HP: <strong class='text-green-400'>${rollHp}</strong></div>
-                            <div>⚡ SPD: <strong class='text-yellow-400'>${rollSpd}</strong></div>
-                            <div>❤️ ATK: <strong class='text-red-400'>${rollAtk}</strong></div>
-                            <div>💜 SP.ATK: <strong class='text-purple-400'>${rollSpAtk}</strong></div>
-                            <div>💙 DEF: <strong class='text-blue-400'>${rollDef}</strong></div>
-                            <div>🔮 SP.DEF: <strong class='text-indigo-400'>${rollSpDef}</strong></div>
+                        
+                        <div class='flex items-center justify-center py-1'>
+                            <img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${caughtPokemon.id}.gif' class='w-20 h-20 object-contain pixel-perfect drop-shadow-lg animate-bounce'>
                         </div>
-                        <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
-                            Total Base Power: ⚡${totalPower} CP
+
+                        <!-- Centered Symmetrical 2-Column Stats Grid -->
+                        <div class='w-full max-w-[270px] mx-auto grid grid-cols-2 gap-x-5 gap-y-1.5 text-gray-300 pt-2 border-t border-gray-800 text-[11px]'>
+                            <div class='flex justify-between items-center'><span>💚 HP:</span> <strong class='text-green-400'>${rollHp}</strong></div>
+                            <div class='flex justify-between items-center'><span>⚡ SPD:</span> <strong class='text-yellow-400'>${rollSpd}</strong></div>
+                            
+                            <div class='flex justify-between items-center'><span>❤️ ATK:</span> <strong class='text-red-400'>${rollAtk}</strong></div>
+                            <div class='flex justify-between items-center'><span>💜 SP.ATK:</span> <strong class='text-purple-400'>${rollSpAtk}</strong></div>
+                            
+                            <div class='flex justify-between items-center'><span>💙 DEF:</span> <strong class='text-blue-400'>${rollDef}</strong></div>
+                            <div class='flex justify-between items-center'><span>🔮 SP.DEF:</span> <strong class='text-indigo-400'>${rollSpDef}</strong></div>
+                        </div>
+
+                        <div class='pt-2.5 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                            Total Base Power: ⚡ <strong class='text-orange-300 font-black'>${totalPower} CP</strong>
                         </div>
                     </div>
                 `.trim();
@@ -558,12 +990,19 @@ function endBattle(won) {
             gameState.currentStage++; 
         }
 
-        // 1. Calculate Dynamic Stage-Scaled XP (50% XP for Replay Farming!)
-        let baseStageXp = Math.floor(10 + (beatenStage * 2.5));
+        // 1. Calculate Balanced Stage-Scaled XP ((Base XP * Stage #) / 2 + Boss Bonus)
+        let rawStageXp = Math.max(5, Math.floor(((10 + (beatenStage * 2.5)) * beatenStage) / 2));
+        
+        // Boss stages grant 2x bonus XP!
+        if (isBoss) {
+            rawStageXp = Math.floor(rawStageXp * 1.6);
+        }
+
+        let baseStageXp = rawStageXp;
         let replayTag = "";
 
         if (!isNewRecord) {
-            baseStageXp = Math.max(5, Math.floor(baseStageXp * 0.5)); // <-- 50% XP for Replaying Old Stages!
+            baseStageXp = Math.max(5, Math.floor(rawStageXp * 0.5)); // <-- 50% XP for Replaying Old Stages
             replayTag = " <span class='text-[10px] text-yellow-300'>(Replay: 50% XP)</span>";
         }
 
