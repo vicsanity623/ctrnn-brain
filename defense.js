@@ -91,9 +91,11 @@ function leaveDefenseMode() {
     isDefenseRunning = false;
     if (defenseAnimId) cancelAnimationFrame(defenseAnimId);
 
-    // Save exact live progress
-    syncDefenseStateToMemory();
-    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+    // Only sync if tower is still standing
+    if (towerHp > 0) {
+        syncDefenseStateToMemory();
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+    }
 
     showScreen('hub-screen');
     updateHub();
@@ -644,16 +646,37 @@ function handleTowerDefeated() {
     isDefenseRunning = false;
     if (defenseAnimId) cancelAnimationFrame(defenseAnimId);
 
-    // Reset back to Stage 1 upon defeat
-    if (gameState.defenseState) {
-        gameState.defenseState.stage = 1;
-        gameState.defenseState.kills = 0;
-        gameState.defenseState.remaining = 500;
-        gameState.defenseState.towerHp = towerMaxHp;
-    }
+    let reachedStage = defenseStage;
+    let totalKills = waveKills;
 
-    showModal("🏰 CASTLE OVERRUN!", `Your defenses held out until <strong>Stage ${defenseStage}</strong> with ${waveKills} swarm eliminations!<br>Defenses reset to Stage 1. Catch stronger Pokémon and level up to push further!`, [80, 80]);
-    leaveDefenseMode();
+    // 1. Reset In-Memory Defense State to Fresh Stage 1
+    defenseStage = 1;
+    waveKills = 0;
+    waveEnemiesRemaining = 500;
+    towerHp = towerMaxHp;
+    defenseEnemies = [];
+    defenseProjectiles = [];
+    defenseFloatingTexts = [];
+    isBreather = false;
+
+    // 2. Reset Persistent Game State in Storage
+    if (!gameState.defenseState) gameState.defenseState = {};
+    gameState.defenseState.stage = 1;
+    gameState.defenseState.kills = 0;
+    gameState.defenseState.remaining = 500;
+    gameState.defenseState.towerHp = towerMaxHp;
+    gameState.defenseState.lastTick = Date.now();
+
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
+    // 3. Update UI to Stage 1 Cleanly
+    updateDefenseTopUI();
+    updateTowerHealthBar();
+
+    showModal("🏰 CASTLE OVERRUN!", `Your defenses held out until <strong>Stage ${reachedStage}</strong> with ${totalKills} swarm eliminations!<br>Defenses have reset to <strong>Stage 1</strong> with full Castle Health! Catch stronger Pokémon and level up to push further!`, [80, 80]);
+    
+    showScreen('hub-screen');
+    updateHub();
 }
 
 // --- PROCESS OFFLINE DEFENSE CATCH-UP (RUNS ON APP LAUNCH) ---
