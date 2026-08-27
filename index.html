@@ -74,12 +74,20 @@
             </div>
         </div>
 
-        <!-- Idle Berry Bush Widget (With Fanned Card Stack Container) -->
-        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
-            <!-- Dynamic 20-Berry Fanned Stack Container -->
-            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0">
-                <!-- Stacked Berries Injected Dynamically by JS -->
+        <!-- Symmetrical Active Sweep Widget (Top-Left Hub) -->
+        <div id="sweep-widget" onclick="claimSweepRewards()" class="hidden absolute top-36 left-6 z-30 cursor-pointer bg-black/60 backdrop-blur-md border border-orange-500/50 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-lg active:scale-95 transition-all min-w-[135px]">
+            <div class="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <span id="sweep-widget-icon" class="text-2xl select-none animate-pulse">⚔️</span>
             </div>
+            <div class="flex flex-col text-left">
+                <span id="sweep-widget-title" class="text-[10px] text-orange-400 font-bold uppercase tracking-wider truncate max-w-[85px]">Sweeping...</span>
+                <span id="sweep-widget-timer" class="text-xs font-black text-yellow-300">00s</span>
+            </div>
+        </div>
+
+        <!-- Idle Berry Bush Widget (Top-Right Hub) -->
+        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
+            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0"></div>
             
             <div class="flex flex-col text-left">
                 <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
