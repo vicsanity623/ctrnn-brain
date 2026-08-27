@@ -164,10 +164,18 @@ function startGame(isNew) {
             if (p.xp >= p.maxXp) p.xp = Math.floor(p.maxXp * 0.4);
         });
 
-        // Repair Active Companion's XP Bar
+        // Cap All Pokémon at Official Max Level 100
+        gameState.roster.forEach(p => {
+            if (p.level > 100) p.level = 100;
+            p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
+            if (p.level === 100) p.xp = p.maxXp;
+        });
+
+        if (gameState.level > 100) gameState.level = 100;
         let activeMax = Math.max(50, Math.floor(50 * Math.pow(gameState.level || 1, 1.85)));
         gameState.maxXp = activeMax;
-        if (gameState.xp >= gameState.maxXp) gameState.xp = Math.floor(gameState.maxXp * 0.4);
+        if (gameState.level === 100) gameState.xp = activeMax;
+        else if (gameState.xp >= gameState.maxXp) gameState.xp = Math.floor(gameState.maxXp * 0.4);
         }
 
         localStorage.setItem('pokeSave', JSON.stringify(gameState));
