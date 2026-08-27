@@ -357,11 +357,17 @@
     <!-- 5.5 TOWER DEFENSE / SWARM HORDE SCREEN -->
     <div id="defense-screen" class="screen flex flex-col h-full bg-slate-950 w-full absolute hidden select-none overflow-hidden">
         
-        <!-- Top HUD Banner -->
+        <!-- Top HUD Banner (With Total Roster Defense CP) -->
         <div class="glass-panel mx-3 mt-3 px-3 py-2 rounded-2xl flex items-center justify-between z-20 border border-blue-500/30 shadow-lg">
             <div class="flex items-center gap-2">
                 <button onclick="leaveDefenseMode()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Exit</button>
                 <span id="defense-stage-label" class="text-xs font-black text-yellow-400 tracking-wider">STAGE 1</span>
+            </div>
+
+            <!-- Center: Total Roster CP -->
+            <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-xl border border-yellow-500/30 shadow-inner">
+                <span class="text-[10px] text-gray-400 font-bold uppercase">CP:</span>
+                <span id="defense-total-cp" class="text-xs font-black text-yellow-400 tracking-wide">⚡ 0 CP</span>
             </div>
 
             <div class="flex items-center gap-2 text-xs">
