@@ -379,27 +379,54 @@ function renderPartyList() {
     if (!list) return;
     list.innerHTML = '';
 
-    syncCurrentPokemonToRoster();
-
     let activeIdx = gameState.activeRosterIndex ?? 0;
+
+    // Sync active companion's state
+    if (gameState.roster[activeIdx]) {
+        gameState.roster[activeIdx].level = gameState.level;
+        gameState.roster[activeIdx].xp = gameState.xp;
+        gameState.roster[activeIdx].maxXp = gameState.maxXp;
+        gameState.roster[activeIdx].maxHp = gameState.maxHp;
+        gameState.roster[activeIdx].attack = gameState.attack;
+        gameState.roster[activeIdx].defense = gameState.defense;
+        gameState.roster[activeIdx].spAtk = gameState.spAtk;
+        gameState.roster[activeIdx].spDef = gameState.spDef;
+        gameState.roster[activeIdx].speed = gameState.speed;
+    }
 
     gameState.roster.forEach((p, index) => {
         let isActive = (index === activeIdx);
+        let pCp = (p.maxHp || 0) + (p.attack || 0) + (p.defense || 0) + (p.spAtk || 0) + (p.spDef || 0) + (p.speed || 0);
+        let xpPercent = Math.min(100, Math.max(0, ((p.xp || 0) / (p.maxXp || 50)) * 100));
+
         list.innerHTML += `
-            <div onclick="switchActivePokemon(${index})" class="flex items-center justify-between p-3 rounded-xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-md' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
-                <div class="flex items-center gap-3">
-                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-12 h-12 object-contain pixel-perfect drop-shadow">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold text-sm text-white">${p.name}</h4>
-                            ${isActive ? '<span class="text-[9px] bg-green-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVE</span>' : ''}
+            <div onclick="switchActivePokemon(${index})" class="flex flex-col p-3 rounded-2xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-lg' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-11 h-11 object-contain pixel-perfect drop-shadow">
+                        <div class="text-left">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded font-black ${(TYPE_DATABASE[p.type || 'normal'] || TYPE_DATABASE.normal).bg} text-white">${(TYPE_DATABASE[p.type || 'normal'] || TYPE_DATABASE.normal).name}</span>
+                                ${isActive ? '<span class="text-[9px] bg-green-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVE</span>' : ''}
+                            </div>
+                            <p class="text-xs text-gray-300 font-semibold mt-0.5">
+                                <span class="text-yellow-400 font-bold">Lv. ${p.level}</span> • <span class="text-orange-400 font-bold">⚡ ${formatNumber(pCp)} CP</span>
+                            </p>
                         </div>
-                        <p class="text-xs text-gray-400">Lv. ${p.level} • HP: ${p.maxHp} • Atk: ${p.attack}</p>
                     </div>
+                    <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
+                        ${isActive ? '✓ Ready' : 'Swap 🔁'}
+                    </span>
                 </div>
-                <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
-                    ${isActive ? '✓ Ready' : 'Swap 🔁'}
-                </span>
+                
+                <!-- Live Real-Time XP Bar for this Teammate -->
+                <div class="w-full mt-2 pt-1.5 border-t border-gray-700/50 flex items-center gap-2">
+                    <div class="flex-1 h-2 bg-gray-900 rounded-full overflow-hidden border border-gray-700">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300" style="width: ${xpPercent}%"></div>
+                    </div>
+                    <span class="text-[9px] font-black text-gray-400 select-none">${formatNumber(p.xp || 0)} / ${formatNumber(p.maxXp || 50)}</span>
+                </div>
             </div>
         `;
     });
