@@ -1,15 +1,14 @@
 // ============================================================================
-// ENDLESS SWARM TOWER DEFENSE ENGINE (defense.js)
+// ENDLESS SWARM TOWER DEFENSE ENGINE (defense.js) - 24/7 PERSISTENT
 // ============================================================================
 
 var defenseCanvas, defenseCtx;
 var defenseAnimId = null;
 var isDefenseRunning = false;
 
-// Tower & Wave State
+// Tower & Wave In-Memory State
 var towerHp = 1000;
 var towerMaxHp = 1000;
-var towerAtk = 50;
 var defenseStage = 1;
 var waveEnemiesRemaining = 500;
 var waveKills = 0;
@@ -18,8 +17,7 @@ var breatherCountdown = 30;
 var lastSpawnTime = 0;
 var lastDefenderShotTime = 0;
 
-// Defender Formation (Roster slot indices, defaults to first 3)
-var assignedDefenderSlots = [0, 0, 0];
+// Defender Formation (3 Unique Slots)
 var selectedSlotToAssign = 0;
 
 // Active Canvas Entities
@@ -45,23 +43,37 @@ function openDefenseMode() {
         return;
     }
 
-    // Default defender slots if unassigned
-    for (let i = 0; i < 3; i++) {
-        if (assignedDefenderSlots[i] === undefined || assignedDefenderSlots[i] >= gameState.roster.length) {
-            assignedDefenderSlots[i] = i % gameState.roster.length;
-        }
+    // Ensure defense state exists
+    if (!gameState.defenseState) {
+        gameState.defenseState = {
+            stage: 1, kills: 0, remaining: 500,
+            towerHp: null, towerMaxHp: null,
+            slots: [0, null, null], lastTick: Date.now()
+        };
+    }
+
+    // Clean up defender slots (Strictly unique, no duplicate assignment)
+    validateUniqueDefenderSlots();
+    calculateTowerStats();
+
+    // Load Persistent Wave Progress (Never resets unless defeated)
+    defenseStage = gameState.defenseState.stage || 1;
+    waveKills = gameState.defenseState.kills || 0;
+    waveEnemiesRemaining = (gameState.defenseState.remaining !== undefined) ? gameState.defenseState.remaining : 500;
+    
+    if (gameState.defenseState.towerHp !== null && gameState.defenseState.towerHp !== undefined) {
+        towerHp = Math.min(towerMaxHp, gameState.defenseState.towerHp);
+    } else {
+        towerHp = towerMaxHp;
     }
 
     showScreen('defense-screen');
     initDefenseCanvas();
-    calculateTowerStats();
 
     isDefenseRunning = true;
     defenseEnemies = [];
     defenseProjectiles = [];
     defenseFloatingTexts = [];
-    waveEnemiesRemaining = 500;
-    waveKills = 0;
     isBreather = false;
 
     updateDefenseTopUI();
@@ -78,23 +90,60 @@ function openDefenseMode() {
 function leaveDefenseMode() {
     isDefenseRunning = false;
     if (defenseAnimId) cancelAnimationFrame(defenseAnimId);
+
+    // Save exact live progress
+    syncDefenseStateToMemory();
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
     showScreen('hub-screen');
     updateHub();
+}
+
+function syncDefenseStateToMemory() {
+    if (!gameState.defenseState) gameState.defenseState = {};
+    gameState.defenseState.stage = defenseStage;
+    gameState.defenseState.kills = waveKills;
+    gameState.defenseState.remaining = waveEnemiesRemaining;
+    gameState.defenseState.towerHp = Math.floor(towerHp);
+    gameState.defenseState.towerMaxHp = towerMaxHp;
+    gameState.defenseState.lastTick = Date.now();
 }
 
 // --- CALCULATE TOWER STATS (SCALED FROM TOTAL ROSTER CP) ---
 function calculateTowerStats() {
     let totalRosterHp = 0;
-    let totalRosterAtk = 0;
 
     gameState.roster.forEach(p => {
         totalRosterHp += (p.maxHp || 40) * 3;
-        totalRosterAtk += (p.attack || 5) + (p.spAtk || 5);
     });
 
     towerMaxHp = Math.max(500, totalRosterHp);
-    towerHp = towerMaxHp;
-    towerAtk = Math.max(20, Math.floor(totalRosterAtk * 0.7));
+    if (!towerHp || towerHp > towerMaxHp) towerHp = towerMaxHp;
+    if (gameState.defenseState) gameState.defenseState.towerMaxHp = towerMaxHp;
+}
+
+// --- VALIDATE UNIQUE SLOTS (NO DUPLICATE CLONES OF THE SAME POKEMON) ---
+function validateUniqueDefenderSlots() {
+    if (!gameState.defenseState.slots) gameState.defenseState.slots = [0, null, null];
+    let slots = gameState.defenseState.slots;
+    let usedIndices = new Set();
+
+    for (let i = 0; i < 3; i++) {
+        let rIdx = slots[i];
+        if (rIdx !== null && rIdx !== undefined) {
+            // If invalid index or already assigned to a previous slot
+            if (rIdx >= gameState.roster.length || usedIndices.has(rIdx)) {
+                slots[i] = null;
+            } else {
+                usedIndices.add(rIdx);
+            }
+        }
+    }
+
+    // Ensure at least slot 0 has a defender if available
+    if (slots[0] === null && gameState.roster.length > 0) {
+        slots[0] = 0;
+    }
 }
 
 // --- CANVAS SETUP & RESIZE ---
@@ -129,13 +178,12 @@ function defenseGameLoop() {
     // 2. Handle Enemy Wave Spawning
     if (!isBreather) {
         if (waveEnemiesRemaining > 0) {
-            let spawnRate = Math.max(250, 700 - (defenseStage * 25)); // Spawns faster per stage
+            let spawnRate = Math.max(250, 700 - (defenseStage * 25));
             if (now - lastSpawnTime > spawnRate) {
                 spawnSwarmEnemy();
                 lastSpawnTime = now;
             }
         } else if (defenseEnemies.length === 0) {
-            // Wave Cleared ➔ Start 30s Breather
             startWaveBreather();
         }
     } else {
@@ -143,13 +191,13 @@ function defenseGameLoop() {
     }
 
     // 3. Defenders Automatic Elemental Shooting
-    let attackInterval = 450; // Fires every 0.45s
+    let attackInterval = 450;
     if (now - lastDefenderShotTime > attackInterval && !isBreather && defenseEnemies.length > 0) {
         fireDefenderProjectiles();
         lastDefenderShotTime = now;
     }
 
-    // 4. Passive Tower Health Regen (if defenders have healing/defense)
+    // 4. Passive Tower Health Regen
     regenerateTowerHealth();
 
     // 5. Update & Draw Entities
@@ -172,7 +220,6 @@ function drawCastleDefenseBase() {
     let w = defenseCanvas.width;
     let h = defenseCanvas.height;
 
-    // Glowing Defensive Trench Barrier
     let grad = defenseCtx.createLinearGradient(0, h - 90, 0, h);
     grad.addColorStop(0, 'rgba(30, 41, 59, 0.4)');
     grad.addColorStop(1, 'rgba(15, 23, 42, 0.95)');
@@ -193,18 +240,28 @@ function drawDefenderSprites() {
     let h = defenseCanvas.height;
     let positions = [w * 0.22, w * 0.50, w * 0.78];
     let yPos = h - 65;
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
 
     positions.forEach((x, index) => {
-        let rIdx = assignedDefenderSlots[index];
-        let p = gameState.roster[rIdx] || gameState.roster[0];
-        if (!p) return;
+        let rIdx = slots[index];
+        if (rIdx === null || rIdx === undefined || !gameState.roster[rIdx]) {
+            // Empty Tower Pad
+            defenseCtx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+            defenseCtx.lineWidth = 1;
+            defenseCtx.setLineDash([4, 4]);
+            defenseCtx.beginPath();
+            defenseCtx.arc(x, yPos + 18, 14, 0, Math.PI * 2);
+            defenseCtx.stroke();
+            defenseCtx.setLineDash([]);
+            return;
+        }
 
+        let p = gameState.roster[rIdx];
         let sprite = getCachedSprite(p.id);
         if (sprite && sprite.complete) {
             defenseCtx.drawImage(sprite, x - 24, yPos - 24, 48, 48);
         }
 
-        // Elemental Floor Aura Circle
         defenseCtx.strokeStyle = getElementColor(p.type || 'normal');
         defenseCtx.lineWidth = 1.5;
         defenseCtx.beginPath();
@@ -241,6 +298,7 @@ function spawnSwarmEnemy() {
 
     defenseEnemies.push(enemy);
     waveEnemiesRemaining--;
+    syncDefenseStateToMemory();
     updateDefenseTopUI();
 }
 
@@ -249,13 +307,15 @@ function fireDefenderProjectiles() {
     let w = defenseCanvas.width;
     let h = defenseCanvas.height;
     let positions = [w * 0.22, w * 0.50, w * 0.78];
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
 
     positions.forEach((x, index) => {
-        let rIdx = assignedDefenderSlots[index];
-        let p = gameState.roster[rIdx] || gameState.roster[0];
-        if (!p) return;
+        let rIdx = slots[index];
+        if (rIdx === null || rIdx === undefined || !gameState.roster[rIdx]) return;
 
-        // Target closest enemy to this defender
+        let p = gameState.roster[rIdx];
+
+        // Target closest enemy
         let closest = null;
         let minDist = 99999;
 
@@ -293,7 +353,6 @@ function updateAndDrawProjectiles() {
         pr.x += pr.vx;
         pr.y += pr.vy;
 
-        // Draw Glowing Projectile Orb
         defenseCtx.fillStyle = pr.color;
         defenseCtx.shadowColor = pr.color;
         defenseCtx.shadowBlur = 8;
@@ -302,23 +361,21 @@ function updateAndDrawProjectiles() {
         defenseCtx.fill();
         defenseCtx.shadowBlur = 0;
 
-        // Check Collision with Enemies
         for (let j = defenseEnemies.length - 1; j >= 0; j--) {
             let e = defenseEnemies[j];
             let dist = Math.hypot(pr.x - e.x, pr.y - e.y);
 
             if (dist < pr.radius + (e.size / 2)) {
-                // Hit enemy!
                 e.hp -= pr.damage;
                 spawnDefenseParticle(e.x, e.y, pr.color);
                 spawnDefenseText(e.x, e.y - 10, `-${pr.damage}`, '#f87171');
 
                 if (e.hp <= 0) {
-                    // Enemy Defeated!
                     defenseEnemies.splice(j, 1);
                     waveKills++;
                     grantDefenseTrickleXP();
                     spawnDefenseText(e.x, e.y, '+0.1% XP', '#4ade80');
+                    syncDefenseStateToMemory();
                     updateDefenseTopUI();
                 }
 
@@ -330,7 +387,6 @@ function updateAndDrawProjectiles() {
             }
         }
 
-        // Out of bounds cleanup
         if (pr.y < -10 || pr.x < -10 || pr.x > defenseCanvas.width + 10) {
             defenseProjectiles.splice(i, 1);
         }
@@ -350,7 +406,6 @@ function updateAndDrawEnemies() {
             defenseCtx.drawImage(sprite, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
         }
 
-        // Draw Mini Health Bar & Level Badge
         let barW = e.size * 1.1;
         let barH = 3;
         let hpRatio = Math.max(0, e.hp / e.maxHp);
@@ -361,34 +416,30 @@ function updateAndDrawEnemies() {
         defenseCtx.fillStyle = e.isBoss ? '#ec4899' : '#22c55e';
         defenseCtx.fillRect(e.x - barW / 2, e.y - (e.size / 2) - 6, barW * hpRatio, barH);
 
-        // Reach Castle Wall ➔ Attack Tower!
+        // Reach Castle Wall ➔ Damage Tower
         if (e.y >= h - 85) {
             towerHp = Math.max(0, towerHp - e.damage);
             spawnDefenseText(e.x, h - 80, `-${e.damage}`, '#ef4444');
             updateTowerHealthBar();
+            syncDefenseStateToMemory();
             defenseEnemies.splice(i, 1);
         }
     }
 }
 
-// --- TOWER REGENERATION ---
 function regenerateTowerHealth() {
     if (towerHp < towerMaxHp) {
-        // Regenerate 0.05% of Max HP per second
         towerHp = Math.min(towerMaxHp, towerHp + (towerMaxHp * 0.0005));
         updateTowerHealthBar();
     }
 }
 
-// --- SILENT TRICKLE XP ENGINE (0.1% PER KILL TO ACTIVE POKÉMON & ROSTER) ---
 function grantDefenseTrickleXP() {
     if (!gameState.roster || gameState.roster.length === 0) return;
 
-    // Grant 0.1% of maxXp to the currently active buddy
     let trickle = Math.max(1, Math.floor((gameState.maxXp || 50) * 0.001));
     gameState.xp += trickle;
 
-    // If level-up threshold is crossed, smoothly roll stats without intrusive popups
     if (gameState.xp >= gameState.maxXp) {
         gameState.xp -= gameState.maxXp;
         gameState.level++;
@@ -460,7 +511,8 @@ function startWaveBreather() {
             defenseStage++;
             waveEnemiesRemaining = 500;
             waveKills = 0;
-            towerHp = towerMaxHp; // Full Tower heal for next wave!
+            towerHp = towerMaxHp;
+            syncDefenseStateToMemory();
             updateDefenseTopUI();
             updateTowerHealthBar();
         }
@@ -493,9 +545,69 @@ function handleTowerDefeated() {
     isDefenseRunning = false;
     if (defenseAnimId) cancelAnimationFrame(defenseAnimId);
 
-    showModal("🏰 CASTLE DEFENSE OVER", `Your defenses held out until <strong>Stage ${defenseStage}</strong> with ${waveKills} swarm eliminations! Total trickle XP was saved to your team.`, [80, 80]);
+    // Reset back to Stage 1 upon defeat
+    if (gameState.defenseState) {
+        gameState.defenseState.stage = 1;
+        gameState.defenseState.kills = 0;
+        gameState.defenseState.remaining = 500;
+        gameState.defenseState.towerHp = towerMaxHp;
+    }
+
+    showModal("🏰 CASTLE OVERRUN!", `Your defenses held out until <strong>Stage ${defenseStage}</strong> with ${waveKills} swarm eliminations!<br>Defenses reset to Stage 1. Catch stronger Pokémon and level up to push further!`, [80, 80]);
     leaveDefenseMode();
 }
+
+// --- 24/7 BACKGROUND SIMULATION ENGINE ---
+setInterval(() => {
+    if (isDefenseRunning || !gameState.defenseState) return;
+
+    let def = gameState.defenseState;
+    let now = Date.now();
+    let elapsedSec = Math.floor((now - (def.lastTick || now)) / 1000);
+    if (elapsedSec < 3) return;
+
+    def.lastTick = now;
+
+    // Calculate Assigned Team DPS
+    let teamDps = 0;
+    let slots = def.slots || [0, null, null];
+    slots.forEach(rIdx => {
+        if (rIdx !== null && gameState.roster[rIdx]) {
+            let p = gameState.roster[rIdx];
+            teamDps += (p.attack || 5) + (p.spAtk || 5);
+        }
+    });
+
+    if (teamDps <= 0) return;
+
+    // Simulate Background Kills (1 kill every ~200 / DPS seconds)
+    let killsEarned = Math.floor((teamDps * elapsedSec) / 120);
+    if (killsEarned > 0) {
+        def.kills = (def.kills || 0) + killsEarned;
+        def.remaining = Math.max(0, (def.remaining || 500) - killsEarned);
+
+        // Grant Idle Trickle XP
+        let totalTrickle = Math.max(1, Math.floor((gameState.maxXp || 50) * 0.001)) * killsEarned;
+        gameState.xp += totalTrickle;
+
+        if (gameState.xp >= gameState.maxXp) {
+            gameState.xp -= gameState.maxXp;
+            gameState.level++;
+            gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
+        }
+
+        // Advance Stage if 500 enemies cleared in background
+        if (def.remaining <= 0) {
+            def.stage = (def.stage || 1) + 1;
+            def.remaining = 500;
+            def.kills = 0;
+            def.towerHp = def.towerMaxHp;
+        }
+
+        if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+    }
+}, 4000);
 
 // --- UI UPDATE HELPERS ---
 function updateDefenseTopUI() {
@@ -519,21 +631,29 @@ function updateTowerHealthBar() {
 }
 
 function renderDefenderUIChips() {
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
+
     for (let i = 0; i < 3; i++) {
         let chip = document.getElementById(`defender-chip-${i}`);
-        let rIdx = assignedDefenderSlots[i];
-        let p = gameState.roster[rIdx] || gameState.roster[0];
+        let rIdx = slots[i];
 
-        if (chip && p) {
-            chip.innerHTML = `
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-6 h-6 object-contain pixel-perfect">
-                <span class="truncate max-w-[50px]">${p.name}</span>
-            `;
+        if (chip) {
+            if (rIdx !== null && rIdx !== undefined && gameState.roster[rIdx]) {
+                let p = gameState.roster[rIdx];
+                chip.innerHTML = `
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-6 h-6 object-contain pixel-perfect">
+                    <span class="truncate max-w-[50px]">${p.name}</span>
+                `;
+            } else {
+                chip.innerHTML = `
+                    <span class="text-gray-500 font-bold">+ Slot ${i + 1}</span>
+                `;
+            }
         }
     }
 }
 
-// --- ASSIGN DEFENDERS MODAL ---
+// --- ASSIGN DEFENDERS MODAL (STRICTLY UNIQUE SLOTS) ---
 function openAssignDefenderModal(slotIndex) {
     selectedSlotToAssign = slotIndex;
     renderAssignRosterList();
@@ -566,19 +686,27 @@ function renderAssignRosterList() {
     if (!list) return;
     list.innerHTML = '';
 
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
+
     gameState.roster.forEach((p, index) => {
-        let isSelected = assignedDefenderSlots[selectedSlotToAssign] === index;
+        let assignedSlot = slots.indexOf(index);
+        let isCurrentSlot = (assignedSlot === selectedSlotToAssign);
+        let isOtherSlot = (assignedSlot !== -1 && !isCurrentSlot);
+
         list.innerHTML += `
-            <div onclick="selectDefenderForSlot(${index})" class="flex items-center justify-between p-2.5 bg-gray-800 hover:bg-blue-900/40 border ${isSelected ? 'border-blue-400 bg-blue-950/40' : 'border-gray-700'} rounded-xl cursor-pointer active:scale-95 transition-all">
+            <div onclick="selectDefenderForSlot(${index})" class="flex items-center justify-between p-2.5 bg-gray-800 hover:bg-blue-900/40 border ${isCurrentSlot ? 'border-green-400 bg-green-950/40' : (isOtherSlot ? 'border-yellow-500/50 opacity-80' : 'border-gray-700')} rounded-xl cursor-pointer active:scale-95 transition-all">
                 <div class="flex items-center gap-3">
                     <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-8 h-8 object-contain pixel-perfect">
                     <div class="text-left">
-                        <h4 class="font-bold text-xs text-white">${p.name}</h4>
+                        <div class="flex items-center gap-1.5">
+                            <h4 class="font-bold text-xs text-white">${p.name}</h4>
+                            ${isOtherSlot ? `<span class="text-[8px] bg-yellow-600/80 px-1 py-0.2 rounded text-white font-bold">In Slot ${assignedSlot + 1}</span>` : ''}
+                        </div>
                         <p class="text-[9px] text-gray-400">Lv. ${p.level} • ${(TYPE_DATABASE[p.type || 'normal'] || TYPE_DATABASE.normal).name}</p>
                     </div>
                 </div>
-                <span class="text-xs font-bold ${isSelected ? 'text-green-400' : 'text-blue-400'}">
-                    ${isSelected ? '✓ Assigned' : 'Select ➔'}
+                <span class="text-xs font-bold ${isCurrentSlot ? 'text-green-400' : 'text-blue-400'}">
+                    ${isCurrentSlot ? '✓ Assigned' : (isOtherSlot ? 'Swap 🔁' : 'Select ➔')}
                 </span>
             </div>
         `;
@@ -586,7 +714,20 @@ function renderAssignRosterList() {
 }
 
 function selectDefenderForSlot(rosterIndex) {
-    assignedDefenderSlots[selectedSlotToAssign] = rosterIndex;
+    let slots = gameState.defenseState.slots;
+
+    // If this Pokémon is already in another slot, swap or clear it from that slot
+    let existingSlot = slots.indexOf(rosterIndex);
+    if (existingSlot !== -1) {
+        slots[existingSlot] = null;
+    }
+
+    slots[selectedSlotToAssign] = rosterIndex;
+    validateUniqueDefenderSlots();
+
+    syncDefenseStateToMemory();
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+
     renderDefenderUIChips();
     closeAssignDefenderModal();
     if (navigator.vibrate) navigator.vibrate(20);
