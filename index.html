@@ -385,9 +385,22 @@
             <div id="defender-chip-2" onclick="openAssignDefenderModal(2)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 3</div>
         </div>
 
-        <!-- 60 FPS HTML5 Canvas Arena -->
+        <!-- 60 FPS HTML5 Canvas Arena & Live Animated Defenders -->
         <div class="flex-1 relative w-full overflow-hidden">
             <canvas id="defense-canvas" class="w-full h-full block"></canvas>
+
+            <!-- Live 60 FPS Animated Defender Overlay (Proportional Aspect Ratio) -->
+            <div class="absolute inset-x-0 bottom-4 h-16 pointer-events-none flex items-center justify-around z-20 px-3">
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-0" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-1" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-2" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+            </div>
         </div>
 
         <!-- Dark Souls Full-Width Tower Health Bar -->
