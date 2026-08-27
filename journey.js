@@ -228,7 +228,7 @@ function claimJourneyReward() {
         target.xp -= target.maxXp;
         target.level++;
         levelUps++;
-        target.maxXp = Math.floor(target.maxXp * 1.67);
+        target.maxXp = Math.max(50, Math.floor(50 * Math.pow(target.level, 1.85)));
         
         let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
         target.maxHp = Math.max(target.maxHp + 1, Math.floor(target.maxHp * statBuff));
