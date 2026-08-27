@@ -585,8 +585,26 @@
     <script src="defense.js"></script>
     <script src="battle.js"></script>
     <script>
+        // Automatic Instant-Update Engine
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => console.warn('Service Worker registration failed.'));
+            let refreshing = false;
+
+            // When new SW activates, auto-reload the page seamlessly
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => {
+                        // Check for updates every time app is launched
+                        reg.update();
+                    })
+                    .catch(() => console.warn('Service Worker registration failed.'));
+            });
         }
     </script>
 </body>
