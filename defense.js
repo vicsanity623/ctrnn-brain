@@ -308,7 +308,7 @@ function updateLiveDefenderDOMSprites() {
     }
 }
 
-// --- SPAWN SWARM ENEMY ---
+// --- SPAWN SWARM ENEMY (COMPOUND EXPONENTIAL SCALING) ---
 function spawnSwarmEnemy() {
     let isBossEnemy = (waveKills > 0 && waveKills % 100 === 0 && !defenseEnemies.some(e => e.isBoss));
     let basePool = typeof BASE_POKEMON_IDS !== 'undefined' ? BASE_POKEMON_IDS : [16, 19, 21, 29, 32, 41, 43, 46];
@@ -318,8 +318,13 @@ function spawnSwarmEnemy() {
         ? bossPool[Math.floor(Math.random() * bossPool.length)]
         : basePool[Math.floor(Math.random() * basePool.length)];
 
-    let eLvl = Math.max(1, Math.floor(defenseStage * 1.5) + (isBossEnemy ? 5 : 0));
-    let baseHp = Math.floor((30 + (defenseStage * 12)) * (isBossEnemy ? 5.5 : 1.0));
+    let eLvl = Math.max(1, Math.floor(defenseStage * 1.25) + (isBossEnemy ? 5 : 0));
+
+    // Exponential 4.5% compound multiplier per stage
+    let stageMultiplier = Math.pow(1.045, Math.max(0, defenseStage - 1));
+    let baseHp = Math.floor((45 * stageMultiplier) * (isBossEnemy ? 5.0 : 1.0));
+    let enemyDmg = Math.max(8, Math.floor((12 * stageMultiplier) * (isBossEnemy ? 3.0 : 1.0)));
+    let speedMod = Math.min(2.5, (0.85 + (Math.random() * 0.3) + (defenseStage * 0.015)) * (isBossEnemy ? 0.75 : 1.0));
 
     let enemy = {
         id: randomId,
@@ -328,12 +333,12 @@ function spawnSwarmEnemy() {
         size: isBossEnemy ? 40 : 26,
         hp: baseHp,
         maxHp: baseHp,
-        speed: (0.7 + (Math.random() * 0.4) + (defenseStage * 0.04)) * (isBossEnemy ? 0.65 : 1.0),
+        speed: speedMod,
         level: eLvl,
         isBoss: isBossEnemy,
-        damage: Math.max(5, Math.floor((6 + defenseStage * 2) * (isBossEnemy ? 2.5 : 1.0)))
+        damage: enemyDmg
     };
-
+    
     defenseEnemies.push(enemy);
     waveEnemiesRemaining--;
     syncDefenseStateToMemory();
@@ -505,34 +510,41 @@ function regenerateTowerHealth() {
     }
 }
 
-// --- GRANT TRICKLE XP TO ALL DEFENDERS & ROSTER (INSTANT SYNC) ---
+// --- GRANT TRICKLE XP TO ALL DEFENDERS & ROSTER (BALANCED 0.002% RATE) ---
 function grantDefenseTrickleXP() {
     if (!gameState.roster || gameState.roster.length === 0) return;
 
     let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
     let activeIdx = gameState.activeRosterIndex ?? 0;
+    let enemyAvgLvl = Math.max(1, Math.floor(defenseStage * 1.5));
 
     slots.forEach(rIdx => {
         if (rIdx !== null && gameState.roster[rIdx]) {
             let p = gameState.roster[rIdx];
-            // 0.02% per kill = 10% XP per 500-enemy wave
-            let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.0002));
+            if ((p.level || 1) >= 100) return; // Level 100 Cap
+
+            // Level-Difference Penalty: High level Pokémon earn less XP from low-stage swarms
+            let levelPenalty = 1.0;
+            if (p.level > enemyAvgLvl + 5) {
+                levelPenalty = Math.max(0.05, 1.0 - ((p.level - enemyAvgLvl) * 0.04));
+            }
+
+            // 0.002% per kill = 1% XP per full 500-enemy wave
+            let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.00002 * levelPenalty));
             p.xp = (p.xp || 0) + trickle;
 
-            // Handle multi-level jumps for defenders in real time
-            while (p.xp >= p.maxXp) {
+            while (p.xp >= p.maxXp && p.level < 100) {
                 p.xp -= p.maxXp;
                 p.level++;
                 p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
 
-                p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
-                p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
-                p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
-                p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
-                p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
-                p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
+                p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.05));
+                p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.05));
+                p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.05));
+                p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.05));
+                p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.05));
+                p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.05));
 
-                // If active buddy leveled up, sync to live state immediately
                 if (rIdx === activeIdx) {
                     gameState.level = p.level;
                     gameState.xp = p.xp;
@@ -549,7 +561,6 @@ function grantDefenseTrickleXP() {
                 renderDefenderUIChips();
             }
 
-            // Sync active companion's live XP bar
             if (rIdx === activeIdx) {
                 gameState.xp = p.xp;
             }
@@ -709,14 +720,14 @@ function processOfflineDefenseCatchUp() {
 
     if (teamDps <= 0) return;
 
-    // 2. Simulate Kills & Stage Advancements
-    let totalKills = Math.floor((teamDps * elapsedSec) / 100);
+    // 2. Simulate Kills (Capped at 1,500 kills max per offline sleep session)
+    let rawKills = Math.floor((teamDps * elapsedSec) / 100);
+    let totalKills = Math.min(1500, rawKills); // Caps overnight jumps to ~1-2 levels max
     let remainingToClear = def.remaining || 500;
-    let stagesAdvanced = 0;
 
     if (totalKills >= remainingToClear) {
         let leftoverKills = totalKills - remainingToClear;
-        stagesAdvanced = 1 + Math.floor(leftoverKills / 500);
+        let stagesAdvanced = Math.min(3, 1 + Math.floor(leftoverKills / 500)); // Max 3 stages overnight
         def.stage = (def.stage || 1) + stagesAdvanced;
         def.remaining = 500 - (leftoverKills % 500);
         def.kills = leftoverKills % 500;
@@ -727,26 +738,37 @@ function processOfflineDefenseCatchUp() {
     }
 
     let activeIdx = gameState.activeRosterIndex ?? 0;
+    let enemyAvgLvl = Math.max(1, Math.floor((def.stage || 1) * 1.5));
 
-    // 3. Distribute XP (100% to Defenders, 50% to Benched Pokémon)
+    // 3. Distribute XP with Level Penalty & Level 100 Ceiling
     gameState.roster.forEach((p, index) => {
+        if ((p.level || 1) >= 100) {
+            p.level = 100;
+            p.xp = p.maxXp;
+            return;
+        }
+
         let isDefender = defenderSet.has(index);
-        let xpRate = isDefender ? 0.0002 : 0.0001; // 50% shared training for bench
+        let levelPenalty = 1.0;
+        if (p.level > enemyAvgLvl + 5) {
+            levelPenalty = Math.max(0.05, 1.0 - ((p.level - enemyAvgLvl) * 0.04));
+        }
+
+        let xpRate = (isDefender ? 0.00002 : 0.00001) * levelPenalty;
         let earnedXp = Math.max(1, Math.floor((p.maxXp || 50) * xpRate)) * totalKills;
         p.xp = (p.xp || 0) + earnedXp;
 
-        // Process level ups
-        while (p.xp >= p.maxXp) {
+        while (p.xp >= p.maxXp && p.level < 100) {
             p.xp -= p.maxXp;
             p.level++;
             p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
 
-            p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
-            p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
-            p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
-            p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
-            p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
-            p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
+            p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.05));
+            p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.05));
+            p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.05));
+            p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.05));
+            p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.05));
+            p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.05));
 
             if (index === activeIdx) {
                 gameState.level = p.level;
