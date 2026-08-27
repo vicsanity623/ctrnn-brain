@@ -349,19 +349,15 @@ function executeStageSweep() {
     let moodMult = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
     let totalExpGained = Math.floor(replayBaseXp * moodMult) * count;
 
-    let foundBerries = 0;
+    // 3. Simulate Drops (Pokéballs & XP Only - NO Berries returned to prevent infinite loop!)
     let foundPokeballs = 0;
 
     for (let i = 0; i < count; i++) {
-        if (isBossStage) {
-            if (Math.random() < 0.35) foundBerries += 1;
-        } else {
-            if (Math.random() < 0.45) foundBerries += Math.floor(Math.random() * 2) + 1;
-            if (Math.random() < 0.11) foundPokeballs += 1;
+        if (Math.random() < 0.10) {
+            foundPokeballs += 1;
         }
     }
 
-    // 3. Set Active Sweep Timer (3 Seconds per Berry)
     let durationSeconds = count * 3;
     let now = Date.now();
 
@@ -372,7 +368,6 @@ function executeStageSweep() {
         endTime: now + (durationSeconds * 1000),
         durationSeconds: durationSeconds,
         totalExpGained: totalExpGained,
-        foundBerries: foundBerries,
         foundPokeballs: foundPokeballs,
         moodMult: moodMult
     };
@@ -443,12 +438,10 @@ function claimSweepRewards() {
         return;
     }
 
-    // Award Drops
-    gameState.berries += active.foundBerries;
-    gameState.pokeballs = (gameState.pokeballs || 0) + active.foundPokeballs;
+    // Award Drops (XP & Pokéballs Only)
+    gameState.pokeballs = (gameState.pokeballs || 0) + (active.foundPokeballs || 0);
 
     let drops = [];
-    if (active.foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${active.foundBerries} 🍓 Berries</span>`);
     if (active.foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${active.foundPokeballs} 🔴 Pokéballs</span>`);
     let lootText = drops.length > 0 ? drops.join(" • ") : "<span class='text-gray-400'>None</span>";
 
