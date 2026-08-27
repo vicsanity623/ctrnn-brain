@@ -656,22 +656,29 @@ function handleTowerDefeated() {
     leaveDefenseMode();
 }
 
-// --- 24/7 BACKGROUND SIMULATION ENGINE (FULL TEAM XP GROWER) ---
-setInterval(() => {
-    if (isDefenseRunning || !gameState.defenseState || !gameState.roster) return;
+// --- PROCESS OFFLINE DEFENSE CATCH-UP (RUNS ON APP LAUNCH) ---
+function processOfflineDefenseCatchUp() {
+    if (!gameState.defenseState || !gameState.roster) return;
 
     let def = gameState.defenseState;
     let now = Date.now();
-    let elapsedSec = Math.floor((now - (def.lastTick || now)) / 1000);
-    if (elapsedSec < 3) return;
+    let lastTime = def.lastTick || now;
+    let elapsedSec = Math.floor((now - lastTime) / 1000);
+
+    // Limit offline catchup to 24 hours max
+    elapsedSec = Math.min(86400, Math.max(0, elapsedSec));
+    if (elapsedSec < 5) return;
 
     def.lastTick = now;
 
-    // Calculate Total Assigned Team DPS
+    // 1. Calculate Team DPS
     let teamDps = 0;
     let slots = def.slots || [0, null, null];
+    let defenderSet = new Set();
+
     slots.forEach(rIdx => {
         if (rIdx !== null && gameState.roster[rIdx]) {
+            defenderSet.add(rIdx);
             let p = gameState.roster[rIdx];
             teamDps += (p.attack || 5) + (p.spAtk || 5);
         }
@@ -679,63 +686,71 @@ setInterval(() => {
 
     if (teamDps <= 0) return;
 
-    let killsEarned = Math.floor((teamDps * elapsedSec) / 120);
-    if (killsEarned > 0) {
-        def.kills = (def.kills || 0) + killsEarned;
-        def.remaining = Math.max(0, (def.remaining || 500) - killsEarned);
+    // 2. Simulate Kills & Stage Advancements
+    let totalKills = Math.floor((teamDps * elapsedSec) / 100);
+    let remainingToClear = def.remaining || 500;
+    let stagesAdvanced = 0;
 
-        let activeIdx = gameState.activeRosterIndex ?? 0;
+    if (totalKills >= remainingToClear) {
+        let leftoverKills = totalKills - remainingToClear;
+        stagesAdvanced = 1 + Math.floor(leftoverKills / 500);
+        def.stage = (def.stage || 1) + stagesAdvanced;
+        def.remaining = 500 - (leftoverKills % 500);
+        def.kills = leftoverKills % 500;
+        def.towerHp = def.towerMaxHp;
+    } else {
+        def.remaining = Math.max(0, remainingToClear - totalKills);
+        def.kills = (def.kills || 0) + totalKills;
+    }
 
-        // Distribute Offline Trickle XP to All Defenders
-        slots.forEach(rIdx => {
-            if (rIdx !== null && gameState.roster[rIdx]) {
-                let p = gameState.roster[rIdx];
-                // 0.02% per kill = 10% XP per 500-enemy wave
-                let totalTrickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.0002)) * killsEarned;
-                p.xp = (p.xp || 0) + totalTrickle;
+    let activeIdx = gameState.activeRosterIndex ?? 0;
 
-                while (p.xp >= p.maxXp) {
-                    p.xp -= p.maxXp;
-                    p.level++;
-                    p.maxXp = Math.floor(p.maxXp * 1.67);
+    // 3. Distribute XP (100% to Defenders, 50% to Benched Pokémon)
+    gameState.roster.forEach((p, index) => {
+        let isDefender = defenderSet.has(index);
+        let xpRate = isDefender ? 0.0002 : 0.0001; // 50% shared training for bench
+        let earnedXp = Math.max(1, Math.floor((p.maxXp || 50) * xpRate)) * totalKills;
+        p.xp = (p.xp || 0) + earnedXp;
 
-                    p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
-                    p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
-                    p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
-                    p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
-                    p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
-                    p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
+        // Process level ups
+        while (p.xp >= p.maxXp) {
+            p.xp -= p.maxXp;
+            p.level++;
+            p.maxXp = Math.floor(p.maxXp * 1.67);
 
-                    if (rIdx === activeIdx) {
-                        gameState.level = p.level;
-                        gameState.xp = p.xp;
-                        gameState.maxXp = p.maxXp;
-                        gameState.maxHp = p.maxHp;
-                        gameState.attack = p.attack;
-                        gameState.defense = p.defense;
-                        gameState.spAtk = p.spAtk;
-                        gameState.spDef = p.spDef;
-                        gameState.speed = p.speed;
-                    }
-                }
+            p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
+            p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
+            p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
+            p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
+            p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
+            p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
 
-                if (rIdx === activeIdx) {
-                    gameState.xp = p.xp;
-                }
+            if (index === activeIdx) {
+                gameState.level = p.level;
+                gameState.maxXp = p.maxXp;
+                gameState.maxHp = p.maxHp;
+                gameState.attack = p.attack;
+                gameState.defense = p.defense;
+                gameState.spAtk = p.spAtk;
+                gameState.spDef = p.spDef;
+                gameState.speed = p.speed;
             }
-        });
-
-        // Advance Stage if 500 enemies cleared in background
-        if (def.remaining <= 0) {
-            def.stage = (def.stage || 1) + 1;
-            def.remaining = 500;
-            def.kills = 0;
-            def.towerHp = def.towerMaxHp;
         }
 
-        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        if (index === activeIdx) {
+            gameState.xp = p.xp;
+        }
+    });
+
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
+}
+
+// Background simulation ticker while app tab is in background
+setInterval(() => {
+    if (!isDefenseRunning && typeof processOfflineDefenseCatchUp === 'function') {
+        processOfflineDefenseCatchUp();
     }
-}, 3000);
+}, 4000);
 
 // --- UI UPDATE HELPERS ---
 function updateDefenseTopUI() {
