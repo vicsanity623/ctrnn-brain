@@ -504,8 +504,9 @@ function updateAndDrawEnemies() {
 }
 
 function regenerateTowerHealth() {
-    if (towerHp < towerMaxHp) {
-        towerHp = Math.min(towerMaxHp, towerHp + (towerMaxHp * 0.0005));
+    // Only gently heal if tower is below max and not actively taking damage
+    if (towerHp < towerMaxHp && defenseEnemies.length < 15) {
+        towerHp = Math.min(towerMaxHp, towerHp + 0.5); // Fixed gentle regen
         updateTowerHealthBar();
     }
 }
@@ -720,17 +721,41 @@ function processOfflineDefenseCatchUp() {
 
     if (teamDps <= 0) return;
 
-    // 2. Simulate Kills (Capped at 1,500 kills max per offline sleep session)
-    let rawKills = Math.floor((teamDps * elapsedSec) / 100);
-    let totalKills = Math.min(1500, rawKills); // Caps overnight jumps to ~1-2 levels max
+    //// 2. Calculate Required DPS for Current Stage
+    let currentStage = def.stage || 1;
+    let requiredDps = Math.floor(25 * Math.pow(1.045, currentStage - 1));
+
+    // If your team's DPS is lower than required, castle gets overrun in background!
+    if (teamDps < requiredDps) {
+        def.stage = 1;
+        def.remaining = 500;
+        def.kills = 0;
+        def.towerHp = def.towerMaxHp;
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        return;
+    }
+
+    // Simulate Kills (Capped at 1,000 kills max per offline session)
+    let rawKills = Math.floor((teamDps * elapsedSec) / (30 * Math.pow(1.045, currentStage - 1)));
+    let totalKills = Math.min(1000, Math.max(10, rawKills));
     let remainingToClear = def.remaining || 500;
 
     if (totalKills >= remainingToClear) {
         let leftoverKills = totalKills - remainingToClear;
-        let stagesAdvanced = Math.min(3, 1 + Math.floor(leftoverKills / 500)); // Max 3 stages overnight
-        def.stage = (def.stage || 1) + stagesAdvanced;
-        def.remaining = 500 - (leftoverKills % 500);
-        def.kills = leftoverKills % 500;
+        let stagesAdvanced = Math.min(2, 1 + Math.floor(leftoverKills / 500)); // Max 2 stages
+        
+        // Check if team has enough DPS for advanced stage
+        let nextRequiredDps = Math.floor(25 * Math.pow(1.045, currentStage + stagesAdvanced));
+        if (teamDps >= nextRequiredDps) {
+            def.stage = currentStage + stagesAdvanced;
+            def.remaining = 500 - (leftoverKills % 500);
+            def.kills = leftoverKills % 500;
+        } else {
+            // Hit DPS wall ➔ Overrun reset
+            def.stage = 1;
+            def.remaining = 500;
+            def.kills = 0;
+        }
         def.towerHp = def.towerMaxHp;
     } else {
         def.remaining = Math.max(0, remainingToClear - totalKills);
