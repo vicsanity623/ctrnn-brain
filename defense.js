@@ -523,7 +523,7 @@ function grantDefenseTrickleXP() {
             while (p.xp >= p.maxXp) {
                 p.xp -= p.maxXp;
                 p.level++;
-                p.maxXp = Math.floor(p.maxXp * 1.67);
+                p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
 
                 p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
                 p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
@@ -739,7 +739,7 @@ function processOfflineDefenseCatchUp() {
         while (p.xp >= p.maxXp) {
             p.xp -= p.maxXp;
             p.level++;
-            p.maxXp = Math.floor(p.maxXp * 1.67);
+            p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
 
             p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
             p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
