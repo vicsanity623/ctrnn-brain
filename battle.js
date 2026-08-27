@@ -324,19 +324,24 @@ function updateSweepModalUI() {
     if (availBerries) availBerries.innerText = `🍓 ${gameState.berries || 0}`;
 }
 
-// --- EXECUTE INSTANT MULTI-SWEEP SIMULATION ---
+// --- TIMED MULTI-SWEEP SIMULATION (3 SECONDS PER BERRY) ---
 function executeStageSweep() {
     let count = currentSweepCount;
     let availableBerries = gameState.berries || 0;
     if (count <= 0 || availableBerries < count) return;
 
+    if (gameState.activeSweep) {
+        showModal("Sweep Already in Progress!", "A stage sweep simulation is already running! Check your Hub to view countdown.");
+        return;
+    }
+
     let stage = gameState.currentStage;
     let isBossStage = (stage % 5 === 0);
 
-    // 1. Consume Berries
+    // 1. Deduct Berries Immediately
     gameState.berries -= count;
 
-    // 2. Calculate Replay XP per Run (50% Replay rate)
+    // 2. Pre-calculate Replay XP & Drops
     let rawStageXp = Math.max(5, Math.floor(((10 + (stage * 2.5)) * stage) / 2));
     if (isBossStage) rawStageXp = Math.floor(rawStageXp * 2.0);
 
@@ -344,7 +349,6 @@ function executeStageSweep() {
     let moodMult = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
     let totalExpGained = Math.floor(replayBaseXp * moodMult) * count;
 
-    // 3. Simulate Random Drops over N Battles
     let foundBerries = 0;
     let foundPokeballs = 0;
 
@@ -357,39 +361,130 @@ function executeStageSweep() {
         }
     }
 
-    gameState.berries += foundBerries;
-    gameState.pokeballs = (gameState.pokeballs || 0) + foundPokeballs;
+    // 3. Set Active Sweep Timer (3 Seconds per Berry)
+    let durationSeconds = count * 3;
+    let now = Date.now();
+
+    gameState.activeSweep = {
+        stage: stage,
+        count: count,
+        startTime: now,
+        endTime: now + (durationSeconds * 1000),
+        durationSeconds: durationSeconds,
+        totalExpGained: totalExpGained,
+        foundBerries: foundBerries,
+        foundPokeballs: foundPokeballs,
+        moodMult: moodMult
+    };
+
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
     closeSweepModal();
+    
+    // Return smoothly to the Main Hub
+    showScreen('hub-screen');
+    updateHub();
+    updateSweepWidgetUI();
 
-    // 4. Assemble Summary Card
-    let oldLevel = gameState.level;
+    showModal("⚡ SWEEP SIMULATION STARTED!", `Sweeping <strong>Stage ${stage}</strong> (x${count} Battles).<br>Consuming ${count} 🍓 Berries (${durationSeconds}s duration).<br>Watch the countdown on your Hub!`, [40, 60]);
+}
+
+// --- LIVE HUB SWEEP WIDGET ENGINE ---
+function updateSweepWidgetUI() {
+    const widget = document.getElementById('sweep-widget');
+    if (!widget) return;
+
+    const active = gameState.activeSweep;
+    if (!active) {
+        widget.classList.add('hidden');
+        return;
+    }
+
+    widget.classList.remove('hidden');
+
+    const titleEl = document.getElementById('sweep-widget-title');
+    const timerEl = document.getElementById('sweep-widget-timer');
+    const iconEl = document.getElementById('sweep-widget-icon');
+
+    let now = Date.now();
+    let timeLeftMs = Math.max(0, active.endTime - now);
+    let secondsLeft = Math.ceil(timeLeftMs / 1000);
+
+    if (secondsLeft <= 0) {
+        if (titleEl) titleEl.innerText = "Complete! 🎉";
+        if (timerEl) {
+            timerEl.innerText = "Claim Loot! 🎁";
+            timerEl.className = "text-xs font-black text-green-400 animate-pulse";
+        }
+        if (iconEl) iconEl.innerText = "🎁";
+        widget.className = "absolute top-36 left-6 z-30 cursor-pointer bg-green-950/70 backdrop-blur-md border border-green-400/60 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl active:scale-95 transition-all min-w-[135px] animate-pulse";
+    } else {
+        if (titleEl) titleEl.innerText = `Stage ${active.stage} (x${active.count})`;
+        if (timerEl) {
+            timerEl.innerText = `${secondsLeft}s left`;
+            timerEl.className = "text-xs font-black text-yellow-300";
+        }
+        if (iconEl) iconEl.innerText = "⚔️";
+        widget.className = "absolute top-36 left-6 z-30 cursor-pointer bg-black/60 backdrop-blur-md border border-orange-500/50 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-lg active:scale-95 transition-all min-w-[135px]";
+    }
+}
+
+// --- CLAIM SWEEP REWARDS ON COMPLETION ---
+function claimSweepRewards() {
+    const active = gameState.activeSweep;
+    if (!active) return;
+
+    let now = Date.now();
+    let timeLeftMs = active.endTime - now;
+
+    if (timeLeftMs > 0) {
+        let secondsLeft = Math.ceil(timeLeftMs / 1000);
+        showModal("⚔️ SWEEP IN PROGRESS", `Simulating ${active.count} battles on Stage ${active.stage}...<br>Time Remaining: <strong class='text-yellow-400'>${secondsLeft}s</strong>`);
+        return;
+    }
+
+    // Award Drops
+    gameState.berries += active.foundBerries;
+    gameState.pokeballs = (gameState.pokeballs || 0) + active.foundPokeballs;
+
     let drops = [];
-    if (foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${foundBerries} 🍓 Berries</span>`);
-    if (foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${foundPokeballs} 🔴 Pokéballs</span>`);
+    if (active.foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${active.foundBerries} 🍓 Berries</span>`);
+    if (active.foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${active.foundPokeballs} 🔴 Pokéballs</span>`);
     let lootText = drops.length > 0 ? drops.join(" • ") : "<span class='text-gray-400'>None</span>";
 
     let sweepCard = `
         <div class='bg-gray-900/90 p-4 rounded-2xl border border-orange-500/40 text-xs space-y-2 mt-2 shadow-inner text-left'>
             <div class='flex justify-between items-center pb-1.5 border-b border-gray-700'>
-                <span class='font-bold text-white text-sm'>Stage ${stage} Sweep (x${count})</span>
-                <span class='text-orange-400 font-black'>-${count} 🍓 Consumed</span>
+                <span class='font-bold text-white text-sm'>Stage ${active.stage} Sweep (x${active.count})</span>
+                <span class='text-orange-400 font-black'>-${active.count} 🍓 Consumed</span>
             </div>
-            <div>⚡ <strong class='text-white'>Total XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(totalExpGained)} XP</span> <span class='text-[10px] text-gray-400'>(${moodMult}x Mood)</span></div>
+            <div>⚡ <strong class='text-white'>Total XP Gained:</strong> <span class='text-green-400 font-bold'>+${formatNumber(active.totalExpGained)} XP</span> <span class='text-[10px] text-gray-400'>(${active.moodMult}x Mood)</span></div>
             <div>🎁 <strong class='text-white'>Loot Recovered:</strong> ${lootText}</div>
             <div class='pt-1 border-t border-gray-800 text-gray-300'>
-                ${gameState.name} gained instant combat experience across ${count} simulated battles!
+                ${gameState.name} completed ${active.count} battles in ${active.durationSeconds} seconds!
             </div>
         </div>
     `.trim();
 
-    showModal(`⚡ SWEEP COMPLETE! (x${count})`, sweepCard, [50, 100, 50]);
+    let totalXp = active.totalExpGained;
+    gameState.activeSweep = null;
+    localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
-    // Apply XP through our Multi-Level Engine
-    addXP(totalExpGained, false);
-    renderStageScoutPreview();
     updateHub();
+    updateSweepWidgetUI();
+
+    showModal(`⚡ SWEEP COMPLETE! (x${active.count})`, sweepCard, [50, 100, 50]);
+
+    // Apply XP to Level-Up Engine
+    addXP(totalXp, false);
 }
+
+// Live timer interval for Sweep Widget
+setInterval(() => {
+    if (gameState.activeSweep) {
+        updateSweepWidgetUI();
+    }
+}, 1000);
 
 function startBattleFromSelect() {
     showScreen('battle-screen');
