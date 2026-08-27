@@ -109,17 +109,24 @@ function syncDefenseStateToMemory() {
     gameState.defenseState.lastTick = Date.now();
 }
 
-// --- CALCULATE TOWER STATS (SCALED FROM TOTAL ROSTER CP) ---
+// --- CALCULATE TOWER STATS & TOTAL ROSTER DEFENSE CP ---
+var totalDefenseCP = 0;
+
 function calculateTowerStats() {
     let totalRosterHp = 0;
+    totalDefenseCP = 0;
 
     gameState.roster.forEach(p => {
         totalRosterHp += (p.maxHp || 40) * 3;
+        totalDefenseCP += (p.maxHp || 0) + (p.attack || 0) + (p.defense || 0) + (p.spAtk || 0) + (p.spDef || 0) + (p.speed || 0);
     });
 
     towerMaxHp = Math.max(500, totalRosterHp);
     if (!towerHp || towerHp > towerMaxHp) towerHp = towerMaxHp;
     if (gameState.defenseState) gameState.defenseState.towerMaxHp = towerMaxHp;
+
+    const cpEl = document.getElementById('defense-total-cp');
+    if (cpEl) cpEl.innerText = `⚡ ${formatNumber(totalDefenseCP)} CP`;
 }
 
 // --- VALIDATE UNIQUE SLOTS (NO DUPLICATE CLONES OF THE SAME POKEMON) ---
@@ -190,8 +197,11 @@ function defenseGameLoop() {
         drawBreatherBanner();
     }
 
-    // 3. Defenders Automatic Elemental Shooting
-    let attackInterval = 450;
+    // 3. Defenders Dynamic Attack Speed (Faster attack interval as Speed increases!)
+    let avgSpeed = getTeamAverageSpeed();
+    // Base 450ms fires down to a rapid-fire 150ms machine-gun rate at high speed!
+    let attackInterval = Math.max(150, Math.floor(450 - (avgSpeed * 3.5)));
+
     if (now - lastDefenderShotTime > attackInterval && !isBreather && defenseEnemies.length > 0) {
         fireDefenderProjectiles();
         lastDefenderShotTime = now;
@@ -302,7 +312,7 @@ function spawnSwarmEnemy() {
     updateDefenseTopUI();
 }
 
-// --- FIRE DEFENDER PROJECTILES ---
+// --- FIRE DEFENDER PROJECTILES (SCALING VELOCITY, SIZE & DAMAGE) ---
 function fireDefenderProjectiles() {
     let w = defenseCanvas.width;
     let h = defenseCanvas.height;
@@ -331,19 +341,44 @@ function fireDefenderProjectiles() {
             let angle = Math.atan2(closest.y - (h - 65), closest.x - x);
             let pType = p.type || 'normal';
 
+            // Velocity increases with Defender Speed
+            let speedMod = Math.min(14, 7.5 + ((p.speed || 5) * 0.08));
+            
+            // Damage scales directly with Attack + Sp.Atk + Level
+            let rawDamage = Math.max(10, Math.floor(((p.attack || 5) + (p.spAtk || 5)) * 0.75 + ((p.level || 1) * 2)));
+
+            // High-level defenders shoot larger piercing projectiles!
+            let radiusGrowth = Math.min(10, 4 + Math.floor((p.level || 1) / 12));
+            let extraPierce = Math.min(4, Math.floor((p.level || 1) / 20));
+
             defenseProjectiles.push({
                 x: x,
                 y: h - 65,
-                vx: Math.cos(angle) * 7.5,
-                vy: Math.sin(angle) * 7.5,
+                vx: Math.cos(angle) * speedMod,
+                vy: Math.sin(angle) * speedMod,
                 type: pType,
                 color: getElementColor(pType),
-                damage: Math.max(10, Math.floor((p.attack + p.spAtk) * 0.65)),
-                radius: pType === 'fire' ? 6 : (pType === 'water' ? 5 : 4),
-                pierce: pType === 'water' ? 2 : 1
+                damage: rawDamage,
+                radius: pType === 'fire' ? radiusGrowth + 2 : radiusGrowth,
+                pierce: (pType === 'water' ? 2 : 1) + extraPierce
             });
         }
     });
+}
+
+function getTeamAverageSpeed() {
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
+    let totalSpeed = 0;
+    let count = 0;
+
+    slots.forEach(rIdx => {
+        if (rIdx !== null && gameState.roster[rIdx]) {
+            totalSpeed += gameState.roster[rIdx].speed || 5;
+            count++;
+        }
+    });
+
+    return count > 0 ? (totalSpeed / count) : 5;
 }
 
 // --- UPDATE & DRAW PROJECTILES ---
@@ -434,24 +469,51 @@ function regenerateTowerHealth() {
     }
 }
 
+// --- GRANT TRICKLE XP TO ALL DEFENDERS (REAL-TIME LIVE SCALING) ---
 function grantDefenseTrickleXP() {
     if (!gameState.roster || gameState.roster.length === 0) return;
 
-    let trickle = Math.max(1, Math.floor((gameState.maxXp || 50) * 0.001));
-    gameState.xp += trickle;
+    let slots = gameState.defenseState ? gameState.defenseState.slots : [0, null, null];
 
-    if (gameState.xp >= gameState.maxXp) {
-        gameState.xp -= gameState.maxXp;
-        gameState.level++;
-        gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
+    // Distribute Trickle XP to all assigned defenders on the field!
+    slots.forEach(rIdx => {
+        if (rIdx !== null && gameState.roster[rIdx]) {
+            let p = gameState.roster[rIdx];
+            let trickle = Math.max(1, Math.floor((p.maxXp || 50) * 0.001));
+            p.xp += trickle;
 
-        gameState.maxHp = Math.max(gameState.maxHp + 1, Math.floor(gameState.maxHp * 1.05));
-        gameState.attack = Math.max(gameState.attack + 1, Math.floor(gameState.attack * 1.05));
-        gameState.defense = Math.max(gameState.defense + 1, Math.floor(gameState.defense * 1.05));
-        gameState.spAtk = Math.max(gameState.spAtk + 1, Math.floor(gameState.spAtk * 1.05));
-        gameState.spDef = Math.max(gameState.spDef + 1, Math.floor(gameState.spDef * 1.05));
-        gameState.speed = Math.max(gameState.speed + 1, Math.floor(gameState.speed * 1.05));
-    }
+            // Defender Level-Up
+            if (p.xp >= p.maxXp) {
+                p.xp -= p.maxXp;
+                p.level++;
+                p.maxXp = Math.floor(p.maxXp * 1.67);
+
+                p.maxHp = Math.max(p.maxHp + 1, Math.floor(p.maxHp * 1.06));
+                p.attack = Math.max(p.attack + 1, Math.floor(p.attack * 1.06));
+                p.defense = Math.max(p.defense + 1, Math.floor(p.defense * 1.06));
+                p.spAtk = Math.max(p.spAtk + 1, Math.floor(p.spAtk * 1.06));
+                p.spDef = Math.max(p.spDef + 1, Math.floor(p.spDef * 1.06));
+                p.speed = Math.max(p.speed + 1, Math.floor(p.speed * 1.06));
+
+                // If active buddy leveled up, sync to live state
+                if (rIdx === (gameState.activeRosterIndex ?? 0)) {
+                    gameState.level = p.level;
+                    gameState.xp = p.xp;
+                    gameState.maxXp = p.maxXp;
+                    gameState.maxHp = p.maxHp;
+                    gameState.attack = p.attack;
+                    gameState.defense = p.defense;
+                    gameState.spAtk = p.spAtk;
+                    gameState.spDef = p.spDef;
+                    gameState.speed = p.speed;
+                }
+
+                // Recalculate Live Tower Power
+                calculateTowerStats();
+                renderDefenderUIChips();
+            }
+        }
+    });
 
     if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
 }
@@ -642,7 +704,10 @@ function renderDefenderUIChips() {
                 let p = gameState.roster[rIdx];
                 chip.innerHTML = `
                     <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-6 h-6 object-contain pixel-perfect">
-                    <span class="truncate max-w-[50px]">${p.name}</span>
+                    <div class="flex flex-col text-left leading-none">
+                        <span class="truncate max-w-[55px] font-bold">${p.name}</span>
+                        <span class="text-[8px] text-yellow-400 font-black">Lv. ${p.level}</span>
+                    </div>
                 `;
             } else {
                 chip.innerHTML = `
