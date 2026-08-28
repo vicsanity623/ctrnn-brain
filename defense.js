@@ -345,7 +345,7 @@ function spawnSwarmEnemy() {
     updateDefenseTopUI();
 }
 
-// --- FIRE DEFENDER PROJECTILES (SCALING VELOCITY, SIZE & DAMAGE) ---
+// --- FIRE DEFENDER PROJECTILES (PREDICTIVE AIM & HOMING STEERING) ---
 function fireDefenderProjectiles() {
     let w = defenseCanvas.width;
     let h = defenseCanvas.height;
@@ -358,7 +358,7 @@ function fireDefenderProjectiles() {
 
         let p = gameState.roster[rIdx];
 
-        // Target closest enemy
+        // Target closest advancing enemy
         let closest = null;
         let minDist = 99999;
 
@@ -371,17 +371,18 @@ function fireDefenderProjectiles() {
         });
 
         if (closest) {
-            let angle = Math.atan2(closest.y - (h - 65), closest.x - x);
-            let pType = p.type || 'normal';
-
-            // Velocity increases with Defender Speed
-            let speedMod = Math.min(14, 7.5 + ((p.speed || 5) * 0.08));
+            // Snappy high-speed projectile velocity
+            let speedMod = Math.min(18, 10.5 + ((p.speed || 5) * 0.12));
             
-            // Damage scales directly with Attack + Sp.Atk + Level
-            let rawDamage = Math.max(10, Math.floor(((p.attack || 5) + (p.spAtk || 5)) * 0.75 + ((p.level || 1) * 2)));
+            // Predictive Lead-Time Calculation: Aim where the enemy will be upon impact!
+            let dist = Math.hypot(closest.x - x, closest.y - (h - 65));
+            let travelTime = dist / speedMod;
+            let predictedY = closest.y + (closest.speed * travelTime * 0.95);
+            let angle = Math.atan2(predictedY - (h - 65), closest.x - x);
 
-            // High-level defenders shoot larger piercing projectiles!
-            let radiusGrowth = Math.min(10, 4 + Math.floor((p.level || 1) / 12));
+            let pType = p.type || 'normal';
+            let rawDamage = Math.max(10, Math.floor(((p.attack || 5) + (p.spAtk || 5)) * 0.75 + ((p.level || 1) * 2)));
+            let radiusGrowth = Math.min(11, 5 + Math.floor((p.level || 1) / 12));
             let extraPierce = Math.min(4, Math.floor((p.level || 1) / 20));
 
             defenseProjectiles.push({
@@ -389,6 +390,8 @@ function fireDefenderProjectiles() {
                 y: h - 65,
                 vx: Math.cos(angle) * speedMod,
                 vy: Math.sin(angle) * speedMod,
+                speed: speedMod,
+                target: closest, // Tracks target for magnetic homing
                 type: pType,
                 color: getElementColor(pType),
                 damage: rawDamage,
@@ -414,10 +417,26 @@ function getTeamAverageSpeed() {
     return count > 0 ? (totalSpeed / count) : 5;
 }
 
-// --- UPDATE & DRAW PROJECTILES ---
+// --- UPDATE & DRAW PROJECTILES (WITH HOMING GUIDANCE) ---
 function updateAndDrawProjectiles() {
     for (let i = defenseProjectiles.length - 1; i >= 0; i--) {
         let pr = defenseProjectiles[i];
+
+        // Soft-Homing: Steer gently towards moving target to guarantee hits
+        if (pr.target && defenseEnemies.includes(pr.target)) {
+            let targetAngle = Math.atan2(pr.target.y - pr.y, pr.target.x - pr.x);
+            let currentAngle = Math.atan2(pr.vy, pr.vx);
+            let diff = targetAngle - currentAngle;
+
+            // Normalize angle diff between -PI and +PI
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+
+            let newAngle = currentAngle + (diff * 0.15); // 15% smooth magnetic steering
+            pr.vx = Math.cos(newAngle) * pr.speed;
+            pr.vy = Math.sin(newAngle) * pr.speed;
+        }
+
         pr.x += pr.vx;
         pr.y += pr.vy;
 
