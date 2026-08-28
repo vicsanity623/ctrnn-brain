@@ -23,6 +23,43 @@ function formatNumber(num) {
     return num.toString();
 }
 
+// ============================================================================
+// 🧬 PALWORLD-STYLE PASSIVE TRAITS DATABASE
+// ============================================================================
+const PASSIVE_TRAITS = {
+    swift: { name: "Swift", icon: "⚡", desc: "+25% Speed", type: "speed", mult: 1.25, color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/50" },
+    musclehead: { name: "Musclehead", icon: "🔴", desc: "+30% Attack, -10% Sp.Atk", type: "atk", mult: 1.30, color: "bg-red-500/20 text-red-300 border-red-500/50" },
+    sturdy: { name: "Sturdy", icon: "🛡️", desc: "+30% Defense", type: "def", mult: 1.30, color: "bg-blue-500/20 text-blue-300 border-blue-500/50" },
+    mindmaster: { name: "Mind Master", icon: "🔮", desc: "+30% Sp.Atk, -10% Atk", type: "spatk", mult: 1.30, color: "bg-purple-500/20 text-purple-300 border-purple-500/50" },
+    titan: { name: "Titan", icon: "💚", desc: "+35% Max HP", type: "hp", mult: 1.35, color: "bg-green-500/20 text-green-300 border-green-500/50" },
+    gourmand: { name: "Gourmand", icon: "🍓", desc: "+50% XP from Berries", type: "berry", color: "bg-pink-500/20 text-pink-300 border-pink-500/50" },
+    berserker: { name: "Berserker", icon: "💀", desc: "+12% Crit Rate", type: "crit", bonusCrit: 12.0, color: "bg-rose-600/30 text-rose-300 border-rose-500/60 font-black" },
+    vampiric: { name: "Vampiric", icon: "🧛", desc: "Heals 15% of damage dealt", type: "drain", color: "bg-indigo-600/30 text-indigo-300 border-indigo-500/60 font-black" },
+    celestial: { name: "Celestial", icon: "🌟", desc: "+25% to ALL Stats (God Roll)", type: "god", mult: 1.25, color: "bg-amber-400/30 text-yellow-200 border-yellow-400 animate-pulse font-black shadow-lg" }
+};
+
+// Roll 1 to 3 Random Traits for Caught Pokémon
+function rollRandomTraits() {
+    let pool = Object.keys(PASSIVE_TRAITS);
+    let chosen = [];
+
+    // 2% Ultra-Rare Chance for Legendary Celestial "God Roll"
+    if (Math.random() < 0.02) {
+        chosen.push('celestial');
+    }
+
+    let rollCount = Math.random() < 0.05 ? 3 : (Math.random() < 0.25 ? 2 : 1);
+
+    while (chosen.length < rollCount) {
+        let traitKey = pool[Math.floor(Math.random() * pool.length)];
+        if (!chosen.includes(traitKey) && traitKey !== 'celestial') {
+            chosen.push(traitKey);
+        }
+    }
+
+    return chosen;
+}
+
 // --- 18 OFFICIAL ELEMENTAL TYPE DATABASE ---
 const TYPE_DATABASE = {
     normal: { name: "Normal", icon: "⭐", bg: "bg-gray-600", superVs: [], weakVs: ["fighting"],
@@ -291,9 +328,13 @@ var gameState = {
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
     gardenBerries: 1, lastGardenHarvest: Date.now(),
+    traits: ['gourmand'],
+    berriesFed: 0,
     roster: [{
         id: 1, name: 'Bulbasaur', type: 'grass', level: 1, xp: 0, maxXp: 50,
-        attack: 5, defense: 5, maxHp: 40, spAtk: 6, spDef: 6, speed: 5, critRate: 5.0
+        attack: 5, defense: 5, maxHp: 40, spAtk: 6, spDef: 6, speed: 5, critRate: 5.0,
+        traits: ['gourmand'],
+        berriesFed: 0
     }]
 };
 
