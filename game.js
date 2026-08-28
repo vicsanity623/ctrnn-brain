@@ -369,7 +369,6 @@ function closeModal() {
     }, 250);
 }
 
-// --- STATS PANEL SYSTEM ---
 function openStats() {
     document.getElementById('stat-hp').innerText = gameState.maxHp;
     document.getElementById('stat-atk').innerText = gameState.attack;
@@ -383,7 +382,16 @@ function openStats() {
     if (critEl) critEl.innerText = `${(gameState.critRate || 5.0).toFixed(2)}%`;
     
     let totalPower = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
-    document.getElementById('stat-cp').innerText = totalPower;
+    document.getElementById('stat-cp').innerText = formatNumber(totalPower);
+
+    const traitsContainer = document.getElementById('stat-traits-container');
+    if (traitsContainer) {
+        let tHtml = (gameState.traits || ['gourmand']).map(tKey => {
+            let t = PASSIVE_TRAITS[tKey] || PASSIVE_TRAITS.gourmand;
+            return `<span class="px-2 py-0.5 rounded-full text-[10px] border font-bold ${t.color}">${t.icon} ${t.name}: ${t.desc}</span>`;
+        }).join(' ');
+        traitsContainer.innerHTML = tHtml;
+    }
     
     const modal = document.getElementById('stats-modal');
     const content = document.getElementById('stats-content');
@@ -453,6 +461,11 @@ function renderPartyList() {
         let pCp = (p.maxHp || 0) + (p.attack || 0) + (p.defense || 0) + (p.spAtk || 0) + (p.spDef || 0) + (p.speed || 0);
         let xpPercent = Math.min(100, Math.max(0, ((p.xp || 0) / (p.maxXp || 50)) * 100));
 
+        let pTraitsHtml = (p.traits || ['gourmand']).map(tKey => {
+            let t = PASSIVE_TRAITS[tKey] || PASSIVE_TRAITS.gourmand;
+            return `<span class="px-1.5 py-0.2 rounded-full text-[8px] border font-bold ${t.color}">${t.icon} ${t.name}</span>`;
+        }).join(' ');
+
         list.innerHTML += `
             <div onclick="switchActivePokemon(${index})" class="flex flex-col p-3 rounded-2xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-lg' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
                 <div class="flex items-center justify-between">
@@ -472,6 +485,14 @@ function renderPartyList() {
                     <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
                         ${isActive ? '✓ Ready' : 'Swap 🔁'}
                     </span>
+                </div>
+
+                <!-- Trait Badges & Berries Fed Counter -->
+                <div class="flex items-center justify-between mt-1.5">
+                    <div class="flex items-center gap-1 flex-wrap">
+                        ${pTraitsHtml}
+                    </div>
+                    <span class="text-[9px] text-gray-400 font-semibold">🍓 Fed: <strong class="text-pink-400">${p.berriesFed || 0}</strong></span>
                 </div>
                 
                 <!-- Live Real-Time XP Bar for this Teammate -->
@@ -507,6 +528,8 @@ function syncCurrentPokemonToRoster() {
         spDef: gameState.spDef,
         speed: gameState.speed,
         critRate: gameState.critRate || 5.0,
+        traits: gameState.traits || ['gourmand'],
+        berriesFed: gameState.berriesFed || 0,
         xp: gameState.xp,
         maxXp: gameState.maxXp
     };
@@ -536,6 +559,8 @@ function switchActivePokemon(index) {
     gameState.spDef = target.spDef;
     gameState.speed = target.speed;
     gameState.critRate = target.critRate || 5.0;
+    gameState.traits = target.traits || ['gourmand'];
+    gameState.berriesFed = target.berriesFed || 0;
     gameState.xp = target.xp;
     gameState.maxXp = target.maxXp;
 
@@ -570,14 +595,28 @@ function feedBerry() {
             gameState.berries--;
             gainHeart();
         } else {
-            // --- FULL 10/10 HEARTS: 5% XP TREAT BONUS ---
+            // --- FULL 10/10 HEARTS: DIMINISHING RETURNS TREAT BONUS ---
             gameState.berries--;
-            let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
+            if (gameState.berriesFed === undefined) gameState.berriesFed = 0;
+            gameState.berriesFed++;
+
+            let tolerancePenalty = gameState.berriesFed * 0.0001;
+            let effectiveRate = Math.max(0.005, 0.05 - tolerancePenalty);
+
+            if (gameState.traits && gameState.traits.includes('gourmand')) {
+                effectiveRate *= 1.5;
+            }
+
+            let bonusXp = Math.max(2, Math.floor(gameState.maxXp * effectiveRate));
             
-            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
+            let toleranceMsg = gameState.berriesFed > 100 
+                ? `<br><span class='text-orange-400 text-[10px]'>(Fullness: ${gameState.berriesFed} Berries Fed - Efficiency Tapering)</span>` 
+                : `<br><span class='text-gray-400 text-[10px]'>(Total Berries Fed: ${gameState.berriesFed})</span>`;
+
+            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but enjoyed the treat! Gained +${formatNumber(bonusXp)} XP!${toleranceMsg}`);
             if (navigator.vibrate) navigator.vibrate(30);
 
-            addXP(bonusXp, false); // Direct XP (no mood multiplier)
+            addXP(bonusXp, false);
         }
     } else {
         showModal("Out of Berries!", "You don't have any berries left! Harvest your garden bush or win battles to find more.");
