@@ -347,7 +347,7 @@ const storyLines = [
     "Take good care of it. Feed it, pet it, and battle to grow stronger!"
 ];
 
-// --- BATTLE ENCOUNTER STATE ---
+// --- BATTLE STATE VARIABLES ---
 var eHp = 100;
 var eMaxHp = 100;
 var pHp = 40;
@@ -360,6 +360,7 @@ var enemyType = "normal";
 var battleDamageDealt = 0;
 var battleDamageReceived = 0;
 var statusCooldown = 0;
+var battleEnergy = 0; // 0 to 200 Energy (100 = Special, 200 = Ultimate/Heal)
 var currentWildData = { id: 1, name: "Wild Pokemon", level: 1 };
 
 // --- NOTIFICATION QUEUE STATE ---
