@@ -325,6 +325,18 @@
                     <span id="pokeball-count-badge" class="bg-black/40 px-1.5 py-0.5 rounded-full text-[10px]">3</span>
                 </button>
             </div>
+
+            <!-- Combat Energy Charge Gauge (0% - 200%) -->
+            <div class="w-full bg-gray-900/90 p-2.5 rounded-xl border border-blue-500/40 mb-2 shadow-inner">
+                <div class="flex justify-between items-center text-[10px] font-black uppercase mb-1">
+                    <span class="text-blue-400">⚡ Combat Energy</span>
+                    <span id="battle-energy-text" class="text-yellow-400">0% (Ready for Special)</span>
+                </div>
+                <div class="relative w-full h-2.5 bg-gray-800 rounded-full overflow-hidden border border-gray-700 flex items-center">
+                    <div id="battle-energy-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-yellow-400 w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
             <!-- Universal 4-Move Battle Grid -->
             <div class="grid grid-cols-2 gap-2" id="move-grid">
                 <!-- Slot 0: Basic Attack (Lv. 1) -->
