@@ -444,36 +444,74 @@
     <!-- 5.7 POKE-SURVIVAL OPEN-WORLD RPG SCREEN -->
     <div id="survival-screen" class="screen flex flex-col h-full bg-emerald-950 w-full absolute hidden select-none overflow-hidden">
         
-        <!-- Top Survival HUD Banner -->
-        <div class="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
-            <div class="glass-panel px-3 py-2 rounded-2xl flex items-center gap-3 border border-white/20 shadow-lg pointer-events-auto">
-                <button onclick="leaveSurvivalMode()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-black shadow">◀ Hub</button>
-                <div class="flex items-center gap-2 text-xs font-bold text-white">
-                    <span>🪵 Wood: <strong id="survive-wood" class="text-amber-400">25</strong></span>
-                    <span>🪨 Stone: <strong id="survive-stone" class="text-gray-300">15</strong></span>
+        <!-- Top Survival HUD: Resources + Health + Guide -->
+        <div class="absolute top-3 inset-x-3 z-30 flex flex-col gap-2 pointer-events-none">
+            <div class="flex items-center justify-between pointer-events-auto">
+                <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center gap-2.5 border border-white/20 shadow-lg">
+                    <button onclick="leaveSurvivalMode()" class="px-2.5 py-1 bg-gray-800/90 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Hub</button>
+                    <div class="flex items-center gap-2 text-xs font-bold text-white">
+                        <span>🪵 <strong id="survive-wood" class="text-amber-400">25</strong></span>
+                        <span>🪨 <strong id="survive-stone" class="text-gray-300">15</strong></span>
+                    </div>
+                </div>
+
+                <!-- Health Bar & Guide Button -->
+                <div class="flex items-center gap-2">
+                    <div class="glass-panel px-2.5 py-1.5 rounded-2xl flex flex-col gap-0.5 w-28 border border-white/20 shadow-lg">
+                        <div class="flex justify-between text-[9px] font-black text-gray-300"><span>HP</span><span id="survive-hp-text">100/100</span></div>
+                        <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div id="survive-hp-bar" class="h-full bg-green-500 w-full transition-all"></div>
+                        </div>
+                    </div>
+                    <button onclick="openSurvivalGuideModal()" class="glass-panel p-2 rounded-2xl pointer-events-auto active:scale-90 text-sm font-bold bg-amber-500/20 border border-amber-400/40 text-amber-300 shadow">📖</button>
                 </div>
             </div>
 
-            <!-- Health & Stamina -->
-            <div class="glass-panel px-3 py-2 rounded-2xl flex flex-col gap-1 w-36 border border-white/20 shadow-lg pointer-events-auto">
-                <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div id="survive-hp-bar" class="h-full bg-green-500 w-full transition-all"></div>
+            <!-- Dynamic Interactive Survival Quest / Objective Banner -->
+            <div id="survival-quest-banner" onclick="openSurvivalGuideModal()" class="glass-panel mx-auto px-4 py-1.5 rounded-2xl border border-yellow-400/40 bg-black/60 shadow-xl flex items-center gap-2 pointer-events-auto cursor-pointer active:scale-95 transition-all max-w-sm">
+                <span id="quest-icon" class="text-base animate-bounce">🌲</span>
+                <div class="flex flex-col text-left">
+                    <span id="quest-title" class="text-[10px] text-yellow-400 font-black uppercase tracking-wider">Objective: Gather Materials</span>
+                    <span id="quest-desc" class="text-xs font-bold text-white">Tap 'Gather' near trees & rocks (+50 XP)</span>
                 </div>
             </div>
         </div>
 
         <!-- 60 FPS Open-World Canvas Arena -->
-        <div id="survival-joystick-area" class="flex-1 relative w-full overflow-hidden cursor-crosshair">
+        <div id="survival-joystick-area" class="flex-1 relative w-full overflow-hidden">
             <canvas id="survival-canvas" class="w-full h-full block"></canvas>
+            
+            <!-- In-Canvas Non-Intrusive Dynamic Toast Notification -->
+            <div id="survival-toast" class="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-xs font-black text-white shadow-2xl z-30 whitespace-nowrap"></div>
+        </div>
+
+        <!-- Active Blueprint Placement Banner (Shows only during Build Mode) -->
+        <div id="build-mode-banner" class="hidden absolute bottom-20 inset-x-4 z-30 glass-panel p-2.5 rounded-2xl border border-yellow-400/60 bg-black/80 flex items-center justify-between pointer-events-auto shadow-2xl animate-pulse">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">📐</span>
+                <div class="text-left">
+                    <h4 id="build-banner-name" class="text-xs font-black text-yellow-400">Placing Wall</h4>
+                    <p class="text-[10px] text-gray-300">Drag to aim • Tap anywhere on grid to snap & place</p>
+                </div>
+            </div>
+            <button onclick="cancelBuildMode()" class="px-3 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-bold active:scale-90 transition-all shadow">Cancel ✖</button>
         </div>
 
         <!-- Bottom Hotbar & Action Controls -->
         <div class="absolute bottom-3 inset-x-3 z-30 flex items-center justify-between gap-2 pointer-events-auto">
-            <div class="flex items-center gap-2">
-                <button onclick="playerHarvestAction()" class="p-3.5 bg-amber-700 hover:bg-amber-600 active:scale-90 text-white rounded-2xl font-black text-sm shadow-xl border border-amber-500/40">🪓 Gather</button>
-                <button onclick="setBuildItem('wall')" class="p-3.5 bg-stone-700 hover:bg-stone-600 active:scale-90 text-white rounded-2xl font-black text-sm shadow-xl border border-stone-500/40">🧱 Wall</button>
-                <button onclick="setBuildItem('campfire')" class="p-3.5 bg-orange-600 hover:bg-orange-500 active:scale-90 text-white rounded-2xl font-black text-sm shadow-xl border border-orange-400/40">🔥 Camp</button>
-                <button onclick="setBuildItem('pokesquare')" class="p-3.5 bg-blue-600 hover:bg-blue-500 active:scale-90 text-white rounded-2xl font-black text-sm shadow-xl border border-blue-400/40">🏛️ Base</button>
+            <div class="flex items-center gap-1.5 w-full justify-around">
+                <button onclick="playerHarvestAction()" class="flex-1 py-3 bg-gradient-to-b from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 active:scale-90 text-white rounded-2xl font-black text-xs shadow-xl border border-amber-400/40 flex flex-col items-center gap-0.5 transition-all">
+                    <span class="text-base">🪓</span> Gather
+                </button>
+                <button id="btn-build-wall" onclick="setBuildItem('wall')" class="flex-1 py-3 bg-stone-800 hover:bg-stone-700 active:scale-90 text-white rounded-2xl font-black text-xs shadow-xl border border-stone-600/40 flex flex-col items-center gap-0.5 transition-all">
+                    <span class="text-base">🧱</span> Wall
+                </button>
+                <button id="btn-build-camp" onclick="setBuildItem('campfire')" class="flex-1 py-3 bg-stone-800 hover:bg-stone-700 active:scale-90 text-white rounded-2xl font-black text-xs shadow-xl border border-orange-500/40 flex flex-col items-center gap-0.5 transition-all">
+                    <span class="text-base">🔥</span> Cook
+                </button>
+                <button id="btn-build-base" onclick="setBuildItem('pokesquare')" class="flex-1 py-3 bg-stone-800 hover:bg-stone-700 active:scale-90 text-white rounded-2xl font-black text-xs shadow-xl border border-blue-500/40 flex flex-col items-center gap-0.5 transition-all">
+                    <span class="text-base">🏛️</span> Base
+                </button>
             </div>
         </div>
     </div>
@@ -601,6 +639,45 @@
         </div>
     </div>
 
+    <!-- 📖 POKE-SURVIVAL GUIDE & TUTORIAL MODAL -->
+    <div id="survival-guide-modal" onclick="if(event.target === this) closeSurvivalGuideModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[110] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-amber-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="survival-guide-content">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">📖</span>
+                    <h3 class="text-lg font-black text-amber-400 uppercase">Survival Guide</h3>
+                </div>
+                <button onclick="closeSurvivalGuideModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto no-scrollbar space-y-3 text-left text-xs">
+                <div class="bg-gray-800/90 p-3 rounded-xl border border-amber-500/40">
+                    <h4 class="font-bold text-amber-300 flex items-center gap-1">🪓 1. Gathering & Companions</h4>
+                    <p class="text-gray-300 mt-1">Walk near green Trees and gray Rocks and press <strong>Gather</strong> to harvest Wood and Stone. Your companion auto-attacks wild shadows!</p>
+                </div>
+
+                <div class="bg-gray-800/90 p-3 rounded-xl border border-yellow-500/40">
+                    <h4 class="font-bold text-yellow-300 flex items-center gap-1">📐 2. Grid-Snapped Building</h4>
+                    <p class="text-gray-300 mt-1">Select <strong>Wall, Cook, or Base</strong> from the hotbar. Move your finger to aim the holographic green grid cursor and tap to place!</p>
+                </div>
+
+                <div class="bg-gray-800/90 p-3 rounded-xl border border-orange-500/40">
+                    <h4 class="font-bold text-orange-300 flex items-center gap-1">🍳 3. Super Berry Cooking</h4>
+                    <p class="text-gray-300 mt-1">Build a <strong>Campfire</strong> and tap it to cook Super Berries. Feeding these to your companion permanently boosts stats by +5%!</p>
+                </div>
+
+                <div class="bg-gray-800/90 p-3 rounded-xl border border-blue-500/40">
+                    <h4 class="font-bold text-blue-300 flex items-center gap-1">🏛️ 4. Automated Base Workers</h4>
+                    <p class="text-gray-300 mt-1">Build a <strong>PokeSquare Base</strong> and tap it to station benched party Pokémon. They passively farm wood, stone, and Oran berries 24/7!</p>
+                </div>
+            </div>
+
+            <button onclick="closeSurvivalGuideModal()" class="w-full mt-3 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black rounded-xl active:scale-95 transition-all shadow">
+                Got it! Let's Adventure 🌲
+            </button>
+        </div>
+    </div>
+    
     <!-- COOKING & SUPER BERRIES MODAL -->
     <div id="cooking-modal" onclick="if(event.target === this) closeCookingModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[105] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
         <div class="bg-gray-900 border-2 border-amber-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="cooking-content">
