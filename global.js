@@ -201,6 +201,15 @@ const XL_ITEM_CONFIG = {
     critXL: { name: "Crit-XL", icon: "💥", desc: "Permanently boosts Crit Rate by +0.25%", color: "text-amber-400", stat: "critRate" }
 };
 
+// --- 🍳 OPEN-WORLD SUPER BERRY COOKING RECIPES ---
+const COOKING_RECIPES = {
+    superBerryHp: { name: "Vitality Super Berry", icon: "🍲", desc: "Permanently increases Max HP by +5%", woodCost: 20, stoneCost: 10, berryCost: 3, stat: "maxHp", mult: 0.05, color: "text-green-400" },
+    superBerryAtk: { name: "Power Super Berry", icon: "🥘", desc: "Permanently increases Attack by +5%", woodCost: 25, stoneCost: 15, berryCost: 3, stat: "attack", mult: 0.05, color: "text-red-400" },
+    superBerryDef: { name: "Ironhide Super Berry", icon: "🥗", desc: "Permanently increases Defense by +5%", woodCost: 15, stoneCost: 25, berryCost: 3, stat: "defense", mult: 0.05, color: "text-blue-400" },
+    superBerrySpAtk: { name: "Mystic Super Berry", icon: "🍛", desc: "Permanently increases Sp. Atk by +5%", woodCost: 20, stoneCost: 20, berryCost: 4, stat: "spAtk", mult: 0.05, color: "text-purple-400" },
+    superBerrySpeed: { name: "Velocity Super Berry", icon: "🧆", desc: "Permanently increases Speed by +5%", woodCost: 30, stoneCost: 10, berryCost: 4, stat: "speed", mult: 0.05, color: "text-yellow-400" }
+};
+
 // --- BALANCED AFK TRAINING EXPEDITION TIERS ---
 const EXPEDITION_TIERS = [
     { id: 'scout', name: 'Quick Scout', icon: '🌲', durationLabel: '2 Min', growthLabel: '+5% XP', timeMs: 2 * 60 * 1000, xpPct: 0.05 },
@@ -325,6 +334,14 @@ var gameState = {
         lastTick: Date.now()
     },
     items: { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 },
+    survivalData: {
+        wood: 25,
+        stone: 15,
+        cookedBerries: {},
+        structures: [], // { type, x, y, hp, workerRosterIndex, lastTick }
+        playerX: 5000,
+        playerY: 5000
+    },
     lastInteraction: Date.now(),
     currentStage: 1, maxStage: 1,
     gardenBerries: 1, lastGardenHarvest: Date.now(),
