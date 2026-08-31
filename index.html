@@ -547,6 +547,14 @@
             </div>
         </div>
 
+        <!-- Proximity Interactive Prompt (Pops up when standing near Campfire, Base, or Wall) -->
+        <div id="proximity-action-prompt" class="hidden absolute bottom-24 left-1/2 -translate-x-1/2 z-30 pointer-events-auto animate-bounce">
+            <button id="proximity-btn" onclick="executeProximityAction()" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 active:scale-90 text-white font-black rounded-2xl text-xs tracking-wider shadow-2xl border-2 border-yellow-300 flex items-center gap-2">
+                <span id="proximity-icon" class="text-base">🍳</span>
+                <span id="proximity-label">Cook at Campfire</span>
+            </button>
+        </div>
+
         <!-- Bottom Hotbar & Action Controls -->
         <div class="absolute bottom-3 inset-x-3 z-30 flex items-center justify-between gap-2 pointer-events-auto">
             <div class="flex items-center gap-1.5 w-full justify-around">
@@ -755,7 +763,22 @@
                 </div>
                 <button onclick="closeWorkerAssignmentModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
             </div>
-            <p class="text-xs text-gray-400 mb-3">Station a benched Pokémon here to automate resource gathering!</p>
+            <p class="text-xs text-gray-400 mb-2">Station a benched Pokémon here to automate resource gathering & upgrade your base level!</p>
+            
+            <!-- Base Upgrade & Blueprint Level -->
+            <div class="bg-gray-800/90 p-3 rounded-xl border border-blue-400/30 mb-2 flex items-center justify-between">
+                <div class="text-left">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-black text-yellow-400" id="base-level-badge">Base Level 1</span>
+                        <span class="text-[9px] text-green-300 font-bold" id="base-perk-label">(Unlocks: Stone Walls & Auto-Farming)</span>
+                    </div>
+                    <p class="text-[9px] text-gray-400" id="base-upgrade-cost">Upgrade: 25 🪵 • 20 🪨</p>
+                </div>
+                <button onclick="upgradeBaseLevel()" id="btn-upgrade-base" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-lg text-xs shadow">
+                    Upgrade ⬆️
+                </button>
+            </div>
+
             <div id="worker-roster-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
                 <!-- Roster slots injected dynamically -->
             </div>
