@@ -601,6 +601,40 @@
         </div>
     </div>
 
+    <!-- COOKING & SUPER BERRIES MODAL -->
+    <div id="cooking-modal" onclick="if(event.target === this) closeCookingModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[105] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-amber-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="cooking-content">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🍳</span>
+                    <h3 class="text-lg font-black text-amber-400 uppercase">Campfire Cooking</h3>
+                </div>
+                <button onclick="closeCookingModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-3">Cook Super Berries using open-world materials for permanent stat upgrades!</p>
+            <div id="cooking-recipe-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
+                <!-- Recipes injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- POKESQUARE BASE WORKER ASSIGNMENT MODAL -->
+    <div id="worker-modal" onclick="if(event.target === this) closeWorkerAssignmentModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[105] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-blue-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="worker-content">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🏛️</span>
+                    <h3 class="text-lg font-black text-blue-400 uppercase">Assign Base Worker</h3>
+                </div>
+                <button onclick="closeWorkerAssignmentModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-3">Station a benched Pokémon here to automate resource gathering!</p>
+            <div id="worker-roster-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
+                <!-- Roster slots injected dynamically -->
+            </div>
+        </div>
+    </div>
+
     <!-- ARE YOU SURE? CONFIRMATION MODAL -->
     <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
         <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="confirm-content">
