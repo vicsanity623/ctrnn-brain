@@ -1,5 +1,5 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'poke-cache-v1.3.9';
+const CACHE_NAME = 'poke-cache-v1.4.0';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
     './inventory.js',
     './journey.js',
     './defense.js',
+    './survival.js',
     './battle.js'
 ];
 
