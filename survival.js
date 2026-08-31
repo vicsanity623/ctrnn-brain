@@ -720,6 +720,34 @@ function drawWorldStructures() {
             survivalCtx.fillRect(s.x - 16, s.y - 14, 32, 4);
             survivalCtx.fillRect(s.x - 16, s.y + 8, 32, 4);
 
+            // Mounted Sentry Turret Cannon on Wall
+            if (s.hasTurret) {
+                survivalCtx.fillStyle = '#f59e0b';
+                survivalCtx.beginPath();
+                survivalCtx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+                survivalCtx.fill();
+                survivalCtx.strokeStyle = '#78350f';
+                survivalCtx.lineWidth = 2;
+                survivalCtx.stroke();
+
+                // Auto-firing cannon logic for wall turrets
+                let now = Date.now();
+                if (now - (s.lastShot || 0) > 1300) {
+                    let targetEnemy = wildEnemies.find(e => Math.hypot(s.x - e.x, s.y - e.y) < 280);
+                    if (targetEnemy) {
+                        let angle = Math.atan2(targetEnemy.y - s.y, targetEnemy.x - s.x);
+                        turretProjectiles.push({
+                            x: s.x, y: s.y,
+                            vx: Math.cos(angle) * 7.5,
+                            vy: Math.sin(angle) * 7.5,
+                            damage: 20,
+                            target: targetEnemy
+                        });
+                        s.lastShot = now;
+                    }
+                }
+            }
+
             // Wall Health Bar
             let hpRatio = Math.max(0, s.hp / (s.maxHp || 100));
             survivalCtx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -829,14 +857,16 @@ function spawnSurvivalFloatingText(x, y, text, color) {
 // --- 9. HOSTILE AI ATTACKS WALLS & PLAYER ---
 function updateCompanionAI() {
     let dist = Math.hypot(playerX - companionPos.x, playerY - companionPos.y);
-    if (dist > 45) {
+    
+    // Leash Fix: If separated by base walls or falling behind, glide directly to player
+    if (dist > 160) {
         let angle = Math.atan2(playerY - companionPos.y, playerX - companionPos.x);
-        let nextX = companionPos.x + Math.cos(angle) * (playerSpeed * 1.05);
-        let nextY = companionPos.y + Math.sin(angle) * (playerSpeed * 1.05);
-        if (!checkWallCollision(nextX, nextY, 12)) {
-            companionPos.x = nextX;
-            companionPos.y = nextY;
-        }
+        companionPos.x += Math.cos(angle) * (playerSpeed * 1.6);
+        companionPos.y += Math.sin(angle) * (playerSpeed * 1.6);
+    } else if (dist > 40) {
+        let angle = Math.atan2(playerY - companionPos.y, playerX - companionPos.x);
+        companionPos.x += Math.cos(angle) * (playerSpeed * 1.05);
+        companionPos.y += Math.sin(angle) * (playerSpeed * 1.05);
     }
 
     if (companionAttackCooldown > 0) {
@@ -958,6 +988,23 @@ function closeSurvivalGuideModal() {
 }
 
 function playerHarvestAction() {
+    // 1. Check nearby hostile wild shadow ➔ Player Melee Attack & Knockback!
+    let nearbyEnemy = wildEnemies.find(e => Math.hypot(playerX - e.x, playerY - e.y) < 65);
+    if (nearbyEnemy) {
+        let playerDmg = Math.max(12, Math.floor((gameState.attack || 8) * 1.1));
+        nearbyEnemy.hp -= playerDmg;
+        
+        // Knockback away from player
+        let kbAngle = Math.atan2(nearbyEnemy.y - playerY, nearbyEnemy.x - playerX);
+        nearbyEnemy.x += Math.cos(kbAngle) * 35;
+        nearbyEnemy.y += Math.sin(kbAngle) * 35;
+
+        spawnSurvivalFloatingText(nearbyEnemy.x, nearbyEnemy.y - 15, `💥 -${playerDmg}`, '#f87171');
+        if (navigator.vibrate) navigator.vibrate([20, 40]);
+        return;
+    }
+
+    // 2. Check nearby tree
     let targetTree = worldTrees.find(t => Math.hypot(playerX - t.x, playerY - t.y) < 60);
     if (targetTree) {
         targetTree.hp -= 25;
@@ -972,6 +1019,7 @@ function playerHarvestAction() {
         return;
     }
 
+    // 3. Check nearby rock
     let targetRock = worldRocks.find(r => Math.hypot(playerX - r.x, playerY - r.y) < 60);
     if (targetRock) {
         targetRock.hp -= 25;
@@ -986,7 +1034,54 @@ function playerHarvestAction() {
         return;
     }
 
-    showSurvivalToast("🔍 Move closer to a tree or rock to gather!", 1500);
+    showSurvivalToast("🔍 Move closer to a tree, rock, or enemy!", 1500);
+}
+
+// --- WALL REPAIR & TURRET UPGRADES ---
+function repairSelectedWall() {
+    if (!inspectedStructure) return;
+    let wood = gameState.survivalData?.wood || 0;
+    let stone = gameState.survivalData?.stone || 0;
+
+    if (wood >= 1 && stone >= 1) {
+        gameState.survivalData.wood -= 1;
+        gameState.survivalData.stone -= 1;
+        inspectedStructure.hp = inspectedStructure.maxHp || 100;
+
+        spawnSurvivalFloatingText(inspectedStructure.x, inspectedStructure.y - 15, '✨ Repaired!', '#4ade80');
+        closeStructureContext();
+        updateSurvivalHUD();
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        showSurvivalToast("🔧 Wall fully repaired!", 1500);
+    } else {
+        showSurvivalToast("❌ Need 1🪵 and 1🪨 to repair!", 1500);
+    }
+}
+
+function mountWallTurret() {
+    if (!inspectedStructure) return;
+    if (inspectedStructure.hasTurret) {
+        showSurvivalToast("🏹 Turret already mounted!", 1500);
+        return;
+    }
+
+    let wood = gameState.survivalData?.wood || 0;
+    let stone = gameState.survivalData?.stone || 0;
+
+    if (wood >= 10 && stone >= 10) {
+        gameState.survivalData.wood -= 10;
+        gameState.survivalData.stone -= 10;
+        inspectedStructure.hasTurret = true;
+        inspectedStructure.lastShot = Date.now();
+
+        spawnSurvivalFloatingText(inspectedStructure.x, inspectedStructure.y - 15, '🏹 Turret Mounted!', '#f59e0b');
+        closeStructureContext();
+        updateSurvivalHUD();
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        showSurvivalToast("🏹 Wall Turret mounted and active!", 2000);
+    } else {
+        showSurvivalToast("❌ Need 10🪵 and 10🪨 to mount Turret!", 1500);
+    }
 }
 
 // --- 11. COOKING & WORKER AUTOMATION ---
@@ -1057,11 +1152,10 @@ function cookSuperBerry(key) {
         gameState.survivalData.stone -= r.stoneCost;
         gameState.berries -= r.berryCost;
 
-        let statKey = r.stat;
-        let gain = Math.max(2, Math.floor((gameState[statKey] || 10) * r.mult));
-        gameState[statKey] += gain;
+        // Store into player's Inventory Bag!
+        if (!gameState.items) gameState.items = {};
+        gameState.items[key] = (gameState.items[key] || 0) + 1;
 
-        if (typeof syncCurrentPokemonToRoster === 'function') syncCurrentPokemonToRoster();
         localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
         renderCookingRecipeList();
@@ -1069,7 +1163,7 @@ function cookSuperBerry(key) {
         updateHub();
         checkQuestProgress();
 
-        showSurvivalToast(`🍲 Cooked ${r.name}! (+${gain} ${statKey.toUpperCase()})`, 2500);
+        showSurvivalToast(`🍲 Cooked ${r.name}! (Added to Bag 🎒)`, 2500);
         if (navigator.vibrate) navigator.vibrate(30);
     } else {
         showSurvivalToast("❌ Insufficient Materials!", 1500);
