@@ -118,6 +118,20 @@ function startGame(isNew) {
         if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
         if (gameState.activeJourney === undefined) gameState.activeJourney = null;
         if (gameState.activeSweep === undefined) gameState.activeSweep = null;
+        if (!gameState.survivalData) {
+            gameState.survivalData = {
+                wood: 25,
+                stone: 15,
+                cookedBerries: {},
+                structures: [],
+                playerX: 5000,
+                playerY: 5000
+            };
+        }
+        if (gameState.survivalData.wood === undefined) gameState.survivalData.wood = 25;
+        if (gameState.survivalData.stone === undefined) gameState.survivalData.stone = 15;
+        if (!gameState.survivalData.cookedBerries) gameState.survivalData.cookedBerries = {};
+        if (!Array.isArray(gameState.survivalData.structures)) gameState.survivalData.structures = [];
         
         // Migrate Defense State & Repair Unrealistic Stage 1200+ Glitch
         if (!gameState.defenseState || gameState.defenseState.stage > 100) {
