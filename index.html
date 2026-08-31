@@ -485,16 +485,66 @@
             <div id="survival-toast" class="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-xs font-black text-white shadow-2xl z-30 whitespace-nowrap"></div>
         </div>
 
-        <!-- Active Blueprint Placement Banner (Shows only during Build Mode) -->
-        <div id="build-mode-banner" class="hidden absolute bottom-20 inset-x-4 z-30 glass-panel p-2.5 rounded-2xl border border-yellow-400/60 bg-black/80 flex items-center justify-between pointer-events-auto shadow-2xl animate-pulse">
+        <!-- Active Blueprint Placement Banner with Explicit Confirm/Cancel -->
+        <div id="build-mode-banner" class="hidden absolute bottom-20 inset-x-4 z-30 glass-panel p-3 rounded-2xl border border-yellow-400/70 bg-black/90 flex items-center justify-between pointer-events-auto shadow-2xl">
             <div class="flex items-center gap-2">
                 <span class="text-xl">📐</span>
                 <div class="text-left">
                     <h4 id="build-banner-name" class="text-xs font-black text-yellow-400">Placing Wall</h4>
-                    <p class="text-[10px] text-gray-300">Drag to aim • Tap anywhere on grid to snap & place</p>
+                    <p id="build-banner-cost" class="text-[10px] text-gray-300 font-semibold">Cost: 5 🪵 • 2 🪨</p>
                 </div>
             </div>
-            <button onclick="cancelBuildMode()" class="px-3 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-bold active:scale-90 transition-all shadow">Cancel ✖</button>
+            <div class="flex items-center gap-2">
+                <button onclick="cancelBuildMode()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-xs font-bold active:scale-90 transition-all">Cancel</button>
+                <button onclick="executeSnapPlacement()" id="btn-confirm-place" class="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 text-white rounded-xl text-xs font-black active:scale-90 transition-all shadow-lg flex items-center gap-1">
+                    <span>✔</span> Place
+                </button>
+            </div>
+        </div>
+
+        <!-- Structure Interaction Context Modal (Tap Wall to Inspect / Destroy / Move / Extend) -->
+        <div id="structure-context-modal" onclick="if(event.target === this) closeStructureContext()" class="fixed inset-0 bg-black bg-opacity-70 z-[105] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer pointer-events-auto">
+            <div class="bg-gray-900 border-t-2 border-amber-500 p-4 rounded-t-3xl w-full max-w-sm shadow-2xl transform translate-y-full transition-transform duration-300 text-white flex flex-col gap-3" id="structure-context-content">
+                <div class="flex justify-between items-center pb-2 border-b border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <span id="struct-info-icon" class="text-2xl">🧱</span>
+                        <div>
+                            <h3 id="struct-info-title" class="text-sm font-black text-white">Wall (100/100 HP)</h3>
+                            <span class="text-[10px] text-gray-400">Structure Options</span>
+                        </div>
+                    </div>
+                    <button onclick="closeStructureContext()" class="text-red-400 font-bold text-xl active:scale-90">✖</button>
+                </div>
+
+                <!-- Primary Action Buttons: Destroy & Move -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="destroySelectedStructure()" class="py-2.5 bg-red-900/80 hover:bg-red-800 border border-red-500/50 rounded-xl text-xs font-black text-red-200 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow">
+                        <span>🗑️</span> Dismantle (+80% Refund)
+                    </button>
+                    <button onclick="moveSelectedStructure()" class="py-2.5 bg-blue-900/80 hover:bg-blue-800 border border-blue-500/50 rounded-xl text-xs font-black text-blue-200 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow">
+                        <span>🔁</span> Move / Relocate
+                    </button>
+                </div>
+
+                <!-- Directional Extension Generator (Extend Walls in Line) -->
+                <div id="wall-extend-section" class="bg-gray-800/80 p-3 rounded-2xl border border-gray-700 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-yellow-400 uppercase tracking-wider">➕ Auto-Extend Wall Line:</span>
+                        <!-- Wall Count Buttons -->
+                        <div class="flex gap-1" id="extend-count-buttons">
+                            <button onclick="setExtendCount(1)" id="ext-cnt-1" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500 text-black">1</button>
+                            <button onclick="setExtendCount(3)" id="ext-cnt-3" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-700 text-gray-300">3</button>
+                            <button onclick="setExtendCount(5)" id="ext-cnt-5" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-700 text-gray-300">5</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 pt-1">
+                        <button onclick="extendWallsDirection('up')" class="py-2 bg-stone-700 hover:bg-stone-600 rounded-xl text-xs font-black text-white active:scale-90 shadow">⬆️ Up</button>
+                        <button onclick="extendWallsDirection('down')" class="py-2 bg-stone-700 hover:bg-stone-600 rounded-xl text-xs font-black text-white active:scale-90 shadow">⬇️ Down</button>
+                        <button onclick="extendWallsDirection('left')" class="py-2 bg-stone-700 hover:bg-stone-600 rounded-xl text-xs font-black text-white active:scale-90 shadow">⬅️ Left</button>
+                        <button onclick="extendWallsDirection('right')" class="py-2 bg-stone-700 hover:bg-stone-600 rounded-xl text-xs font-black text-white active:scale-90 shadow">➡️ Right</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Bottom Hotbar & Action Controls -->
