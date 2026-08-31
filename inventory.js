@@ -75,7 +75,33 @@ function renderInventory() {
         `;
     }
 
-    // 3. Render Rare XL Stat Enhancers
+    // 3. Render Cooked Super Berries (From Campfire)
+    if (gameState.items && typeof COOKING_RECIPES !== 'undefined') {
+        Object.keys(COOKING_RECIPES).forEach(key => {
+            let count = gameState.items[key] || 0;
+            if (count > 0) {
+                hasItems = true;
+                let dish = COOKING_RECIPES[key];
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-800/90 p-3 rounded-xl border border-amber-500/40 shadow-md">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl drop-shadow">${dish.icon}</span>
+                            <div>
+                                <h4 class="font-bold text-sm ${dish.color}">${dish.name}</h4>
+                                <p class="text-[10px] text-gray-400">${dish.desc}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-black text-lg text-yellow-400">x${count}</span>
+                            <button onclick="useCookedSuperBerry('${key}')" class="mt-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 px-3 py-1 rounded-lg text-xs font-bold active:scale-90 transition-all shadow">Eat 🍲</button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    // 4. Render Rare XL Stat Enhancers
     if (gameState.items) {
         Object.keys(XL_ITEM_CONFIG).forEach(key => {
             let count = gameState.items[key] || 0;
@@ -135,4 +161,23 @@ function useStatXL(key) {
     renderInventory();
 
     showModal("✨ STAT PERMANENTLY BOOSTED!", `${gameState.name} consumed <strong class='text-yellow-400'>${item.name}</strong>!<br>Permanently gained <strong class='text-green-400'>${gainText}</strong>!`, [40, 60, 40]);
+}
+
+// --- CONSUME COOKED SUPER BERRY FROM INVENTORY ---
+function useCookedSuperBerry(key) {
+    if (!gameState.items || (gameState.items[key] || 0) <= 0) return;
+    let dish = COOKING_RECIPES[key];
+    if (!dish) return;
+
+    gameState.items[key]--;
+    let statKey = dish.stat;
+    let currentValue = gameState[statKey] || 10;
+    let gain = Math.max(2, Math.floor(currentValue * (dish.mult || 0.05)));
+    gameState[statKey] += gain;
+
+    syncCurrentPokemonToRoster();
+    updateHub();
+    renderInventory();
+
+    showModal("🍲 SUPER BERRY CONSUMED!", `${gameState.name} enjoyed the delicious <strong class='text-yellow-400'>${dish.name}</strong>!<br>Permanently boosted <strong class='text-green-400'>+${gain} ${statKey.toUpperCase()}</strong>!`, [40, 70, 40]);
 }
