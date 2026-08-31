@@ -1,5 +1,5 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'poke-cache-v1.4.5';
+const CACHE_NAME = 'poke-cache-v1.4.6';
 
 const ASSETS_TO_CACHE = [
     './',
