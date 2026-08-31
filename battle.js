@@ -26,16 +26,16 @@ function getTypeMultiplier(moveTypeKey, defenderTypeKey) {
     return 1.0;
 }
 
-// --- DYNAMIC MOVESET DISPATCHER ---
+// --- DYNAMIC MOVESET DISPATCHER (ENERGY & COOLDOWN GATED) ---
 function updateBattleMoveButtons() {
     const pType = gameState.type || 'grass';
     const typeData = TYPE_DATABASE[pType] || TYPE_DATABASE.grass;
 
-    // Slot 0 (Physical Basic)
+    // Slot 0 (Physical Basic - Generates Energy)
     const btn0 = document.getElementById('btn-move-0');
     if (btn0) {
         document.getElementById('move-name-0').innerText = typeData.moves[0].name;
-        document.getElementById('move-type-0').innerText = typeData.moves[0].desc;
+        document.getElementById('move-type-0').innerText = "+35% Energy";
         btn0.disabled = false;
     }
 
@@ -53,13 +53,19 @@ function updateBattleMoveButtons() {
         }
     }
 
-    // Slot 2 (Lv. 7 Elemental Special)
+    // Slot 2 (Lv. 7 Elemental Special - Costs 100% Energy)
     const btn2 = document.getElementById('btn-move-2');
     if (btn2) {
         if (gameState.level >= 7) {
-            btn2.disabled = false;
-            document.getElementById('move-name-2').innerText = typeData.moves[2].name;
-            document.getElementById('move-type-2').innerText = typeData.moves[2].desc;
+            if (battleEnergy < 100) {
+                btn2.disabled = true;
+                document.getElementById('move-name-2').innerText = `⚡ ${typeData.moves[2].name} (${Math.floor(battleEnergy)}/100)`;
+                document.getElementById('move-type-2').innerText = "Needs 100% Energy";
+            } else {
+                btn2.disabled = false;
+                document.getElementById('move-name-2').innerText = typeData.moves[2].name;
+                document.getElementById('move-type-2').innerText = "Ready! (100 Energy)";
+            }
         } else {
             btn2.disabled = true;
             document.getElementById('move-name-2').innerText = `🔒 ${typeData.moves[2].name}`;
@@ -67,18 +73,46 @@ function updateBattleMoveButtons() {
         }
     }
 
-    // Slot 3 (Lv. 13 Elemental Ultimate)
+    // Slot 3 (Lv. 13 Elemental Ultimate / Drain Heal - Costs 200% Energy)
     const btn3 = document.getElementById('btn-move-3');
     if (btn3) {
         if (gameState.level >= 13) {
-            btn3.disabled = false;
-            document.getElementById('move-name-3').innerText = typeData.moves[3].name;
-            document.getElementById('move-type-3').innerText = typeData.moves[3].desc;
+            if (battleEnergy < 200) {
+                btn3.disabled = true;
+                document.getElementById('move-name-3').innerText = `⚡ ${typeData.moves[3].name} (${Math.floor(battleEnergy)}/200)`;
+                document.getElementById('move-type-3').innerText = "Needs 200% Energy";
+            } else {
+                btn3.disabled = false;
+                document.getElementById('move-name-3').innerText = typeData.moves[3].name;
+                document.getElementById('move-type-3').innerText = "Ready! (200 Energy)";
+            }
         } else {
             btn3.disabled = true;
             document.getElementById('move-name-3').innerText = `🔒 ${typeData.moves[3].name}`;
             document.getElementById('move-type-3').innerText = "Unlocks Lv. 13";
         }
+    }
+
+    updateEnergyGaugeUI();
+}
+
+function updateEnergyGaugeUI() {
+    const bar = document.getElementById('battle-energy-bar');
+    const text = document.getElementById('battle-energy-text');
+    if (!bar || !text) return;
+
+    let pct = Math.min(100, (battleEnergy / 200) * 100);
+    bar.style.width = `${pct}%`;
+
+    if (battleEnergy >= 200) {
+        text.innerText = "200% MAX! (Ultimate Ready!)";
+        text.className = "text-yellow-400 animate-pulse font-black";
+    } else if (battleEnergy >= 100) {
+        text.innerText = `${Math.floor(battleEnergy)}% (Special Ready!)`;
+        text.className = "text-indigo-300 font-bold";
+    } else {
+        text.innerText = `${Math.floor(battleEnergy)}% / 200% Energy`;
+        text.className = "text-blue-300";
     }
 }
 
@@ -349,19 +383,15 @@ function executeStageSweep() {
     let moodMult = (gameState.hearts <= 1) ? 0 : (gameState.hearts <= 3 ? 0.5 : (gameState.hearts <= 5 ? 2 : 3));
     let totalExpGained = Math.floor(replayBaseXp * moodMult) * count;
 
-    let foundBerries = 0;
+    // 3. Simulate Drops (Pokéballs & XP Only - NO Berries returned to prevent infinite loop!)
     let foundPokeballs = 0;
 
     for (let i = 0; i < count; i++) {
-        if (isBossStage) {
-            if (Math.random() < 0.35) foundBerries += 1;
-        } else {
-            if (Math.random() < 0.45) foundBerries += Math.floor(Math.random() * 2) + 1;
-            if (Math.random() < 0.11) foundPokeballs += 1;
+        if (Math.random() < 0.10) {
+            foundPokeballs += 1;
         }
     }
 
-    // 3. Set Active Sweep Timer (3 Seconds per Berry)
     let durationSeconds = count * 3;
     let now = Date.now();
 
@@ -372,7 +402,6 @@ function executeStageSweep() {
         endTime: now + (durationSeconds * 1000),
         durationSeconds: durationSeconds,
         totalExpGained: totalExpGained,
-        foundBerries: foundBerries,
         foundPokeballs: foundPokeballs,
         moodMult: moodMult
     };
@@ -443,12 +472,10 @@ function claimSweepRewards() {
         return;
     }
 
-    // Award Drops
-    gameState.berries += active.foundBerries;
-    gameState.pokeballs = (gameState.pokeballs || 0) + active.foundPokeballs;
+    // Award Drops (XP & Pokéballs Only)
+    gameState.pokeballs = (gameState.pokeballs || 0) + (active.foundPokeballs || 0);
 
     let drops = [];
-    if (active.foundBerries > 0) drops.push(`<span class='text-pink-400 font-bold'>+${active.foundBerries} 🍓 Berries</span>`);
     if (active.foundPokeballs > 0) drops.push(`<span class='text-red-400 font-bold'>+${active.foundPokeballs} 🔴 Pokéballs</span>`);
     let lootText = drops.length > 0 ? drops.join(" • ") : "<span class='text-gray-400'>None</span>";
 
@@ -577,10 +604,11 @@ function enterBattle() {
     eHp = eMaxHp;
     pHp = gameState.maxHp;
     
-    // Reset Battle Stats & Cooldowns for New Encounter
+    // Reset Battle Stats, Cooldowns & Energy for New Encounter
     battleDamageDealt = 0;
     battleDamageReceived = 0;
     statusCooldown = 0;
+    battleEnergy = 0; // Starts at 0% Energy
     setAttackButtonsDisabled(false);
 
     // --- CALCULATE & DISPLAY BATTLE CP BADGES ---
@@ -703,6 +731,30 @@ function throwPokeBall() {
             let rollSpd = 4 + Math.floor(Math.random() * 5);      // 4 - 8 Speed
             let rollCrit = parseFloat((4.5 + Math.random() * 1.5).toFixed(2)); // 4.50% - 6.00% Crit
 
+            // Roll 1-3 Random Palworld Passive Traits
+            let rolledTraits = rollRandomTraits();
+
+            if (rolledTraits.includes('titan')) rollHp = Math.floor(rollHp * 1.35);
+            if (rolledTraits.includes('musclehead')) {
+                rollAtk = Math.floor(rollAtk * 1.30);
+                rollSpAtk = Math.max(1, Math.floor(rollSpAtk * 0.90));
+            }
+            if (rolledTraits.includes('mindmaster')) {
+                rollSpAtk = Math.floor(rollSpAtk * 1.30);
+                rollAtk = Math.max(1, Math.floor(rollAtk * 0.90));
+            }
+            if (rolledTraits.includes('sturdy')) rollDef = Math.floor(rollDef * 1.30);
+            if (rolledTraits.includes('swift')) rollSpd = Math.floor(rollSpd * 1.25);
+            if (rolledTraits.includes('berserker')) rollCrit += 12.0;
+            if (rolledTraits.includes('celestial')) {
+                rollHp = Math.floor(rollHp * 1.25);
+                rollAtk = Math.floor(rollAtk * 1.25);
+                rollDef = Math.floor(rollDef * 1.25);
+                rollSpAtk = Math.floor(rollSpAtk * 1.25);
+                rollSpDef = Math.floor(rollSpDef * 1.25);
+                rollSpd = Math.floor(rollSpd * 1.25);
+            }
+
             let caughtPokemon = {
                 id: currentWildData.id,
                 name: cleanName,
@@ -716,13 +768,20 @@ function throwPokeBall() {
                 speed: rollSpd,
                 critRate: rollCrit,
                 xp: 0,
-                maxXp: 50
+                maxXp: 50,
+                traits: rolledTraits,
+                berriesFed: 0
             };
 
             if (!gameState.roster) gameState.roster = [];
             gameState.roster.push(caughtPokemon);
 
             let totalPower = rollHp + rollAtk + rollDef + rollSpAtk + rollSpDef + rollSpd;
+
+            let traitChipsHtml = rolledTraits.map(tKey => {
+                let t = PASSIVE_TRAITS[tKey];
+                return `<span class="px-2 py-0.5 rounded-full text-[9px] border font-bold ${t.color}">${t.icon} ${t.name}: ${t.desc}</span>`;
+            }).join(' ');
 
             setTimeout(() => {
                 let catchCard = `
@@ -748,7 +807,12 @@ function throwPokeBall() {
                             <div class='flex justify-between items-center'><span>🔮 SP.DEF:</span> <strong class='text-indigo-400'>${rollSpDef}</strong></div>
                         </div>
 
-                        <div class='pt-2.5 border-t border-gray-700 text-center text-orange-400 font-bold'>
+                        <!-- 🧬 Rolled Passive Traits -->
+                        <div class='w-full pt-2 border-t border-gray-800 flex flex-wrap justify-center gap-1.5'>
+                            ${traitChipsHtml}
+                        </div>
+
+                        <div class='pt-2 border-t border-gray-700 text-center text-orange-400 font-bold'>
                             Total Base Power: ⚡ <strong class='text-orange-300 font-black'>${totalPower} CP</strong>
                         </div>
                     </div>
@@ -820,7 +884,8 @@ function playerAttack(slot = 0) {
         setBattleLog(`${gameState.name} used ${move.name}! Enemy stats were shredded! (4T Cooldown)`);
 
     } else if (move.type === 'special') {
-        // --- SLOT 2: ELEMENTAL SPECIAL ---
+        // --- SLOT 2: ELEMENTAL SPECIAL (Costs 100 Energy) ---
+        battleEnergy = Math.max(0, battleEnergy - 100);
         let defenseMitigation = Math.floor(enemyDefense / 5);
         let baseDmg = Math.max(1, Math.floor(gameState.spAtk * move.power) - defenseMitigation);
         let rawDmg = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
@@ -829,7 +894,8 @@ function playerAttack(slot = 0) {
         setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${move.name} hit for ${damage} Sp. Dmg!${typeEffectText}`);
 
     } else if (move.type === 'ultimate') {
-        // --- SLOT 3: ULTIMATE MOVE ---
+        // --- SLOT 3: ULTIMATE MOVE / DRAIN HEAL (Costs 200 Energy) ---
+        battleEnergy = Math.max(0, battleEnergy - 200);
         let defenseMitigation = Math.floor(enemyDefense / 6);
         let baseDmg = Math.max(1, Math.floor((gameState.attack + gameState.spAtk) * move.power * 0.7) - defenseMitigation);
         let rawDmg = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
@@ -845,17 +911,25 @@ function playerAttack(slot = 0) {
         eHp -= damage;
 
     } else {
-        // --- SLOT 0: BASIC PHYSICAL ATTACK ---
+        // --- SLOT 0: BASIC PHYSICAL ATTACK (Generates +35% Energy) ---
+        battleEnergy = Math.min(200, battleEnergy + 35);
         let defenseMitigation = Math.floor(enemyDefense / 4);
         let baseDmg = Math.max(1, gameState.attack - defenseMitigation);
         damage = isCrit ? Math.floor(baseDmg * 1.75) : baseDmg;
         eHp -= damage;
-        setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${gameState.name} used ${move.name} for ${damage} damage!`);
+        setBattleLog(`${isCrit ? '💥 CRIT! ' : ''}${gameState.name} used ${move.name} for ${damage} damage! (+35% Energy)`);
     }
 
     // Accumulate damage
     if (damage > 0) {
         battleDamageDealt += damage;
+
+        // 🧛 Vampiric Passive Trait: Restore 15% of damage dealt as health!
+        if (gameState.traits && gameState.traits.includes('vampiric')) {
+            let drainHeal = Math.max(1, Math.floor(damage * 0.15));
+            pHp = Math.min(gameState.maxHp, pHp + drainHeal);
+            spawnFloatingText('player-sprite-wrapper', `+${drainHeal} HP`, 'heal');
+        }
     }
 
     // --- TRIGGER FLOATING TEXT & REACTION ---
@@ -933,7 +1007,11 @@ function enemyTurn() {
 
     pHp -= damage;
     battleDamageReceived += damage;
-    setBattleLog(`${isEnemyCrit ? '💥 CRIT! ' : ''}${enemyBaseName} used ${chosenMove.name} for ${damage} damage!${enemyEffectText}`);
+    
+    // Taking damage grants +15% Adrenaline Energy!
+    battleEnergy = Math.min(200, battleEnergy + 15);
+
+    setBattleLog(`${isEnemyCrit ? '💥 CRIT! ' : ''}${enemyBaseName} used ${chosenMove.name} for ${damage} damage! (+15% Adrenaline Energy)${enemyEffectText}`);
     
     // Player Hit Reaction & Floating Text
     triggerHitReaction('battle-player-sprite');
@@ -995,7 +1073,14 @@ function endBattle(won) {
         
         // Boss stages grant 2x bonus XP!
         if (isBoss) {
-            rawStageXp = Math.floor(rawStageXp * 1.6);
+            rawStageXp = Math.floor(rawStageXp * 2.0);
+        }
+
+        // 🔥 Underdog Punch-Up Bonus: Earn up to +100% extra XP when beating higher-level stages!
+        if (beatenStage > gameState.level) {
+            let levelLead = beatenStage - gameState.level;
+            let underdogMultiplier = Math.min(2.0, 1.0 + (levelLead * 0.04));
+            rawStageXp = Math.floor(rawStageXp * underdogMultiplier);
         }
 
         let baseStageXp = rawStageXp;

@@ -1,42 +1,66 @@
-const CACHE_NAME = 'poke-cache-v1.2.52';
+// Bump this version string whenever you deploy an update!
+const CACHE_NAME = 'poke-cache-v1.3.9';
+
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './style.css',
-    './game.js',
-    './effects.js',
     './global.js',
+    './effects.js',
+    './game.js',
     './inventory.js',
     './journey.js',
+    './defense.js',
     './battle.js'
 ];
+
+// 1. Install & Cache All Assets
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS_TO_CACHE);
         })
     );
-    self.skipWaiting();
+    self.skipWaiting(); // Force new service worker to activate immediately
 });
+
+// 2. Activate, Purge Old Caches & Take Control
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((oldCache) => {
                     if (oldCache !== CACHE_NAME) {
-                        console.log(`Deleting old cache: ${oldCache}`);
+                        console.log(`[ServiceWorker] Purging outdated cache: ${oldCache}`);
                         return caches.delete(oldCache);
                     }
                 })
             );
+        }).then(() => {
+            return self.clients.claim(); // Take immediate control of all open windows
         })
     );
-    self.clients.claim();
 });
+
+// 3. Stale-While-Revalidate Network Strategy (Fetches fresh files in background)
 self.addEventListener('fetch', (e) => {
+    // Only cache GET requests (ignore API/external POSTs)
+    if (e.request.method !== 'GET') return;
+
     e.respondWith(
-        caches.match(e.request).then((response) => {
-            return response || fetch(e.request);
+        caches.match(e.request).then((cachedResponse) => {
+            const fetchPromise = fetch(e.request).then((networkResponse) => {
+                // If valid network response, update the cache in background
+                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(e.request, responseToCache);
+                    });
+                }
+                return networkResponse;
+            }).catch(() => cachedResponse);
+
+            return cachedResponse || fetchPromise;
         })
     );
 });

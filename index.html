@@ -129,19 +129,22 @@
                 <span id="xp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">0 / 50</span>
             </div>
 
-            <!-- Action Buttons (Feed / Bag / Train / Battle) -->
-            <div class="grid grid-cols-4 gap-1.5">
-                <button onclick="feedBerry()" class="py-2.5 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs">
-                    <span class="text-xl">🍓</span> Feed (<span id="berry-count">5</span>)
+            <!-- Action Buttons (Feed / Bag / Train / Defend / Battle) -->
+            <div class="grid grid-cols-5 gap-1">
+                <button onclick="feedBerry()" class="py-2.5 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px]">
+                    <span class="text-lg">🍓</span> Feed (<span id="berry-count">5</span>)
                 </button>
-                <button onclick="openInventory()" class="py-2.5 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs text-yellow-100">
-                    <span class="text-xl">🎒</span> Bag
+                <button onclick="openInventory()" class="py-2.5 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-yellow-100">
+                    <span class="text-lg">🎒</span> Bag
                 </button>
-                <button onclick="openJourneyModal()" class="py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs text-purple-100 border border-purple-400/30">
-                    <span class="text-xl">🏕️</span> Train
+                <button onclick="openJourneyModal()" class="py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-purple-100 border border-purple-400/30">
+                    <span class="text-lg">🏕️</span> Train
                 </button>
-                <button onclick="openStageSelect()" class="py-2.5 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-xs">
-                    <span class="text-xl">⚔️</span> Battle
+                <button onclick="openDefenseMode()" class="py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-blue-100 border border-blue-400/30">
+                    <span class="text-lg">🏰</span> Defend
+                </button>
+                <button onclick="openStageSelect()" class="py-2.5 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px]">
+                    <span class="text-lg">⚔️</span> Battle
                 </button>
             </div>
         </div>
@@ -322,6 +325,18 @@
                     <span id="pokeball-count-badge" class="bg-black/40 px-1.5 py-0.5 rounded-full text-[10px]">3</span>
                 </button>
             </div>
+
+            <!-- Combat Energy Charge Gauge (0% - 200%) -->
+            <div class="w-full bg-gray-900/90 p-2.5 rounded-xl border border-blue-500/40 mb-2 shadow-inner">
+                <div class="flex justify-between items-center text-[10px] font-black uppercase mb-1">
+                    <span class="text-blue-400">⚡ Combat Energy</span>
+                    <span id="battle-energy-text" class="text-yellow-400">0% (Ready for Special)</span>
+                </div>
+                <div class="relative w-full h-2.5 bg-gray-800 rounded-full overflow-hidden border border-gray-700 flex items-center">
+                    <div id="battle-energy-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-yellow-400 w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
             <!-- Universal 4-Move Battle Grid -->
             <div class="grid grid-cols-2 gap-2" id="move-grid">
                 <!-- Slot 0: Basic Attack (Lv. 1) -->
@@ -347,6 +362,78 @@
                     <span id="move-name-3">🔒 Ultimate</span>
                     <span id="move-type-3" class="text-[9px] text-emerald-200 uppercase font-semibold">Lv. 13</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.5 TOWER DEFENSE / SWARM HORDE SCREEN -->
+    <div id="defense-screen" class="screen flex flex-col h-full bg-slate-950 w-full absolute hidden select-none overflow-hidden">
+        
+        <!-- Top HUD Banner (With Total Roster Defense CP) -->
+        <div class="glass-panel mx-3 mt-3 px-3 py-2 rounded-2xl flex items-center justify-between z-20 border border-blue-500/30 shadow-lg">
+            <div class="flex items-center gap-2">
+                <button onclick="leaveDefenseMode()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Exit</button>
+                <span id="defense-stage-label" class="text-xs font-black text-yellow-400 tracking-wider">STAGE 1</span>
+            </div>
+
+            <!-- Center: Total Roster CP -->
+            <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-xl border border-yellow-500/30 shadow-inner">
+                <span class="text-[10px] text-gray-400 font-bold uppercase">CP:</span>
+                <span id="defense-total-cp" class="text-xs font-black text-yellow-400 tracking-wide">⚡ 0 CP</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs">
+                <span id="defense-kills-label" class="font-bold text-green-400">0 Defeated</span>
+                <span class="text-gray-500">•</span>
+                <span id="defense-remaining-label" class="font-bold text-red-400">500 Left</span>
+            </div>
+        </div>
+
+        <!-- Defender Slot Assignment Bar -->
+        <div class="flex items-center justify-center gap-2 my-1 z-20">
+            <span class="text-[10px] text-gray-400 font-bold uppercase">Defenders:</span>
+            <div id="defender-chip-0" onclick="openAssignDefenderModal(0)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 1</div>
+            <div id="defender-chip-1" onclick="openAssignDefenderModal(1)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 2</div>
+            <div id="defender-chip-2" onclick="openAssignDefenderModal(2)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 3</div>
+        </div>
+
+        <!-- 60 FPS HTML5 Canvas Arena & Live Animated Defenders -->
+        <div class="flex-1 relative w-full overflow-hidden">
+            <canvas id="defense-canvas" class="w-full h-full block"></canvas>
+
+            <!-- Live 60 FPS Animated Defender Overlay (Proportional Aspect Ratio) -->
+            <div class="absolute inset-x-0 bottom-4 h-16 pointer-events-none flex items-center justify-around z-20 px-3">
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-0" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-1" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+                <div class="w-16 h-16 flex items-center justify-center">
+                    <img id="defender-live-img-2" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dark Souls Full-Width Tower Health Bar -->
+        <div class="w-full bg-black/95 p-3 border-t-2 border-red-900/80 flex flex-col items-center justify-center z-30 shadow-2xl">
+            <div class="relative w-full h-5 bg-gray-900 rounded-full overflow-hidden border border-red-800/80 flex items-center justify-center shadow-inner">
+                <div id="defense-tower-hp-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 w-full transition-all duration-150"></div>
+                <span id="defense-tower-hp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,1)] uppercase">CASTLE HEALTH: 1,000 / 1,000 HP</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASSIGN DEFENDER MODAL -->
+    <div id="assign-defender-modal" onclick="if(event.target === this) closeAssignDefenderModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[115] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
+        <div class="bg-gray-900 border-2 border-blue-500 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default text-white flex flex-col max-h-[80vh]" id="assign-defender-content">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                <h3 class="text-base font-black text-blue-400 uppercase">🛡️ Choose Defender</h3>
+                <button onclick="closeAssignDefenderModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-2">Select a Pokémon from your roster to man this defensive tower position:</p>
+            <div id="assign-roster-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2">
+                <!-- Roster slots injected here -->
             </div>
         </div>
     </div>
@@ -384,7 +471,16 @@
                     <span id="stat-cp" class="font-black text-orange-400 text-xl drop-shadow-md">0</span>
                 </div>
             </div>
-            <div class="mt-4 text-center text-xs text-gray-500 italic">Stats scale dynamically with level-ups!</div>
+
+            <!-- Passive Traits Container -->
+            <div class="mt-3 pt-2 border-t border-gray-700 text-left">
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">🧬 Passive Traits:</span>
+                <div id="stat-traits-container" class="flex flex-wrap gap-1.5">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+
+            <div class="mt-3 text-center text-[10px] text-gray-500 italic">Stats scale dynamically with level-ups!</div>
         </div>
     </div>
 
@@ -507,10 +603,29 @@
     <script src="game.js"></script>
     <script src="inventory.js"></script>
     <script src="journey.js"></script>
+    <script src="defense.js"></script>
     <script src="battle.js"></script>
     <script>
+        // Automatic Instant-Update Engine
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => console.warn('Service Worker registration failed.'));
+            let refreshing = false;
+
+            // When new SW activates, auto-reload the page seamlessly
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => {
+                        // Check for updates every time app is launched
+                        reg.update();
+                    })
+                    .catch(() => console.warn('Service Worker registration failed.'));
+            });
         }
     </script>
 </body>

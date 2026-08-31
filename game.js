@@ -102,8 +102,10 @@ function startGame(isNew) {
     } else if (localStorage.getItem('pokeSave')) {
         gameState = JSON.parse(localStorage.getItem('pokeSave'));
         
+        // --- UNIVERSAL SAVE FILE MIGRATION & REPAIR ENGINE ---
         if (gameState.berries === undefined) gameState.berries = 5;
         if (gameState.pokeballs === undefined) gameState.pokeballs = 3;
+        if (gameState.activeRosterIndex === undefined) gameState.activeRosterIndex = 0;
         if (gameState.currentStage === undefined) gameState.currentStage = gameState.enemyLevel || 1;
         if (gameState.maxStage === undefined) gameState.maxStage = gameState.currentStage;
         if (gameState.spAtk === undefined) gameState.spAtk = 6;
@@ -114,6 +116,23 @@ function startGame(isNew) {
         if (!gameState.lastGardenHarvest) gameState.lastGardenHarvest = Date.now();
         if (!gameState.lastInteraction) gameState.lastInteraction = Date.now();
         if (!gameState.items) gameState.items = { hpXL: 0, atkXL: 0, defXL: 0, spAtkXL: 0, spDefXL: 0, speedXL: 0, critXL: 0 };
+        if (gameState.activeJourney === undefined) gameState.activeJourney = null;
+        if (gameState.activeSweep === undefined) gameState.activeSweep = null;
+        
+        // Migrate Defense State & Repair Unrealistic Stage 1200+ Glitch
+        if (!gameState.defenseState || gameState.defenseState.stage > 100) {
+            gameState.defenseState = {
+                stage: 1,
+                kills: 0,
+                remaining: 500,
+                towerHp: null,
+                towerMaxHp: null,
+                slots: (gameState.defenseState && gameState.defenseState.slots) ? gameState.defenseState.slots : [0, null, null],
+                lastTick: Date.now()
+            };
+        }
+
+        // Migrate Roster Schema
         if (!gameState.roster || gameState.roster.length === 0) {
             gameState.roster = [{
                 id: gameState.id,
@@ -126,10 +145,40 @@ function startGame(isNew) {
                 spAtk: gameState.spAtk,
                 spDef: gameState.spDef,
                 speed: gameState.speed,
+                critRate: gameState.critRate || 5.0,
                 xp: gameState.xp,
                 maxXp: gameState.maxXp
             }];
+        } else {
+            // Repair any missing stats & Fix Out-of-Control Billion XP Requirements
+        gameState.roster.forEach(p => {
+            if (!p.type) p.type = 'normal';
+            if (!p.spAtk) p.spAtk = 6;
+            if (!p.spDef) p.spDef = 6;
+            if (!p.speed) p.speed = 5;
+            if (!p.critRate) p.critRate = 5.0;
+            
+            // Recalculate balanced RPG XP capacity based on current level
+            let balancedMax = Math.max(50, Math.floor(50 * Math.pow(p.level || 1, 1.85)));
+            p.maxXp = balancedMax;
+            if (p.xp >= p.maxXp) p.xp = Math.floor(p.maxXp * 0.4);
+        });
+
+        // Cap All Pokémon at Official Max Level 100
+        gameState.roster.forEach(p => {
+            if (p.level > 100) p.level = 100;
+            p.maxXp = Math.max(50, Math.floor(50 * Math.pow(p.level, 1.85)));
+            if (p.level === 100) p.xp = p.maxXp;
+        });
+
+        if (gameState.level > 100) gameState.level = 100;
+        let activeMax = Math.max(50, Math.floor(50 * Math.pow(gameState.level || 1, 1.85)));
+        gameState.maxXp = activeMax;
+        if (gameState.level === 100) gameState.xp = activeMax;
+        else if (gameState.xp >= gameState.maxXp) gameState.xp = Math.floor(gameState.maxXp * 0.4);
         }
+
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
 
         let offlinePeriods = Math.floor((Date.now() - gameState.lastInteraction) / (30 * 60000));
         if (offlinePeriods > 0) {
@@ -141,6 +190,11 @@ function startGame(isNew) {
         if (gardenBerriesGrown > 0) {
             gameState.gardenBerries = Math.min(20, (gameState.gardenBerries || 0) + gardenBerriesGrown);
             gameState.lastGardenHarvest = Date.now();
+        }
+
+        // Process 24/7 Offline Defense Progress & Roster XP
+        if (typeof processOfflineDefenseCatchUp === 'function') {
+            processOfflineDefenseCatchUp();
         }
 
         updateHub();
@@ -315,7 +369,6 @@ function closeModal() {
     }, 250);
 }
 
-// --- STATS PANEL SYSTEM ---
 function openStats() {
     document.getElementById('stat-hp').innerText = gameState.maxHp;
     document.getElementById('stat-atk').innerText = gameState.attack;
@@ -329,7 +382,16 @@ function openStats() {
     if (critEl) critEl.innerText = `${(gameState.critRate || 5.0).toFixed(2)}%`;
     
     let totalPower = gameState.maxHp + gameState.attack + gameState.defense + gameState.spAtk + gameState.spDef + gameState.speed;
-    document.getElementById('stat-cp').innerText = totalPower;
+    document.getElementById('stat-cp').innerText = formatNumber(totalPower);
+
+    const traitsContainer = document.getElementById('stat-traits-container');
+    if (traitsContainer) {
+        let tHtml = (gameState.traits || ['gourmand']).map(tKey => {
+            let t = PASSIVE_TRAITS[tKey] || PASSIVE_TRAITS.gourmand;
+            return `<span class="px-2 py-0.5 rounded-full text-[10px] border font-bold ${t.color}">${t.icon} ${t.name}: ${t.desc}</span>`;
+        }).join(' ');
+        traitsContainer.innerHTML = tHtml;
+    }
     
     const modal = document.getElementById('stats-modal');
     const content = document.getElementById('stats-content');
@@ -379,27 +441,67 @@ function renderPartyList() {
     if (!list) return;
     list.innerHTML = '';
 
-    syncCurrentPokemonToRoster();
-
     let activeIdx = gameState.activeRosterIndex ?? 0;
+
+    // Sync active companion's state
+    if (gameState.roster[activeIdx]) {
+        gameState.roster[activeIdx].level = gameState.level;
+        gameState.roster[activeIdx].xp = gameState.xp;
+        gameState.roster[activeIdx].maxXp = gameState.maxXp;
+        gameState.roster[activeIdx].maxHp = gameState.maxHp;
+        gameState.roster[activeIdx].attack = gameState.attack;
+        gameState.roster[activeIdx].defense = gameState.defense;
+        gameState.roster[activeIdx].spAtk = gameState.spAtk;
+        gameState.roster[activeIdx].spDef = gameState.spDef;
+        gameState.roster[activeIdx].speed = gameState.speed;
+    }
 
     gameState.roster.forEach((p, index) => {
         let isActive = (index === activeIdx);
+        let pCp = (p.maxHp || 0) + (p.attack || 0) + (p.defense || 0) + (p.spAtk || 0) + (p.spDef || 0) + (p.speed || 0);
+        let xpPercent = Math.min(100, Math.max(0, ((p.xp || 0) / (p.maxXp || 50)) * 100));
+
+        let pTraitsHtml = (p.traits || ['gourmand']).map(tKey => {
+            let t = PASSIVE_TRAITS[tKey] || PASSIVE_TRAITS.gourmand;
+            return `<span class="px-1.5 py-0.2 rounded-full text-[8px] border font-bold ${t.color}">${t.icon} ${t.name}</span>`;
+        }).join(' ');
+
         list.innerHTML += `
-            <div onclick="switchActivePokemon(${index})" class="flex items-center justify-between p-3 rounded-xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-md' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
-                <div class="flex items-center gap-3">
-                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-12 h-12 object-contain pixel-perfect drop-shadow">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold text-sm text-white">${p.name}</h4>
-                            ${isActive ? '<span class="text-[9px] bg-green-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVE</span>' : ''}
+            <div onclick="switchActivePokemon(${index})" class="flex flex-col p-3 rounded-2xl border ${isActive ? 'bg-indigo-900/60 border-indigo-400 shadow-lg' : 'bg-gray-800/80 border-gray-700 hover:bg-gray-700/60'} cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${p.id}.gif" class="w-11 h-11 object-contain pixel-perfect drop-shadow">
+                        <div class="text-left">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded font-black ${(TYPE_DATABASE[p.type || 'normal'] || TYPE_DATABASE.normal).bg} text-white">${(TYPE_DATABASE[p.type || 'normal'] || TYPE_DATABASE.normal).name}</span>
+                                ${isActive ? '<span class="text-[9px] bg-green-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVE</span>' : ''}
+                            </div>
+                            <p class="text-xs text-gray-300 font-semibold mt-0.5">
+                                <span class="text-yellow-400 font-bold">Lv. ${p.level}</span> • <span class="text-orange-400 font-bold">⚡ ${formatNumber(pCp)} CP</span>
+                            </p>
                         </div>
-                        <p class="text-xs text-gray-400">Lv. ${p.level} • HP: ${p.maxHp} • Atk: ${p.attack}</p>
                     </div>
+                    <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
+                        ${isActive ? '✓ Ready' : 'Swap 🔁'}
+                    </span>
                 </div>
-                <span class="text-xs font-bold ${isActive ? 'text-green-400' : 'text-indigo-400'}">
-                    ${isActive ? '✓ Ready' : 'Swap 🔁'}
-                </span>
+
+                <!-- Trait Badges & Berries Fed Counter -->
+                <div class="flex items-center justify-between mt-1.5">
+                    <div class="flex items-center gap-1 flex-wrap">
+                        ${pTraitsHtml}
+                    </div>
+                    <span class="text-[9px] text-gray-400 font-semibold">🍓 Fed: <strong class="text-pink-400">${p.berriesFed || 0}</strong></span>
+                </div>
+                
+                <!-- Live Real-Time XP Bar for this Teammate -->
+                <div class="w-full mt-2 pt-1.5 border-t border-gray-700/50 flex items-center gap-2">
+                    <div class="flex-1 h-2 bg-gray-900 rounded-full overflow-hidden border border-gray-700">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300" style="width: ${xpPercent}%"></div>
+                    </div>
+                    <span class="text-[9px] font-black text-gray-400 select-none">${formatNumber(p.xp || 0)} / ${formatNumber(p.maxXp || 50)}</span>
+                </div>
             </div>
         `;
     });
@@ -426,6 +528,8 @@ function syncCurrentPokemonToRoster() {
         spDef: gameState.spDef,
         speed: gameState.speed,
         critRate: gameState.critRate || 5.0,
+        traits: gameState.traits || ['gourmand'],
+        berriesFed: gameState.berriesFed || 0,
         xp: gameState.xp,
         maxXp: gameState.maxXp
     };
@@ -455,6 +559,8 @@ function switchActivePokemon(index) {
     gameState.spDef = target.spDef;
     gameState.speed = target.speed;
     gameState.critRate = target.critRate || 5.0;
+    gameState.traits = target.traits || ['gourmand'];
+    gameState.berriesFed = target.berriesFed || 0;
     gameState.xp = target.xp;
     gameState.maxXp = target.maxXp;
 
@@ -489,14 +595,28 @@ function feedBerry() {
             gameState.berries--;
             gainHeart();
         } else {
-            // --- FULL 10/10 HEARTS: 5% XP TREAT BONUS ---
+            // --- FULL 10/10 HEARTS: DIMINISHING RETURNS TREAT BONUS ---
             gameState.berries--;
-            let bonusXp = Math.max(5, Math.floor(gameState.maxXp * 0.05));
+            if (gameState.berriesFed === undefined) gameState.berriesFed = 0;
+            gameState.berriesFed++;
+
+            let tolerancePenalty = gameState.berriesFed * 0.0001;
+            let effectiveRate = Math.max(0.005, 0.05 - tolerancePenalty);
+
+            if (gameState.traits && gameState.traits.includes('gourmand')) {
+                effectiveRate *= 1.5;
+            }
+
+            let bonusXp = Math.max(2, Math.floor(gameState.maxXp * effectiveRate));
             
-            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but loved the treat! Gained +${formatNumber(bonusXp)} XP (5% boost)!`);
+            let toleranceMsg = gameState.berriesFed > 100 
+                ? `<br><span class='text-orange-400 text-[10px]'>(Fullness: ${gameState.berriesFed} Berries Fed - Efficiency Tapering)</span>` 
+                : `<br><span class='text-gray-400 text-[10px]'>(Total Berries Fed: ${gameState.berriesFed})</span>`;
+
+            showModal("Yum! Full Belly Treat! 🍓", `${gameState.name} is full, but enjoyed the treat! Gained +${formatNumber(bonusXp)} XP!${toleranceMsg}`);
             if (navigator.vibrate) navigator.vibrate(30);
 
-            addXP(bonusXp, false); // Direct XP (no mood multiplier)
+            addXP(bonusXp, false);
         }
     } else {
         showModal("Out of Berries!", "You don't have any berries left! Harvest your garden bush or win battles to find more.");
@@ -554,8 +674,8 @@ function levelUp(totalXp) {
         gameState.level++;
         levelsGained++;
         
-        // Exact 1.67 scaling
-        gameState.maxXp = Math.floor(gameState.maxXp * 1.67);
+        // Balanced Standard RPG Power Curve (Scales smoothly from Lv 1 to Lv 100)
+        gameState.maxXp = Math.max(50, Math.floor(50 * Math.pow(gameState.level, 1.85)));
 
         // Stat Growth per Level
         let statBuff = gameState.hearts >= 5 ? 1.10 : (gameState.hearts >= 3 ? 1.05 : 1.0);
