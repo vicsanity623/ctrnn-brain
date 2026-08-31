@@ -48,9 +48,10 @@ const SURVIVAL_QUESTS = [
     { title: "Establish PokeSquare Base", desc: "Build a Base and station a benched Pokémon worker", check: () => (gameState.survivalData?.structures?.some(s => s.type === 'pokesquare' && s.workerRosterIndex !== null)), reward: 200 }
 ];
 
-// Controls State
+// Controls & Proximity State
 var keysPressed = {};
-var touchJoystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0 };
+var touchJoystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, hasMoved: false };
+var nearbyStructure = null; // Current structure within proximity radius
 
 // --- 1. INITIALIZE SURVIVAL MODE ---
 function openSurvivalMode() {
@@ -177,6 +178,7 @@ function survivalGameLoop() {
     updateCompanionAI();
     updateSurvivalEnemies();
     updateBaseWorkerTick();
+    checkStructureProximity(); // Real-time proximity check for instant interaction
 
     // World Rendering with Centered Camera
     survivalCtx.save();
@@ -262,8 +264,10 @@ function handleCanvasTouchStart(e) {
     e.preventDefault();
     let touch = e.touches[0];
     let rect = survivalCanvas.getBoundingClientRect();
-    let screenX = touch.clientX - rect.left;
-    let screenY = touch.clientY - rect.top;
+    let scaleX = survivalCanvas.width / rect.width;
+    let scaleY = survivalCanvas.height / rect.height;
+    let screenX = (touch.clientX - rect.left) * scaleX;
+    let screenY = (touch.clientY - rect.top) * scaleY;
     let worldX = playerX + (screenX - survivalCanvas.width / 2);
     let worldY = playerY + (screenY - survivalCanvas.height / 2);
 
@@ -273,6 +277,7 @@ function handleCanvasTouchStart(e) {
     }
 
     touchJoystick.active = true;
+    touchJoystick.hasMoved = false;
     touchJoystick.startX = touch.clientX;
     touchJoystick.startY = touch.clientY;
     touchJoystick.dx = 0;
@@ -283,8 +288,10 @@ function handleCanvasTouchMove(e) {
     e.preventDefault();
     let touch = e.touches[0];
     let rect = survivalCanvas.getBoundingClientRect();
-    let screenX = touch.clientX - rect.left;
-    let screenY = touch.clientY - rect.top;
+    let scaleX = survivalCanvas.width / rect.width;
+    let scaleY = survivalCanvas.height / rect.height;
+    let screenX = (touch.clientX - rect.left) * scaleX;
+    let screenY = (touch.clientY - rect.top) * scaleY;
     let worldX = playerX + (screenX - survivalCanvas.width / 2);
     let worldY = playerY + (screenY - survivalCanvas.height / 2);
 
@@ -297,13 +304,25 @@ function handleCanvasTouchMove(e) {
     let dx = touch.clientX - touchJoystick.startX;
     let dy = touch.clientY - touchJoystick.startY;
     let dist = Math.hypot(dx, dy);
-    if (dist > 0) {
+    if (dist > 8) {
+        touchJoystick.hasMoved = true;
         touchJoystick.dx = dx / Math.max(dist, 35);
         touchJoystick.dy = dy / Math.max(dist, 35);
     }
 }
 
-function handleCanvasTouchEnd() {
+function handleCanvasTouchEnd(e) {
+    // If user tapped without dragging, trigger structure interaction
+    if (touchJoystick.active && !touchJoystick.hasMoved && !activeBuildItem) {
+        let rect = survivalCanvas.getBoundingClientRect();
+        let scaleX = survivalCanvas.width / rect.width;
+        let scaleY = survivalCanvas.height / rect.height;
+        let screenX = (touchJoystick.startX - rect.left) * scaleX;
+        let screenY = (touchJoystick.startY - rect.top) * scaleY;
+        let worldX = playerX + (screenX - survivalCanvas.width / 2);
+        let worldY = playerY + (screenY - survivalCanvas.height / 2);
+        interactWithStructureAt(worldX, worldY);
+    }
     touchJoystick.active = false;
     touchJoystick.dx = 0;
     touchJoystick.dy = 0;
@@ -311,8 +330,10 @@ function handleCanvasTouchEnd() {
 
 function handleCanvasClick(e) {
     let rect = survivalCanvas.getBoundingClientRect();
-    let screenX = e.clientX - rect.left;
-    let screenY = e.clientY - rect.top;
+    let scaleX = survivalCanvas.width / rect.width;
+    let scaleY = survivalCanvas.height / rect.height;
+    let screenX = (e.clientX - rect.left) * scaleX;
+    let screenY = (e.clientY - rect.top) * scaleY;
     let worldX = playerX + (screenX - survivalCanvas.width / 2);
     let worldY = playerY + (screenY - survivalCanvas.height / 2);
 
@@ -320,24 +341,79 @@ function handleCanvasClick(e) {
         updateHologramPosition(worldX, worldY);
         return;
     }
+    interactWithStructureAt(worldX, worldY);
+}
 
-    // Check interaction with existing structures (Walls, Campfires, Bases)
-    if (gameState.survivalData && gameState.survivalData.structures) {
-        for (let s of gameState.survivalData.structures) {
-            let dist = Math.hypot(worldX - s.x, worldY - s.y);
-            if (dist < 32) {
-                if (s.type === 'wall') {
-                    openStructureContext(s);
-                    return;
-                } else if (s.type === 'campfire') {
-                    openCookingModal();
-                    return;
-                } else if (s.type === 'pokesquare') {
-                    openWorkerAssignmentModal(s);
-                    return;
-                }
+function interactWithStructureAt(worldX, worldY) {
+    let structures = gameState.survivalData?.structures || [];
+    for (let s of structures) {
+        let hitRadius = s.type === 'pokesquare' ? 45 : (s.type === 'campfire' ? 35 : 30);
+        let dist = Math.hypot(worldX - s.x, worldY - s.y);
+        if (dist < hitRadius) {
+            if (s.type === 'wall') {
+                openStructureContext(s);
+                return;
+            } else if (s.type === 'campfire') {
+                openCookingModal();
+                return;
+            } else if (s.type === 'pokesquare') {
+                openWorkerAssignmentModal(s);
+                return;
             }
         }
+    }
+}
+
+// --- PROXIMITY INTERACTION ENGINE ---
+function checkStructureProximity() {
+    let promptEl = document.getElementById('proximity-action-prompt');
+    let labelEl = document.getElementById('proximity-label');
+    let iconEl = document.getElementById('proximity-icon');
+    if (!promptEl || activeBuildItem) {
+        if (promptEl) promptEl.classList.add('hidden');
+        nearbyStructure = null;
+        return;
+    }
+
+    let structures = gameState.survivalData?.structures || [];
+    let closest = null;
+    let minDist = 70; // 70px proximity radius
+
+    for (let s of structures) {
+        let dist = Math.hypot(playerX - s.x, playerY - s.y);
+        if (dist < minDist) {
+            minDist = dist;
+            closest = s;
+        }
+    }
+
+    if (closest) {
+        nearbyStructure = closest;
+        promptEl.classList.remove('hidden');
+        if (closest.type === 'campfire') {
+            iconEl.innerText = "🍳";
+            labelEl.innerText = "Cook at Campfire";
+        } else if (closest.type === 'pokesquare') {
+            iconEl.innerText = "🏛️";
+            labelEl.innerText = `Manage Base (Lv. ${closest.level || 1})`;
+        } else if (closest.type === 'wall') {
+            iconEl.innerText = "🧱";
+            labelEl.innerText = "Manage Wall";
+        }
+    } else {
+        nearbyStructure = null;
+        promptEl.classList.add('hidden');
+    }
+}
+
+function executeProximityAction() {
+    if (!nearbyStructure) return;
+    if (nearbyStructure.type === 'campfire') {
+        openCookingModal();
+    } else if (nearbyStructure.type === 'pokesquare') {
+        openWorkerAssignmentModal(nearbyStructure);
+    } else if (nearbyStructure.type === 'wall') {
+        openStructureContext(nearbyStructure);
     }
 }
 
@@ -1002,6 +1078,9 @@ function cookSuperBerry(key) {
 
 function openWorkerAssignmentModal(structure) {
     selectedBaseStructure = structure;
+    if (!selectedBaseStructure.level) selectedBaseStructure.level = 1;
+
+    updateBaseUpgradeUI();
     renderBaseWorkerRosterList();
 
     const modal = document.getElementById('worker-modal');
@@ -1013,6 +1092,63 @@ function openWorkerAssignmentModal(structure) {
         content.classList.remove('scale-95');
         content.classList.add('scale-100');
     }, 10);
+}
+
+function updateBaseUpgradeUI() {
+    if (!selectedBaseStructure) return;
+    let lvl = selectedBaseStructure.level || 1;
+
+    const badge = document.getElementById('base-level-badge');
+    const perk = document.getElementById('base-perk-label');
+    const cost = document.getElementById('base-upgrade-cost');
+    const btn = document.getElementById('btn-upgrade-base');
+
+    if (badge) badge.innerText = `Base Level ${lvl}`;
+
+    let woodCost = lvl * 30;
+    let stoneCost = lvl * 25;
+
+    if (perk) {
+        if (lvl === 1) perk.innerText = "(Next: +100% Forage Speed & Stone Walls)";
+        else if (lvl === 2) perk.innerText = "(Next: Base Sentry Turret Auto-Defense)";
+        else perk.innerText = "(Max Level Base! +200% Gathering Rate)";
+    }
+
+    if (cost) cost.innerText = `Upgrade: ${woodCost} 🪵 • ${stoneCost} 🪨`;
+
+    if (btn) {
+        let wood = gameState.survivalData?.wood || 0;
+        let stone = gameState.survivalData?.stone || 0;
+        if (wood >= woodCost && stone >= stoneCost && lvl < 3) {
+            btn.disabled = false;
+            btn.className = "px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-lg text-xs shadow";
+        } else {
+            btn.disabled = true;
+            btn.className = "px-3 py-1.5 bg-gray-700 text-gray-500 font-bold rounded-lg text-xs cursor-not-allowed";
+        }
+    }
+}
+
+function upgradeBaseLevel() {
+    if (!selectedBaseStructure) return;
+    let lvl = selectedBaseStructure.level || 1;
+    let woodCost = lvl * 30;
+    let stoneCost = lvl * 25;
+
+    let wood = gameState.survivalData?.wood || 0;
+    let stone = gameState.survivalData?.stone || 0;
+
+    if (wood >= woodCost && stone >= stoneCost && lvl < 3) {
+        gameState.survivalData.wood -= woodCost;
+        gameState.survivalData.stone -= stoneCost;
+        selectedBaseStructure.level = lvl + 1;
+
+        localStorage.setItem('pokeSave', JSON.stringify(gameState));
+        updateBaseUpgradeUI();
+        updateSurvivalHUD();
+        showSurvivalToast(`🎉 Base Upgraded to Level ${selectedBaseStructure.level}!`, 2500);
+        if (navigator.vibrate) navigator.vibrate([40, 80]);
+    }
 }
 
 function closeWorkerAssignmentModal() {
