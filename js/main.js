@@ -3,7 +3,7 @@
 // Wires sign-in -> location permission -> map -> game loop.
 // ============================================================
 (() => {
-  let map, playerMarker, collectionCircle, watchId;
+  let map, playerMarker, collectionCircle, pulseWave1, pulseWave2, watchId;
   let currentPos = null;
   let toastTimer = null;
 
@@ -122,6 +122,8 @@
     if (!map) return;
     playerMarker.setLatLng([currentPos.lat, currentPos.lon]);
     collectionCircle.setLatLng([currentPos.lat, currentPos.lon]);
+    pulseWave1?.setLatLng([currentPos.lat, currentPos.lon]);
+    pulseWave2?.setLatLng([currentPos.lat, currentPos.lon]);
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
 
@@ -145,9 +147,24 @@
       zIndexOffset: 1000,
     }).addTo(map);
 
+    // Outer Static Boundary Circle
     collectionCircle = L.circle([currentPos.lat, currentPos.lon], {
       radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 1.5, fillColor: "#4fd6c4", fillOpacity: 0.08, dashArray: "4 6",
+      color: "#4fd6c4", weight: 1.5, fillColor: "#4fd6c4", fillOpacity: 0.04, dashArray: "4 6",
+    }).addTo(map);
+
+    // Continuous Expanding Radar Wave 1
+    pulseWave1 = L.circle([currentPos.lat, currentPos.lon], {
+      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
+      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
+      className: "radar-wave wave-1",
+    }).addTo(map);
+
+    // Continuous Expanding Radar Wave 2 (Staggered offset)
+    pulseWave2 = L.circle([currentPos.lat, currentPos.lon], {
+      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
+      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
+      className: "radar-wave wave-2",
     }).addTo(map);
 
     Diamonds.init(map, {
