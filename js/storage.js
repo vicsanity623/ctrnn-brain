@@ -51,12 +51,17 @@ const Store = (() => {
     return state;
   }
 
-  // Total EB/sec across every owned plot (multiplied if boost active)
+  // Total $/sec across every owned plot (multiplied if boost active)
   function totalRate() {
-    let r = 0;
-    for (const id in state.plots) r += state.plots[id].rate;
+    let baseRate = 0;
+    for (const id in state.plots) {
+      const p = state.plots[id];
+      const rarityKey = p.rarity?.key || p.rarity;
+      const configRarity = CONFIG.PLOT_RARITIES.find(r => r.key === rarityKey);
+      baseRate += (configRarity ? configRarity.rate : (p.rate || 0));
+    }
     const isBoosted = state.boostExpiry && Date.now() < state.boostExpiry;
-    return isBoosted ? r * (state.boostMultiplier || 30) : r;
+    return isBoosted ? baseRate * (state.boostMultiplier || 30) : baseRate;
   }
 
   // Apply whatever income accrued while the tab/app was closed
