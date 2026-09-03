@@ -157,6 +157,44 @@
 
   // ---------------- UI wiring ----------------
   function wireUI() {
+    // --- Floating +2 EB Boost Loop ---
+    const boostBtn = el("boost-btn");
+    let boostHideTimer = null;
+
+    function scheduleBoost() {
+      // Appears randomly between 35 and 55 seconds
+      const delay = 35000 + Math.random() * 20000;
+      setTimeout(() => {
+        if (!boostBtn) return;
+        boostBtn.classList.remove("hidden");
+
+        // Stays on screen for 16 seconds before vanishing
+        boostHideTimer = setTimeout(() => {
+          boostBtn.classList.add("hidden");
+          scheduleBoost();
+        }, 16000);
+      }, delay);
+    }
+
+    if (boostBtn) {
+      boostBtn.addEventListener("click", () => {
+        clearTimeout(boostHideTimer);
+        boostBtn.classList.add("hidden");
+
+        const state = Store.get();
+        state.eb += 2;
+        Store.save();
+        updateTopbar();
+        showToast("⚡ Claimed +2.00 EB Boost!");
+
+        // Schedule next appearance
+        scheduleBoost();
+      });
+
+      // Start initial timer
+      scheduleBoost();
+    }
+
     el("recenter-btn").addEventListener("click", () => {
       if (currentPos) map.setView([currentPos.lat, currentPos.lon], Math.max(map.getZoom(), 19));
     });
