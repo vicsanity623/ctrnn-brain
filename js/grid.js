@@ -175,7 +175,11 @@ const Grid = (() => {
           iconAnchor: [11, 11],
         });
 
-        L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: false }).addTo(avatarMarkersLayer);
+        const marker = L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: true }).addTo(avatarMarkersLayer);
+        marker.on("click", () => {
+          const evt = new CustomEvent("openPlayerInfo");
+          window.dispatchEvent(evt);
+        });
       }
     }
 
