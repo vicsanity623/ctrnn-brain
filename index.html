@@ -43,26 +43,30 @@
 
   <!-- Top status bar -->
   <div id="topbar">
-    <div class="topbar-row">
+    <!-- Hero Full-Width EB Balance -->
+    <div class="hero-balance-card">
+      <div class="hero-balance-label">ELDEN BUCKS</div>
+      <div class="hero-balance-value" id="stat-eb">0.00000000</div>
+    </div>
+
+    <!-- Secondary Stats Row Underneath -->
+    <div class="substats-row">
       <div class="player-chip">
         <span id="player-avatar">🙂</span>
         <span id="player-name">Traveler</span>
       </div>
-      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
-    </div>
-    <div class="stats-row">
-      <div class="stat">
-        <span class="stat-label">Elden Bucks</span>
-        <span class="stat-value" id="stat-eb">0.00000000</span>
-      </div>
-      <div class="stat">
+
+      <div class="sub-stat">
         <span class="stat-label">Diamonds</span>
         <span class="stat-value" id="stat-diamonds">0 ◆</span>
       </div>
-      <div class="stat">
+
+      <div class="sub-stat">
         <span class="stat-label">Income</span>
         <span class="stat-value" id="stat-rate">0.00000000/s</span>
       </div>
+
+      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
     </div>
   </div>
 
