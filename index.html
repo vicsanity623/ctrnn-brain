@@ -138,6 +138,62 @@
   </div>
 </div>
 
+<!-- ===================== PLAYER INFO MODAL ===================== -->
+<div id="player-info-modal" class="modal hidden">
+  <div class="modal-card player-info-card">
+    <button class="close-btn" data-close="player-info-modal">✕</button>
+    <h2>Player Info</h2>
+    
+    <!-- Profile Row -->
+    <div class="profile-header-card">
+      <div id="info-avatar" class="info-avatar">🙂</div>
+      <div class="info-name-box">
+        <span id="info-name" class="info-player-name">Traveler</span>
+      </div>
+    </div>
+
+    <!-- Total Rent Accrued -->
+    <div class="info-section">
+      <div class="info-section-title">TOTAL RENT ACCRUED:</div>
+      <div class="info-cash-box">
+        <span class="cash-icon">📈</span>
+        <span id="info-total-rent" class="info-cash-val">$0.000000000000000</span>
+      </div>
+    </div>
+
+    <!-- Plots / Parcels Owned Grid -->
+    <div class="info-section">
+      <div class="info-section-title">PLOTS OWNED:</div>
+      <div class="parcels-grid-wrap">
+        <div class="parcel-total-box">
+          <div class="parcel-icon">🏞️</div>
+          <span class="parcel-total-label">TOTAL</span>
+          <strong id="info-total-plots" class="parcel-total-num">0</strong>
+        </div>
+
+        <div class="rarity-badges-grid">
+          <div class="rarity-badge common">
+            <span id="info-count-common" class="badge-num">0</span>
+            <span class="badge-label">COMMON</span>
+          </div>
+          <div class="rarity-badge rare">
+            <span id="info-count-rare" class="badge-num">0</span>
+            <span class="badge-label">RARE</span>
+          </div>
+          <div class="rarity-badge epic">
+            <span id="info-count-epic" class="badge-num">0</span>
+            <span class="badge-label">EPIC</span>
+          </div>
+          <div class="rarity-badge legendary">
+            <span id="info-count-legendary" class="badge-num">0</span>
+            <span class="badge-label">LEGENDARY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== CONFIRM BUY MODAL ===================== -->
 <div id="buy-modal" class="modal hidden">
   <div class="modal-card">
