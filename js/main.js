@@ -31,7 +31,7 @@
     if (el("stat-eb")) el("stat-eb").textContent = state.eb.toFixed(0) + " EB";
 
     el("stat-diamonds").textContent = state.diamonds + " ◆";
-    el("stat-rate").textContent = "$" + Store.totalRate().toFixed(8) + "/s";
+    el("stat-rate").textContent = "$" + Store.totalRate().toFixed(11) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
 
     const avatarEl = el("player-avatar");
@@ -73,7 +73,7 @@
   function updateLandModal() {
     const state = Store.get();
     el("land-count").textContent = Object.keys(state.plots).length;
-    el("land-rate").textContent = Store.totalRate().toFixed(8);
+    el("land-rate").textContent = Store.totalRate().toFixed(11);
 
     // Count plots by rarity
     const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
