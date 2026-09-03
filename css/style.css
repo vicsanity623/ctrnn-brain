@@ -384,3 +384,42 @@ html,body{
   0%, 100% { transform: translateY(0); box-shadow: 0 0 14px rgba(212, 175, 97, 0.35); }
   50% { transform: translateY(-4px); box-shadow: 0 0 24px rgba(212, 175, 97, 0.65); }
 }
+
+/* ---------- Buy Tile Modal Styles ---------- */
+.buy-modal-cost {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.buy-modal-cost span {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.buy-modal-cost strong {
+  font-family: var(--font-display);
+  color: var(--gold-hi);
+  font-size: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+.modal-actions .btn {
+  flex: 1;
+  padding: 13px 10px;
+  font-size: 15px;
+}
+.btn-secondary {
+  background: rgba(22, 32, 47, 0.85);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+.btn-secondary:hover {
+  color: var(--parchment);
+}
