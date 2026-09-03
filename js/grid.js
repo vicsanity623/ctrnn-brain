@@ -1,6 +1,6 @@
 // ============================================================
 // Elden Earth — land grid
-// Draws the real-world 10ft tile grid near the current view,
+// Draws the real-world 20ft tile grid near the current view,
 // colors tiles the player already owns, and sells empty ones.
 // ============================================================
 const Grid = (() => {
@@ -33,6 +33,10 @@ const Grid = (() => {
       onBuyAttempt(false, null);
       return;
     }
+
+    const confirmed = confirm(`Claim this tile for ${CONFIG.PLOT_COST_EB} EB?`);
+    if (!confirmed) return;
+
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
     state.plots[tid] = { tx, ty, rarity: rarity.key, rate: rarity.rate };
