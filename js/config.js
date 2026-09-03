@@ -35,12 +35,12 @@ const CONFIG = {
   ],
   SPIN_COST_DIAMONDS: 1,
 
-  // --- Land plots ---
+  // --- Land plots (Exact Rates & Odds) ---
   PLOT_COST_EB: 100,
   PLOT_RARITIES: [
-    { key: "common",    label: "Common",    rate: 0.0000023, weight: 60, color: "#8fa3b8" },
-    { key: "rare",      label: "Rare",      rate: 0.0000027, weight: 25, color: "#4f9dd6" },
-    { key: "epic",      label: "Epic",      rate: 0.0000035, weight: 10, color: "#a86ee0" },
-    { key: "legendary", label: "Legendary", rate: 0.0000059, weight: 5,  color: "#e0a84f" },
+    { key: "common",    label: "Common",    rate: 0.0000000011, weight: 50, color: "#8fa3b8" }, // 50%
+    { key: "rare",      label: "Rare",      rate: 0.000000016,  weight: 30, color: "#4f9dd6" }, // 30%
+    { key: "epic",      label: "Epic",      rate: 0.000000022,  weight: 15, color: "#a86ee0" }, // 15%
+    { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f" }, // 5%
   ],
 };
