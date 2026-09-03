@@ -15,9 +15,9 @@ const CONFIG = {
 
   // --- Diamonds ---
   DIAMOND_SPAWN_RADIUS_METERS: 200,   // ~220 yards (Spreads them across neighborhood)
-  DIAMOND_COLLECT_RADIUS_METERS: 50,  // ~55 yards (Reachable reach)
-  DIAMOND_MAX_ACTIVE: 12,
-  DIAMOND_SPAWN_CHECK_MS: 30000,      // Checks for 1 new diamond every 30 seconds
+  DIAMOND_COLLECT_RADIUS_METERS: 80,  // ~55 yards (Reachable reach)
+  DIAMOND_MAX_ACTIVE: 25,
+  DIAMOND_SPAWN_CHECK_MS: 15000,      // Checks for 1 new diamond every 30 seconds
   DIAMOND_LIFETIME_MS: 540 * 1000,     // 540 seconds or 5 min
 
   // --- Diamond Extractor ---
