@@ -521,3 +521,38 @@ html,body{
 }
 .booster-info-box strong { color: var(--parchment); }
 .booster-info-box .gold-text { color: var(--gold-hi); }
+
+/* ---------- Sonar Radar Expanding Pulse Waves ---------- */
+.radar-wave {
+  transform-origin: center center;
+  transform-box: fill-box;
+  pointer-events: none !important;
+}
+
+.radar-wave.wave-1 {
+  animation: radarPulse 3s cubic-bezier(0.2, 0.65, 0.35, 1) infinite;
+}
+
+.radar-wave.wave-2 {
+  animation: radarPulse 3s cubic-bezier(0.2, 0.65, 0.35, 1) infinite;
+  animation-delay: 1.5s;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.04);
+    opacity: 0.85;
+    stroke-width: 3px;
+    fill-opacity: 0.3;
+  }
+  60% {
+    opacity: 0.45;
+    fill-opacity: 0.12;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+    stroke-width: 1px;
+    fill-opacity: 0;
+  }
+}
