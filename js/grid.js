@@ -171,8 +171,8 @@ const Grid = (() => {
         const avatarIcon = L.divIcon({
           className: "",
           html: `<div class="plot-avatar-badge">${avatar.startsWith("img:") ? `<img src="${avatar.slice(4)}">` : avatar}</div>`,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         });
 
         const marker = L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: true }).addTo(avatarMarkersLayer);
