@@ -166,7 +166,7 @@ const Grid = (() => {
 
         const centerLat = sumLat / cluster.length;
         const centerLon = sumLon / cluster.length;
-        const avatar = cluster[0].avatar || "🙂";
+        const isSelf = cluster[0].ownerId === state.player.id || cluster[0].ownerId === "guest";         const avatar = isSelf ? (state.player.avatar || "🙂") : (cluster[0].avatar || "🙂");
 
         const avatarIcon = L.divIcon({
           className: "",
