@@ -15,7 +15,7 @@ const CONFIG = {
 
   // --- Diamonds ---
   DIAMOND_SPAWN_RADIUS_METERS: 110.10, // 200 yards
-  DIAMOND_COLLECT_RADIUS_METERS: 56.67, // 20 yards
+  DIAMOND_COLLECT_RADIUS_METERS: 110.10, // 20 yards
   DIAMOND_MAX_ACTIVE: 18,
   DIAMOND_SPAWN_CHECK_MS: 20000,   // how often we consider spawning a new one
   DIAMOND_LIFETIME_MS: 30 * 60 * 1000, // diamonds expire & respawn elsewhere after this long
