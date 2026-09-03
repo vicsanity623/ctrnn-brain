@@ -248,6 +248,92 @@
   // ---------------- UI wiring ----------------
   function wireUI() {
     window.addEventListener("openPlayerInfo", openPlayerInfo);
+    // --- Diamond Extractor Logic ---
+    function checkExtractorTick() {
+      const state = Store.get();
+      if (!state.extractor) state.extractor = { built: false, lastHarvest: Date.now(), stored: 0 };
+      if (!state.extractor.built) return;
+
+      const now = Date.now();
+      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 28800000;
+      const maxStored = CONFIG.EXTRACTOR_MAX_STORED || 3;
+      const timeSince = now - state.extractor.lastHarvest;
+      const readyCount = Math.floor(timeSince / interval);
+
+      if (readyCount > 0 && state.extractor.stored < maxStored) {
+        state.extractor.stored = Math.min(maxStored, state.extractor.stored + readyCount);
+        state.extractor.lastHarvest = now - (timeSince % interval);
+        Store.save();
+      }
+
+      // Update timer if modal is open
+      const remainingMs = Math.max(0, interval - (now - state.extractor.lastHarvest));
+      const hrs = Math.floor(remainingMs / 3600000);
+      const mins = Math.floor((remainingMs % 3600000) / 60000);
+      const secs = Math.floor((remainingMs % 60000) / 1000);
+
+      if (el("extractor-next-timer")) {
+        el("extractor-next-timer").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+      }
+      if (el("extractor-stored-count")) {
+        el("extractor-stored-count").textContent = `${state.extractor.stored} / ${maxStored} ◆`;
+      }
+      if (el("collect-extractor-btn")) {
+        el("collect-extractor-btn").textContent = `Collect All (${state.extractor.stored} ◆)`;
+        el("collect-extractor-btn").disabled = state.extractor.stored === 0;
+      }
+    }
+
+    function openExtractorModal() {
+      const state = Store.get();
+      if (!state.extractor) state.extractor = { built: false, lastHarvest: Date.now(), stored: 0 };
+
+      if (!state.extractor.built) {
+        el("extractor-unbuilt-view")?.classList.remove("hidden");
+        el("extractor-active-view")?.classList.add("hidden");
+      } else {
+        el("extractor-unbuilt-view")?.classList.add("hidden");
+        el("extractor-active-view")?.classList.remove("hidden");
+        checkExtractorTick();
+      }
+      openModal("extractor-modal");
+    }
+
+    window.addEventListener("openExtractorModal", openExtractorModal);
+
+    // Build Extractor Button
+    el("build-extractor-btn")?.addEventListener("click", () => {
+      const state = Store.get();
+      const cost = CONFIG.EXTRACTOR_BUILD_COST_EB || 50;
+      if (state.eb < cost) {
+        showToast(`You need ${cost} EB to construct the Extractor.`);
+        return;
+      }
+      state.eb -= cost;
+      state.extractor.built = true;
+      state.extractor.lastHarvest = Date.now();
+      state.extractor.stored = 0;
+      Store.save();
+      updateTopbar();
+      showToast("💎 Diamond Extractor Constructed!");
+      openExtractorModal();
+    });
+
+    // Collect Diamonds Button
+    el("collect-extractor-btn")?.addEventListener("click", () => {
+      const state = Store.get();
+      if (!state.extractor || state.extractor.stored <= 0) return;
+      const count = state.extractor.stored;
+      state.diamonds += count;
+      state.extractor.stored = 0;
+      Store.save();
+      updateTopbar();
+      showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
+      checkExtractorTick();
+    });
+
+    // Check extractor every 2 seconds
+    setInterval(checkExtractorTick, 2000);
     // --- Multiplier Button Wiring ---
     const multBtn = el("multiplier-btn");
     const activateBoostBtn = el("activate-boost-btn");
