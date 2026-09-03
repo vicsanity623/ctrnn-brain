@@ -185,6 +185,22 @@ const Grid = (() => {
           const evt = new CustomEvent("openPlayerInfo");
           window.dispatchEvent(evt);
         });
+
+        // If this cluster has 5+ plots and belongs to the player, show Extractor Beacon!
+        if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5)) {
+          const extractorIcon = L.divIcon({
+            className: "custom-extractor-icon",
+            html: `<div class="extractor-beacon">💎</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [-8, 20], // Offsets beacon slightly to top-right of avatar
+          });
+
+          const extractorMarker = L.marker([centerLat, centerLon], { icon: extractorIcon, interactive: true }).addTo(avatarMarkersLayer);
+          extractorMarker.on("click", () => {
+            const evt = new CustomEvent("openExtractorModal");
+            window.dispatchEvent(evt);
+          });
+        }
       }
     }
 
