@@ -10,9 +10,11 @@ const Store = (() => {
     return {
       player: { name: "Traveler", id: null, avatar: "🙂" },
       eb: 150,
-      diamonds: 2,
+      diamonds: 0,
       plots: {},          // tileId -> { tx, ty, rarity, rate }
       liveDiamonds: {},   // diamondId -> { lat, lon, spawnedAt }
+      boostExpiry: 0,     // Timestamp when multiplier ends
+      boostMultiplier: 30,// 30 or 50
       lastTick: Date.now(),
       createdAt: Date.now(),
     };
@@ -48,11 +50,12 @@ const Store = (() => {
     return state;
   }
 
-  // Total EB/sec across every owned plot
+  // Total EB/sec across every owned plot (multiplied if boost active)
   function totalRate() {
     let r = 0;
     for (const id in state.plots) r += state.plots[id].rate;
-    return r;
+    const isBoosted = state.boostExpiry && Date.now() < state.boostExpiry;
+    return isBoosted ? r * (state.boostMultiplier || 30) : r;
   }
 
   // Apply whatever income accrued while the tab/app was closed
