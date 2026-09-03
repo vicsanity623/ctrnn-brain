@@ -1,12 +1,13 @@
 // ============================================================
 // Elden Earth — land grid
-// Draws the real-world 20ft tile grid near the current view,
+// Draws the real-world tile grid near the current view,
 // colors tiles the player already owns, and sells empty ones.
 // ============================================================
 const Grid = (() => {
   let map = null;
   let layerGroup = null;
   let onBuyAttempt = () => {};
+  let pendingTile = null;
 
   function tileId(tx, ty) { return tx + "_" + ty; }
 
@@ -25,7 +26,7 @@ const Grid = (() => {
     return CONFIG.PLOT_RARITIES.find(r => r.key === key) || CONFIG.PLOT_RARITIES[0];
   }
 
-  function buyTile(tx, ty) {
+  function promptBuyTile(tx, ty) {
     const state = Store.get();
     const tid = tileId(tx, ty);
     if (state.plots[tid]) return;
@@ -34,8 +35,22 @@ const Grid = (() => {
       return;
     }
 
-    const confirmed = confirm(`Claim this tile for ${CONFIG.PLOT_COST_EB} EB?`);
-    if (!confirmed) return;
+    pendingTile = { tx, ty };
+    const modal = document.getElementById("buy-modal");
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  function executeBuy() {
+    if (!pendingTile) return;
+    const { tx, ty } = pendingTile;
+    pendingTile = null;
+
+    const modal = document.getElementById("buy-modal");
+    if (modal) modal.classList.add("hidden");
+
+    const state = Store.get();
+    const tid = tileId(tx, ty);
+    if (state.plots[tid] || state.eb < CONFIG.PLOT_COST_EB) return;
 
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
@@ -64,7 +79,7 @@ const Grid = (() => {
     const state = Store.get();
     const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
     const tileCount = (maxTx - minTx + 1) * (maxTy - minTy + 1);
-    if (tileCount > CONFIG.GRID_RENDER_MAX_TILES) return; // zoom in a bit more
+    if (tileCount > CONFIG.GRID_RENDER_MAX_TILES) return;
 
     for (let tx = minTx; tx <= maxTx; tx++) {
       for (let ty = minTy; ty <= maxTy; ty++) {
@@ -78,7 +93,7 @@ const Grid = (() => {
 
         const poly = L.polygon(corners, style);
         if (!owned) {
-          poly.on("click", () => buyTile(tx, ty));
+          poly.on("click", () => promptBuyTile(tx, ty));
         }
         poly.addTo(layerGroup);
       }
@@ -90,7 +105,20 @@ const Grid = (() => {
     onBuyAttempt = callbacks.onBuyAttempt || onBuyAttempt;
     layerGroup = L.layerGroup().addTo(map);
     map.on("moveend zoomend", render);
+
+    // Modal action listeners
+    const confirmBtn = document.getElementById("buy-confirm-btn");
+    const cancelBtn = document.getElementById("buy-cancel-btn");
+
+    if (confirmBtn) confirmBtn.addEventListener("click", executeBuy);
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        pendingTile = null;
+        const modal = document.getElementById("buy-modal");
+        if (modal) modal.classList.add("hidden");
+      });
+    }
   }
 
-  return { init, render, buyTile };
+  return { init, render, promptBuyTile };
 })();
