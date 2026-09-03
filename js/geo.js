@@ -30,12 +30,16 @@ const Geo = (() => {
     return 2 * 6371000 * Math.asin(Math.sqrt(a));
   }
 
-  // Uniformly random point within `radiusM` meters of (lat, lon)
+  // Balanced random point (ensures healthy mix of close and far spawns)
   function randomPointInRadius(lat, lon, radiusM) {
-    const r = radiusM * Math.sqrt(Math.random());
+    // 50% chance to spawn close (0 to 45% radius), 50% chance to spawn across full radius
+    const isClose = Math.random() < 0.50;
+    const maxR = isClose ? radiusM * 0.45 : radiusM;
+    const r = maxR * Math.random();
+
     const theta = Math.random() * 2 * Math.PI;
     const dLat = (r * Math.cos(theta)) / 111320;
-    const dLon = (r * Math.sin(theta)) / (111320 * Math.cos(lat * Math.PI / 180));
+    const dLon = (r * Math.cos(theta)) / (111320 * Math.cos(lat * Math.PI / 180));
     return { lat: lat + dLat, lon: lon + dLon };
   }
 
