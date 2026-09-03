@@ -20,6 +20,12 @@ const CONFIG = {
   DIAMOND_SPAWN_CHECK_MS: 250000,   // how often we consider spawning a new one
   DIAMOND_LIFETIME_MS: 30 * 60 * 1000, // diamonds expire & respawn elsewhere after this long
 
+  // --- Diamond Extractor ---
+  EXTRACTOR_MIN_TILES: 5,               // Requires 5+ connected plots
+  EXTRACTOR_INTERVAL_MS: 8 * 3600 * 1000, // 1 diamond every 8 hours (28800000 ms)
+  EXTRACTOR_MAX_STORED: 3,              // Stores up to 3 diamonds max
+  EXTRACTOR_BUILD_COST_EB: 50,          // 50 EB to construct
+  
   // --- Spin wheel --- (Weighted odds, 1 diamond per spin)
   WHEEL_SLICES: [
     { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
