@@ -9,7 +9,8 @@ const Store = (() => {
   function defaultState() {
     return {
       player: { name: "Traveler", id: null, avatar: "🙂" },
-      eb: 150,
+      cash: 0,            // Simulated passive USD cash balance
+      eb: 150,            // Elden Bucks (game currency to buy plots/spins)
       diamonds: 0,
       plots: {},          // tileId -> { tx, ty, rarity, rate }
       liveDiamonds: {},   // diamondId -> { lat, lon, spawnedAt }
@@ -63,7 +64,8 @@ const Store = (() => {
     const now = Date.now();
     const elapsedSec = Math.max(0, (now - (state.lastTick || now)) / 1000);
     const earned = elapsedSec * totalRate();
-    state.eb += earned;
+    if (state.cash === undefined) state.cash = 0;
+    state.cash += earned;
     state.lastTick = now;
     save();
     return earned;
