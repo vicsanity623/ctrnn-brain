@@ -14,7 +14,7 @@ const CONFIG = {
   GRID_RENDER_MAX_TILES: 2500,    // safety cap per redraw
 
   // --- Diamonds ---
-  DIAMOND_SPAWN_RADIUS_METERS: 1609.34, // 1 mile
+  DIAMOND_SPAWN_RADIUS_METERS: 182.88, // 200 yards
   DIAMOND_COLLECT_RADIUS_METERS: 18.288, // 20 yards
   DIAMOND_MAX_ACTIVE: 18,
   DIAMOND_SPAWN_CHECK_MS: 20000,   // how often we consider spawning a new one
