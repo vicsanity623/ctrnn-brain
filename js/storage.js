@@ -9,8 +9,8 @@ const Store = (() => {
   function defaultState() {
     return {
       player: { name: "Traveler", id: null, avatar: "🙂" },
-      eb: 0,
-      diamonds: 0,
+      eb: 150,
+      diamonds: 2,
       plots: {},          // tileId -> { tx, ty, rarity, rate }
       liveDiamonds: {},   // diamondId -> { lat, lon, spawnedAt }
       lastTick: Date.now(),
