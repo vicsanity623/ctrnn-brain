@@ -98,12 +98,3 @@ All gameplay tuning parameters are centralized in **`js/config.js`**:
 ## 📄 License & Disclaimer
 
 This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes.
-```
-
----
-
-### How to apply:
-1. Open **`README.md`** on GitHub.
-2. Click the pencil icon (Edit).
-3. Select all and paste this markdown.
-4. Tap **Commit changes**. Your repo will now look clean, modern, and professional!
