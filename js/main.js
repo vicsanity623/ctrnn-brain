@@ -33,6 +33,34 @@
     } else {
       avatarEl.textContent = state.player.avatar || "🙂";
     }
+
+    // --- Multiplier Glow & Timer ---
+    const now = Date.now();
+    const isBoosted = state.boostExpiry && state.boostExpiry > now;
+    const heroCard = el("hero-balance-card");
+    const timerBadge = el("boost-timer-badge");
+    const multBtn = el("multiplier-btn");
+
+    if (isBoosted) {
+      const remainingMs = state.boostExpiry - now;
+      heroCard?.classList.add("boosted");
+      timerBadge?.classList.remove("hidden");
+
+      // Format HH:MM:SS
+      const hrs = Math.floor(remainingMs / 3600000);
+      const mins = Math.floor((remainingMs % 3600000) / 60000);
+      const secs = Math.floor((remainingMs % 60000) / 1000);
+      el("boost-countdown").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+
+      // Hide button if remaining time is 5 hours or more (Max limit: 6 hours)
+      if (multBtn) {
+        multBtn.style.display = remainingMs >= 5 * 3600000 ? "none" : "flex";
+      }
+    } else {
+      heroCard?.classList.remove("boosted");
+      timerBadge?.classList.add("hidden");
+      if (multBtn) multBtn.style.display = "flex";
+    }
   }
 
   function updateLandModal() {
@@ -159,6 +187,48 @@
 
   // ---------------- UI wiring ----------------
   function wireUI() {
+    // --- Multiplier Button Wiring ---
+    const multBtn = el("multiplier-btn");
+    const activateBoostBtn = el("activate-boost-btn");
+
+    // 0.05% chance for 50X (1 in 2000), otherwise 30X
+    function getCurrentMultiplier() {
+      const isLucky50X = Math.random() < 0.0005;
+      return isLucky50X ? 50 : 30;
+    }
+
+    let activeRollMultiplier = 30;
+
+    if (multBtn) {
+      multBtn.addEventListener("click", () => {
+        activeRollMultiplier = getCurrentMultiplier();
+        el("mult-label").textContent = activeRollMultiplier + "X";
+        el("booster-modal-title").textContent = `Activate ${activeRollMultiplier}X Boost`;
+        el("modal-mult-rate").textContent = `${activeRollMultiplier}X Income`;
+        openModal("booster-modal");
+      });
+    }
+
+    if (activateBoostBtn) {
+      activateBoostBtn.addEventListener("click", () => {
+        const state = Store.get();
+        const now = Date.now();
+        const oneHour = 3600 * 1000;
+        const sixHours = 6 * 3600 * 1000;
+
+        // Stack time up to 6 hours max
+        const currentRemaining = Math.max(0, (state.boostExpiry || 0) - now);
+        const newRemaining = Math.min(sixHours, currentRemaining + oneHour);
+
+        state.boostExpiry = now + newRemaining;
+        state.boostMultiplier = activeRollMultiplier;
+        Store.save();
+
+        closeModal("booster-modal");
+        updateTopbar();
+        showToast(`⚡ ${activeRollMultiplier}X Multiplier Activated! (+1 Hr)`);
+      });
+    }
     // --- Floating +2 EB Boost Loop ---
     const boostBtn = el("boost-btn");
     let boostHideTimer = null;
