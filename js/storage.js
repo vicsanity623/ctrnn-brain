@@ -16,6 +16,7 @@ const Store = (() => {
       liveDiamonds: {},   // diamondId -> { lat, lon, spawnedAt }
       boostExpiry: 0,     // Timestamp when multiplier ends
       boostMultiplier: 30,// 30 or 50
+      extractor: { built: false, lastHarvest: Date.now(), stored: 0 },
       lastTick: Date.now(),
       createdAt: Date.now(),
     };
@@ -71,6 +72,19 @@ const Store = (() => {
     const earned = elapsedSec * totalRate();
     if (state.cash === undefined) state.cash = 0;
     state.cash += earned;
+
+    // Offline Diamond Extractor progress
+    if (state.extractor && state.extractor.built) {
+      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 28800000;
+      const maxStored = CONFIG.EXTRACTOR_MAX_STORED || 3;
+      const timeSince = now - state.extractor.lastHarvest;
+      const newDiamonds = Math.floor(timeSince / interval);
+      if (newDiamonds > 0) {
+        state.extractor.stored = Math.min(maxStored, (state.extractor.stored || 0) + newDiamonds);
+        state.extractor.lastHarvest = now - (timeSince % interval);
+      }
+    }
+
     state.lastTick = now;
     save();
     return earned;
