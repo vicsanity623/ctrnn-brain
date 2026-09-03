@@ -166,11 +166,16 @@ const Grid = (() => {
 
         const centerLat = sumLat / cluster.length;
         const centerLon = sumLon / cluster.length;
-        const isSelf = cluster[0].ownerId === state.player.id || cluster[0].ownerId === "guest";         const avatar = isSelf ? (state.player.avatar || "🙂") : (cluster[0].avatar || "🙂");
+        const isSelf = cluster[0].ownerId === state.player.id || cluster[0].ownerId === "guest";
+        const avatar = isSelf ? (state.player.avatar || "🙂") : (cluster[0].avatar || "🙂");
+
+        const innerContent = avatar.startsWith("img:")
+          ? `<img src="${avatar.slice(4)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;display:block;">`
+          : `<span style="font-size:13px;line-height:1;">${avatar}</span>`;
 
         const avatarIcon = L.divIcon({
-          className: "",
-          html: `<div class="plot-avatar-badge">${avatar.startsWith("img:") ? `<img src="${avatar.slice(4)}">` : avatar}</div>`,
+          className: "custom-plot-icon",
+          html: `<div style="width:24px;height:24px;border-radius:50%;border:2px solid #d4af61;background:#0d1420;box-shadow:0 0 10px rgba(0,0,0,0.9), 0 0 6px rgba(212,175,97,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;">${innerContent}</div>`,
           iconSize: [24, 24],
           iconAnchor: [12, 12],
         });
