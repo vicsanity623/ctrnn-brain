@@ -43,9 +43,12 @@
 
   <!-- Top status bar -->
   <div id="topbar">
-    <!-- Hero EB Balance Bar -->
-    <div class="hero-balance-card">
-      <div class="hero-balance-label">ELDEN BUCKS</div>
+    <!-- Hero EB Balance Bar (Glows when boosted) -->
+    <div class="hero-balance-card" id="hero-balance-card">
+      <div class="hero-top-line">
+        <div class="hero-balance-label">ELDEN BUCKS</div>
+        <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
+      </div>
       <div class="hero-balance-value" id="stat-eb">0.000000000000000</div>
     </div>
 
@@ -80,6 +83,12 @@
   <button id="boost-btn" class="boost-btn hidden">
     <span class="boost-icon">⚡</span>
     <span class="boost-text">+2 EB</span>
+  </button>
+
+  !-- Permanent 30X/50X Multiplier Button -->
+  <button id="multiplier-btn" class="multiplier-btn">
+    <span class="mult-tag" id="mult-label">30X</span>
+    <span class="mult-sub">BOOST</span>
   </button>
 
   <!-- Bottom bar -->
@@ -153,6 +162,25 @@
       <li>Every tile you own earns EB automatically, every second, forever.</li>
     </ol>
     <button id="reset-btn" class="btn btn-danger">Reset Game Data</button>
+  </div>
+</div>
+
+<!-- ===================== BOOSTER MODAL ===================== -->
+<div id="booster-modal" class="modal hidden">
+  <div class="modal-card booster-card">
+    <button class="close-btn" data-close="booster-modal">✕</button>
+    <div class="booster-icon-wrap">⚡</div>
+    <h2 id="booster-modal-title">Activate 30X Boost</h2>
+    <p class="modal-sub">Supercharge your realm's income for 1 hour!</p>
+    <div class="booster-info-box">
+      <div>Multiplier: <strong id="modal-mult-rate" class="gold-text">30X Income</strong></div>
+      <div>Duration: <strong>+1 Hour</strong></div>
+      <div>Max Bank: <strong>Up to 6 Hours</strong></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-close="booster-modal">Cancel</button>
+      <button id="activate-boost-btn" class="btn btn-primary">Activate Boost</button>
+    </div>
   </div>
 </div>
 
