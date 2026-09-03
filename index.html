@@ -43,20 +43,25 @@
 
   <!-- Top status bar -->
   <div id="topbar">
-    <!-- Hero EB Balance Bar (Glows when boosted) -->
+    <!-- Hero Simulated Cash Balance Bar -->
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
-        <div class="hero-balance-label">ELDEN BUCKS</div>
+        <div class="hero-balance-label">CASH BALANCE</div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
-      <div class="hero-balance-value" id="stat-eb">0.000000000000000</div>
+      <div class="hero-balance-value" id="stat-cash">$0.000000000000000</div>
     </div>
 
-    <!-- Secondary Stats Arranged Beneath -->
+    <!-- Secondary Stats Arranged Beneath (EB, Diamonds, Income, Menu) -->
     <div class="substats-row">
       <div class="player-chip">
         <span id="player-avatar">🙂</span>
         <span id="player-name">Traveler</span>
+      </div>
+
+      <div class="sub-stat">
+        <span class="stat-label">Elden Bucks</span>
+        <span class="stat-value" id="stat-eb">150 EB</span>
       </div>
 
       <div class="sub-stat">
@@ -66,7 +71,7 @@
 
       <div class="sub-stat">
         <span class="stat-label">Income</span>
-        <span class="stat-value" id="stat-rate">0.00000000/s</span>
+        <span class="stat-value" id="stat-rate">$0.00000000/s</span>
       </div>
 
       <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
