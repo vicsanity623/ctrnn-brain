@@ -460,6 +460,9 @@
           s.diamonds = (Number(s.diamonds) || 0) + 1;
           el("wheel-result").textContent = "Your diamond found its way back to you. (◆ +1)";
           showToast("💎 +1 Diamond Refunded!");
+        } else if (slice.type === "miss") {
+          el("wheel-result").textContent = "Better luck next time! (No reward)";
+          showToast("🚫 Nothing this time — keep searching!");
         } else {
           const winAmount = Number(slice.amount) || 0;
           s.eb = (Number(s.eb) || 0) + winAmount;
