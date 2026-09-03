@@ -135,10 +135,13 @@ html,body{
 }
 .hero-balance-value{
   font-family:var(--font-display);
-  font-size:24px;
+  font-size:18px;
   font-weight:800;
   color:var(--gold-hi);
-  letter-spacing:0.5px;
+  letter-spacing:0.2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
   text-shadow:0 0 12px rgba(212,175,97,0.35);
 }
 
