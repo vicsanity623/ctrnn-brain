@@ -167,10 +167,14 @@
     map = L.map("map", { zoomControl: false, attributionControl: true })
       .setView([currentPos.lat, currentPos.lon], 19);
 
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-      maxNativeZoom: 16,
+    const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
+
+    L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${mbToken}`, {
+      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+      tileSize: 512,
+      zoomOffset: -1,
       maxZoom: 22,
+      maxNativeZoom: 22,
     }).addTo(map);
 
     playerMarker = L.marker([currentPos.lat, currentPos.lon], {
