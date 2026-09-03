@@ -243,6 +243,7 @@
 
   // ---------------- UI wiring ----------------
   function wireUI() {
+    window.addEventListener("openPlayerInfo", openPlayerInfo);
     // --- Multiplier Button Wiring ---
     const multBtn = el("multiplier-btn");
     const activateBoostBtn = el("activate-boost-btn");
