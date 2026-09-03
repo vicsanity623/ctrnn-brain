@@ -1,7 +1,7 @@
 // ============================================================
 // Elden Earth — spin wheel
-// Draws the 10-slice wheel and animates it to a randomly
-// chosen (equal-odds) slice.
+// Draws the 10-slice wheel and animates it to a weighted
+// randomly chosen slice.
 // ============================================================
 const Wheel = (() => {
   let canvas, ctx;
@@ -59,7 +59,7 @@ const Wheel = (() => {
     draw();
   }
 
-  // Helper to pick slice based on weights
+  // Helper to pick slice based on weighted odds
   function pickWeightedIndex() {
     const slices = CONFIG.WHEEL_SLICES;
     const totalWeight = slices.reduce((sum, s) => sum + (s.weight || 10), 0);
@@ -79,11 +79,10 @@ const Wheel = (() => {
     const sliceDeg = 360 / n;
     const targetIndex = pickWeightedIndex();
 
-    // Add slight random offset within the slice so needle doesn't always hit dead-center
+    // Add slight random offset within slice so needle doesn't always hit dead-center
     const jitter = (Math.random() - 0.5) * (sliceDeg * 0.7);
     const targetCenter = targetIndex * sliceDeg + sliceDeg / 2 + jitter;
 
-    const targetCenter = targetIndex * sliceDeg + sliceDeg / 2; // from top, clockwise
     const extraSpins = 5 + Math.floor(Math.random() * 2);
     const neededRotation = (360 - targetCenter) % 360;
 
