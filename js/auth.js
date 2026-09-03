@@ -18,14 +18,21 @@ const Auth = (() => {
     const guestBtn = document.getElementById("guest-btn");
     const slot = document.getElementById("g_id_signin_slot");
 
+    // Auto-login immediately if player has already started a save
+    const state = Store.get();
+    if (state && state.player && state.player.id) {
+      onSignedIn(state.player);
+      return;
+    }
+
     guestBtn.addEventListener("click", () => {
-      const state = Store.get();
-      if (!state.player.id) {
-        state.player.id = "guest-" + Math.random().toString(36).slice(2, 10);
-        state.player.name = "Traveler";
+      const s = Store.get();
+      if (!s.player.id) {
+        s.player.id = "guest-" + Math.random().toString(36).slice(2, 10);
+        s.player.name = "Traveler";
         Store.save();
       }
-      onSignedIn(state.player);
+      onSignedIn(s.player);
     });
 
     if (!CONFIG.GOOGLE_CLIENT_ID) {
