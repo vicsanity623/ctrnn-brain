@@ -721,3 +721,55 @@ html,body{
   border-radius: 50%;
   object-fit: cover;
 }
+
+/* ---------- Diamond Extractor Beacon on Map ---------- */
+.extractor-beacon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #4fd6c4 0%, #0d1420 80%);
+  border: 2px solid #4fd6c4;
+  box-shadow: 0 0 16px rgba(79, 214, 196, 0.8), 0 0 6px rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  animation: extractorPulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes extractorPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 12px rgba(79, 214, 196, 0.6); }
+  100% { transform: scale(1.1); box-shadow: 0 0 24px rgba(79, 214, 196, 1); }
+}
+
+/* ---------- Extractor Modal ---------- */
+.extractor-glow-icon {
+  font-size: 42px;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 0 14px rgba(79, 214, 196, 0.8));
+  animation: boostPulse 2s infinite ease-in-out;
+}
+.extractor-status-box {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 14px 0 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+.extractor-status-box .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.extractor-status-box strong { color: var(--parchment); }
+.extractor-status-box .teal-text { color: var(--teal); }
+.extractor-status-box .gold-text { color: var(--gold-hi); }
+.diamond-ready-val { color: var(--teal); font-size: 16px; font-weight: 800; }
+.req-line { font-size: 13px; margin-top: 4px; }
