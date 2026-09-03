@@ -194,6 +194,49 @@
   </div>
 </div>
 
+<!-- ===================== DIAMOND EXTRACTOR MODAL ===================== -->
+<div id="extractor-modal" class="modal hidden">
+  <div class="modal-card extractor-card">
+    <button class="close-btn" data-close="extractor-modal">✕</button>
+    <div class="extractor-glow-icon">💎</div>
+    <h2>Diamond Extractor</h2>
+    <p class="modal-sub">Automated mining beacon for your home base.</p>
+
+    <!-- State: Not Built Yet -->
+    <div id="extractor-unbuilt-view" class="extractor-view hidden">
+      <div class="extractor-status-box">
+        <p>Construct an automated extractor on your territory to harvest free diamonds while offline.</p>
+        <div class="req-line">Requirements: <strong>5+ Connected Plots</strong></div>
+        <div class="req-line">Build Cost: <strong>50 EB</strong></div>
+      </div>
+      <button id="build-extractor-btn" class="btn btn-primary">Build Extractor (50 EB)</button>
+    </div>
+
+    <!-- State: Active & Mining -->
+    <div id="extractor-active-view" class="extractor-view hidden">
+      <div class="extractor-status-box">
+        <div class="stat-row">
+          <span>Status:</span>
+          <strong class="teal-text">⚡ Mining Active</strong>
+        </div>
+        <div class="stat-row">
+          <span>Rate:</span>
+          <strong>1 ◆ / 8 Hours</strong>
+        </div>
+        <div class="stat-row">
+          <span>Next Diamond In:</span>
+          <strong id="extractor-next-timer" class="gold-text">08:00:00</strong>
+        </div>
+        <div class="stat-row">
+          <span>Ready to Collect:</span>
+          <strong id="extractor-stored-count" class="diamond-ready-val">0 / 3 ◆</strong>
+        </div>
+      </div>
+      <button id="collect-extractor-btn" class="btn btn-primary">Collect All (0 ◆)</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== CONFIRM BUY MODAL ===================== -->
 <div id="buy-modal" class="modal hidden">
   <div class="modal-card">
