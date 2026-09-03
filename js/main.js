@@ -87,6 +87,37 @@
     if (el("count-epic")) el("count-epic").textContent = counts.epic;
     if (el("count-legendary")) el("count-legendary").textContent = counts.legendary;
   }
+  
+  function updatePlayerInfoModal() {
+    const state = Store.get();
+    el("info-name").textContent = state.player.name || "Traveler";
+    
+    // Avatar
+    const av = el("info-avatar");
+    if (state.player.avatar && state.player.avatar.startsWith("img:")) {
+      av.innerHTML = `<img src="${state.player.avatar.slice(4)}">`;
+    } else {
+      av.textContent = state.player.avatar || "🙂";
+    }
+
+    // Total Rent
+    el("info-total-rent").textContent = "$" + (state.cash || 0).toFixed(15);
+
+    // Counts
+    const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    let total = 0;
+    for (const id in state.plots) {
+      const r = state.plots[id].rarity?.key || state.plots[id].rarity;
+      if (counts[r] !== undefined) counts[r]++;
+      total++;
+    }
+
+    el("info-total-plots").textContent = total;
+    el("info-count-common").textContent = counts.common;
+    el("info-count-rare").textContent = counts.rare;
+    el("info-count-epic").textContent = counts.epic;
+    el("info-count-legendary").textContent = counts.legendary;
+  }
 
   // ---------------- Sign-in ----------------
   function onSignedIn() {
@@ -295,6 +326,14 @@
     el("recenter-btn").addEventListener("click", () => {
       if (currentPos) map.setView([currentPos.lat, currentPos.lon], Math.max(map.getZoom(), 19));
     });
+    
+    // Tap Balance or Profile Chip to open Player Info Modal
+    function openPlayerInfo() {
+      updatePlayerInfoModal();
+      openModal("player-info-modal");
+    }
+    el("hero-balance-card").addEventListener("click", openPlayerInfo);
+    document.querySelector(".player-chip")?.addEventListener("click", openPlayerInfo);
 
     el("earn-btn").addEventListener("click", () => openModal("wheel-modal"));
     el("land-btn").addEventListener("click", () => { updateLandModal(); openModal("land-modal"); });
