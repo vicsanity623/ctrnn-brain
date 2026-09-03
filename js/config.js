@@ -16,9 +16,9 @@ const CONFIG = {
   // --- Diamonds ---
   DIAMOND_SPAWN_RADIUS_METERS: 110.10, // 200 yards
   DIAMOND_COLLECT_RADIUS_METERS: 87.10, // 20 yards
-  DIAMOND_MAX_ACTIVE: 5,
-  DIAMOND_SPAWN_CHECK_MS: 250000,   // how often we consider spawning a new one
-  DIAMOND_LIFETIME_MS: 30 * 60 * 1000, // diamonds expire & respawn elsewhere after this long
+  DIAMOND_MAX_ACTIVE: 9,
+  DIAMOND_SPAWN_CHECK_MS: 30000,   // how often we consider spawning a new one
+  DIAMOND_LIFETIME_MS: 90 * 1000, // diamonds expire & respawn elsewhere after this long
 
   // --- Diamond Extractor ---
   EXTRACTOR_MIN_TILES: 5,               // Requires 5+ connected plots
