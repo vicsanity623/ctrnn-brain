@@ -1,79 +1,109 @@
 # Elden Earth
 
-A personal, real-world tile-collecting game. Walk around, find diamonds within a
-mile of you, spend them on a spin wheel for Elden Bucks (EB), then use EB to
-claim real 10×10 ft tiles on the map beneath you. Every tile you own earns EB
-automatically, forever, ticking up once a second.
+A real-world geo-location territory-claiming and idle income game. Walk the real world, collect diamonds, spin the fortune wheel for Elden Bucks (EB), claim real 10×10 ft tiles beneath your feet, and earn simulated passive rent ($USD) every fraction of a second.
 
-Pure static HTML/CSS/JS — no build step, no server, no API keys required to run.
+Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no backend server required, and 100% hosted for free on GitHub Pages as a full **Progressive Web App (PWA)**.
 
-## Host it on GitHub Pages
+---
 
-1. Create a new GitHub repository (public or private, either works with Pages).
-2. Upload every file in this folder, keeping the same structure:
-   ```
-   index.html
-   css/style.css
-   js/config.js
-   js/geo.js
-   js/storage.js
-   js/auth.js
-   js/diamonds.js
-   js/grid.js
-   js/wheel.js
-   js/main.js
-   README.md
-   ```
-3. In the repo, go to **Settings → Pages**, set **Source** to your default
-   branch (e.g. `main`) and folder `/ (root)`, then save.
-4. GitHub gives you a URL like `https://yourname.github.io/your-repo/`.
-   Open it on your phone — location access requires **HTTPS**, which GitHub
-   Pages provides automatically.
+## ✨ Key Features & Mechanics
 
-That's it. Progress is saved to the browser's local storage on whatever
-device you play on.
+* **🗺️ 512px HD Mapbox Retina Graphics:** High-definition dark-themed vector tiles with crisp street grids and building footprints up to Zoom 22.
+* **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded 40-yard collection radius.
+* **💵 Dual-Currency Economy:**
+  * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds.
+  * **Elden Bucks (EB):** Game currency used to claim new plots (100 EB) or construct base structures.
+* **⚡ 30X / 50X Income Multiplier:** Stackable 1-hour booster (up to 6 hours max bank) that electrifies the UI with animated gold pulses and speeds up real-time rent generation. Alternate days feature a rare **0.05% chance for a 50X Super Multiplier**.
+* **💎 Automated Diamond Extractor:** Unlockable beacon for players owning **5+ connected plots** that automatically mines 1 Diamond every 8 hours while offline. Upgradable with Cash Balance to expand storage capacity and reduce mining time.
+* **🎡 Weighted Diamond Spin Wheel:** Realistic physics-based spin wheel with weighted odds, jackpot prizes (25 EB & 50 EB), diamond refunds, and **`🚫` (Miss)** bust slices.
+* **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal.
+* **📱 Progressive Web App (PWA):** Installable directly to iOS & Android home screens with offline asset caching via `sw.js`.
 
-## Optional: real Google sign-in
+---
 
-By default the game only offers "Play as Guest" (data stored on-device).
-To add "Sign in with Google":
+## 📁 Repository Structure
 
-1. Go to the [Google Cloud Console credentials page](https://console.cloud.google.com/apis/credentials).
-2. Create an **OAuth 2.0 Client ID** of type **Web application**.
-3. Under **Authorized JavaScript origins**, add your GitHub Pages URL,
-   e.g. `https://yourname.github.io`.
-4. Copy the generated Client ID into `js/config.js`:
-   ```js
+```text
+├── index.html          # Main application structure, modals, and HUD
+├── manifest.json       # PWA app configuration & home screen icons
+├── sw.js               # Service Worker for local asset caching & offline play
+├── css/
+│   └── style.css       # Dark fantasy theme, animations, radar pulses & glowing borders
+└── js/
+    ├── config.js       # Central tuning file (rates, drop weights, radiuses, timers)
+    ├── geo.js          # Web Mercator math, tile bounds, and Haversine distance calculations
+    ├── storage.js      # LocalStorage save engine, offline progress, and dynamic rate lookups
+    ├── auth.js         # Google Identity Services OAuth & instant guest auto-login
+    ├── diamonds.js     # Spawn engine, expiration timer, and tap-to-collect logic
+    ├── grid.js         # 10x10ft tile rendering, flood-fill territory clustering & buy modal
+    ├── wheel.js        # Canvas-rendered 10-slice wheel with weighted RNG
+    └── main.js         # Game loop, 500ms ticker, booster countdowns, and UI wiring
+```
+
+---
+
+## 🚀 How to Host on GitHub Pages
+
+1. **Create a GitHub repository** (public or private) and upload all project files preserving the folder structure.
+2. In your repo, go to **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to `Deploy from a branch`, choose `main` (or default branch), and select folder `/ (root)`.
+4. Click **Save**. GitHub Pages will deploy your game at `https://yourusername.github.io/your-repo/`.
+5. Open the link on your phone. Tap **Share → Add to Home Screen** on iOS or **Install App** on Android to play in full-screen standalone mode.
+
+---
+
+## 🔑 Optional: Enable Google Sign-In
+
+By default, the game offers instant on-device Guest mode with persistent saves. To enable **Sign in with Google**:
+
+1. Open the [Google Cloud Console Credentials Page](https://console.cloud.google.com/apis/credentials).
+2. Create an **OAuth 2.0 Client ID** (Application type: *Web application*).
+3. Under **Authorized JavaScript origins**, add your GitHub Pages origin (e.g., `https://yourusername.github.io`).
+4. Copy your Client ID into `js/config.js`:
+   ```javascript
    GOOGLE_CLIENT_ID: "your-id-here.apps.googleusercontent.com",
    ```
-5. Commit and push. The Google button will now appear on the sign-in screen.
+5. Commit and push. The Google Sign-In button will appear automatically on the welcome screen.
 
-Without this step the game still works fully in guest mode.
+---
 
-## How the mechanics map to the code
+## ⚙️ Game Balance & Plot Rarities
 
-| Mechanic | File | Notes |
-|---|---|---|
-| Real-world grid of ~10×10 ft tiles | `js/geo.js`, `js/grid.js` | Uses the same Web Mercator projection as the map itself, snapped into fixed-size meter cells, so tiles line up perfectly at any location on Earth. |
-| Diamonds spawn within 1 mile, collect within 20 yards | `js/diamonds.js` | Sampled uniformly over the disk around your last known GPS fix; tapping one checks your live distance with the Haversine formula before allowing collection. |
-| Spin wheel (1 diamond per spin, 10 equal-odds slots) | `js/wheel.js`, `js/config.js` | 5 slots return your diamond, 5 pay out 1 / 2 / 5 / 25 / 50 EB. Edit `WHEEL_SLICES` in `config.js` to rebalance. |
-| Buying land (100 EB, random rarity) | `js/grid.js`, `js/config.js` | Tap any empty tile once zoomed in close enough to see the grid. Rarity odds and payout rates live in `PLOT_RARITIES`. |
-| Passive income ticking every second, with offline catch-up | `js/storage.js`, `js/main.js` | Balance updates once a second in the UI, and on reopening the app it back-fills whatever time passed while it was closed. |
+All gameplay tuning parameters are centralized in **`js/config.js`**:
 
-## Tuning the game
+| Rarity | Drop Chance | Rent per Second | Color |
+| :--- | :---: | :---: | :---: |
+| **Common** | **50%** | `$0.0000000011/s` | Slate Grey (`#8fa3b8`) |
+| **Rare** | **30%** | `$0.0000000160/s` | Cyan Blue (`#4f9dd6`) |
+| **Epic** | **15%** | `$0.0000000220/s` | Royal Purple (`#a86ee0`) |
+| **Legendary** | **5%** | `$0.0000000440/s` | Radiant Gold (`#e0a84f`) |
 
-Every number a player would feel — spawn radius, collection radius, plot
-cost, per-second rates, rarity odds, wheel payouts — lives in one place:
-`js/config.js`. Nothing else in the codebase needs to change to rebalance it.
+---
 
-## Notes & limitations
+## 🗺️ Future Roadmap: Top 10 Planned Features
 
-- Location accuracy depends entirely on the device's GPS; indoors or in dense
-  cities it can drift by tens of meters, which affects whether a diamond
-  reads as "in range."
-- The tile grid only renders once you're zoomed in close (tiles are tiny —
-  10 real feet across), by design, so the map doesn't choke on drawing
-  thousands of polygons at city zoom.
-- This is a from-scratch, personal-use fan implementation of the "walk
-  around and claim real-world tiles" idea — it doesn't use any code, assets,
-  or backend from Atlas Earth or any other existing app.
+1. **👑 Local Mayorship & Territory Dividends:** Player with the most plots in a city becomes Mayor, earns a commission on local tile sales, and displays their crown atop the city.
+2. **📅 300-Day Daily Login Calendar:** Scaling login streak rewards giving daily EB up to a Day 300 Jackpot (200 EB).
+3. **⚡ 50X "Blood Moon" Weekend Flash Events:** Time-limited global events where the multiplier jumps to 50X for 24 hours.
+4. **🎁 Mystery Map Chests:** Rare Bronze, Silver, and Golden chests appearing on the map requiring diamond keys to open.
+5. **🏰 3D Plot Landmarks & Upgrades:** Customizable visual monuments (Castles, Neon Shrines, Towers) providing local parcel income boosts.
+6. **🛂 Passport Stamps & Explorer Badges:** Collectible badges for traveling to new cities that award permanent account-wide +5% rent multipliers.
+7. **📜 Daily Quests & Weekly Bounties:** Engaging rotation of tasks (e.g., *Collect 3 diamonds*, *Spin 2 times*) for bonus EB.
+8. **🔥 Multiplayer Firestore Sync:** Real-time WebSocket synchronization across players to see claimed lands live worldwide without refreshing.
+9. **🛡️ Realm Guilds & Joint Kingdoms:** Alliance territories pooling diamonds into a communal Guild Vault to trigger kingdom-wide buffs.
+10. **🔊 Sensory Juice, SFX & Mobile Haptics:** Tactile vibrations and audio fanfares on diamond collection, wheel spins, and land claims.
+
+---
+
+## 📄 License & Disclaimer
+
+This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes.
+```
+
+---
+
+### How to apply:
+1. Open **`README.md`** on GitHub.
+2. Click the pencil icon (Edit).
+3. Select all and paste this markdown.
+4. Tap **Commit changes**. Your repo will now look clean, modern, and professional!
