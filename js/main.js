@@ -28,7 +28,7 @@
     if (el("stat-cash")) el("stat-cash").textContent = "$" + state.cash.toFixed(15);
 
     // Elden Bucks game currency in sub-row
-    if (el("stat-eb")) el("stat-eb").textContent = state.eb.toFixed(0) + " EB";
+    if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
 
     el("stat-diamonds").textContent = state.diamonds + " ◆";
     el("stat-rate").textContent = "$" + Store.totalRate().toFixed(11) + "/s";
@@ -439,25 +439,34 @@
 
     el("spin-btn").addEventListener("click", () => {
       const state = Store.get();
-      if (state.diamonds < CONFIG.SPIN_COST_DIAMONDS) {
+      const cost = CONFIG.SPIN_COST_DIAMONDS || 1;
+
+      if ((Number(state.diamonds) || 0) < cost) {
         showToast("Not enough diamonds — go find some!");
         return;
       }
-      state.diamonds -= CONFIG.SPIN_COST_DIAMONDS;
+
+      state.diamonds = Math.max(0, (Number(state.diamonds) || 0) - cost);
       Store.save();
       updateTopbar();
       el("spin-btn").disabled = true;
-      el("wheel-result").textContent = "";
+      el("wheel-result").textContent = "Spinning...";
 
       Wheel.spin((slice) => {
         const s = Store.get();
+        if (!slice) return;
+
         if (slice.type === "diamond") {
-          s.diamonds += 1;
-          el("wheel-result").textContent = "Your diamond found its way back to you.";
+          s.diamonds = (Number(s.diamonds) || 0) + 1;
+          el("wheel-result").textContent = "Your diamond found its way back to you. (◆ +1)";
+          showToast("💎 +1 Diamond Refunded!");
         } else {
-          s.eb += slice.amount;
-          el("wheel-result").textContent = `You won ${slice.amount} EB!`;
+          const winAmount = Number(slice.amount) || 0;
+          s.eb = (Number(s.eb) || 0) + winAmount;
+          el("wheel-result").textContent = `🎉 You won ${winAmount} EB!`;
+          showToast(`🎉 Won +${winAmount} Elden Bucks!`);
         }
+
         Store.save();
         updateTopbar();
         el("spin-btn").disabled = false;
