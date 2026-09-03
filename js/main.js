@@ -22,7 +22,7 @@
 
   function updateTopbar() {
     const state = Store.get();
-    el("stat-eb").textContent = state.eb.toFixed(8);
+    el("stat-eb").textContent = state.eb.toFixed(15);
     el("stat-diamonds").textContent = state.diamonds + " ◆";
     el("stat-rate").textContent = Store.totalRate().toFixed(8) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
@@ -141,18 +141,20 @@
 
   function startIncomeLoop() {
     const earned = Store.applyOfflineProgress();
-    if (earned > 0.00000001) {
+    if (earned > 0.000000000000001) {
       showToast(`Welcome back — earned ${earned.toFixed(8)} EB while away.`);
     }
     updateTopbar();
 
+    // Ticks every 0.5s (500ms), adding half a second of income per tick
     setInterval(() => {
       const state = Store.get();
-      state.eb += Store.totalRate();
+      const ratePerHalfSec = Store.totalRate() * 0.5;
+      state.eb += ratePerHalfSec;
       state.lastTick = Date.now();
       Store.save();
       updateTopbar();
-    }, 1000);
+    }, 500);
   }
 
   // ---------------- UI wiring ----------------
