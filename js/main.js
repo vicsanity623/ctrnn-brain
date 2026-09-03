@@ -22,9 +22,16 @@
 
   function updateTopbar() {
     const state = Store.get();
-    el("stat-eb").textContent = state.eb.toFixed(15);
+    if (state.cash === undefined) state.cash = 0;
+
+    // Hero simulated USD cash balance (15 decimals)
+    if (el("stat-cash")) el("stat-cash").textContent = "$" + state.cash.toFixed(15);
+
+    // Elden Bucks game currency in sub-row
+    if (el("stat-eb")) el("stat-eb").textContent = state.eb.toFixed(0) + " EB";
+
     el("stat-diamonds").textContent = state.diamonds + " ◆";
-    el("stat-rate").textContent = Store.totalRate().toFixed(8) + "/s";
+    el("stat-rate").textContent = "$" + Store.totalRate().toFixed(8) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
 
     const avatarEl = el("player-avatar");
@@ -170,15 +177,16 @@
   function startIncomeLoop() {
     const earned = Store.applyOfflineProgress();
     if (earned > 0.000000000000001) {
-      showToast(`Welcome back — earned ${earned.toFixed(8)} EB while away.`);
+      showToast(`Welcome back — earned $${earned.toFixed(8)} while away.`);
     }
     updateTopbar();
 
-    // Ticks every 0.5s (500ms), adding half a second of income per tick
+    // Ticks every 0.5s (500ms), adding passive USD cash income per tick
     setInterval(() => {
       const state = Store.get();
+      if (state.cash === undefined) state.cash = 0;
       const ratePerHalfSec = Store.totalRate() * 0.5;
-      state.eb += ratePerHalfSec;
+      state.cash += ratePerHalfSec;
       state.lastTick = Date.now();
       Store.save();
       updateTopbar();
