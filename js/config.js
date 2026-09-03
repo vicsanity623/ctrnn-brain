@@ -20,18 +20,18 @@ const CONFIG = {
   DIAMOND_SPAWN_CHECK_MS: 20000,   // how often we consider spawning a new one
   DIAMOND_LIFETIME_MS: 30 * 60 * 1000, // diamonds expire & respawn elsewhere after this long
 
-  // --- Spin wheel --- (10 equal-odds slices, 1 diamond per spin)
+  // --- Spin wheel --- (Weighted odds, 1 diamond per spin)
   WHEEL_SLICES: [
-    { type: "diamond", label: "+1 ◆", color: "#8fa3b8" },
-    { type: "eb", amount: 1,  label: "1 EB",  color: "#4fd6c4" },
-    { type: "diamond", label: "+1 ◆", color: "#8fa3b8" },
-    { type: "eb", amount: 2,  label: "2 EB",  color: "#4f9dd6" },
-    { type: "diamond", label: "+1 ◆", color: "#8fa3b8" },
-    { type: "eb", amount: 5,  label: "5 EB",  color: "#a86ee0" },
-    { type: "diamond", label: "+1 ◆", color: "#8fa3b8" },
-    { type: "eb", amount: 25, label: "25 EB", color: "#e0a84f" },
-    { type: "diamond", label: "+1 ◆", color: "#8fa3b8" },
-    { type: "eb", amount: 50, label: "50 EB", color: "#d4af61" },
+    { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
+    { type: "eb", amount: 1,  label: "1 EB",  color: "#4fd6c4", weight: 250 },
+    { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
+    { type: "eb", amount: 2,  label: "2 EB",  color: "#4f9dd6", weight: 130 },
+    { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
+    { type: "eb", amount: 5,  label: "5 EB",  color: "#a86ee0", weight: 50  },
+    { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
+    { type: "eb", amount: 25, label: "25 EB", color: "#e0a84f", weight: 15  },
+    { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
+    { type: "eb", amount: 50, label: "50 EB", color: "#d4af61", weight: 5   },
   ],
   SPIN_COST_DIAMONDS: 1,
 
