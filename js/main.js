@@ -39,6 +39,18 @@
     const state = Store.get();
     el("land-count").textContent = Object.keys(state.plots).length;
     el("land-rate").textContent = Store.totalRate().toFixed(8);
+
+    // Count plots by rarity
+    const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    for (const id in state.plots) {
+      const r = state.plots[id].rarity?.key || state.plots[id].rarity;
+      if (counts[r] !== undefined) counts[r]++;
+    }
+
+    if (el("count-common")) el("count-common").textContent = counts.common;
+    if (el("count-rare")) el("count-rare").textContent = counts.rare;
+    if (el("count-epic")) el("count-epic").textContent = counts.epic;
+    if (el("count-legendary")) el("count-legendary").textContent = counts.legendary;
   }
 
   // ---------------- Sign-in ----------------
