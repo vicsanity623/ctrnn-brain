@@ -9,7 +9,7 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: "",
 
   // --- Tile grid ---
-  TILE_SIZE_METERS: 3.048,        // ~10 x 10 feet
+  TILE_SIZE_METERS: 6.096,        // ~20 x 20 feet
   GRID_RENDER_MIN_ZOOM: 19,       // grid only draws once zoomed in this close
   GRID_RENDER_MAX_TILES: 2500,    // safety cap per redraw
 
