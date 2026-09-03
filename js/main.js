@@ -162,8 +162,8 @@
     let boostHideTimer = null;
 
     function scheduleBoost() {
-      // Appears randomly between 35 and 55 seconds
-      const delay = 35000 + Math.random() * 20000;
+      // Appears randomly between 55 and 115 seconds
+      const delay = 55000 + Math.random() * 60000;
       setTimeout(() => {
         if (!boostBtn) return;
         boostBtn.classList.remove("hidden");
