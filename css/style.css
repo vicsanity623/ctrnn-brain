@@ -426,3 +426,98 @@ html,body{
 .btn-secondary:hover {
   color: var(--parchment);
 }
+
+/* ---------- Hero Balance Top Line ---------- */
+.hero-top-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.boost-timer-badge {
+  background: linear-gradient(90deg, #d4af61, #f0d38a);
+  color: #0d1420;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(240, 211, 138, 0.8);
+  animation: badgePulse 1.5s infinite alternate ease-in-out;
+}
+
+/* ---------- Electric Gold Glowing Active Boost State ---------- */
+.hero-balance-card.boosted {
+  border: 1.5px solid #f0d38a;
+  box-shadow: 0 0 20px rgba(240, 211, 138, 0.6), inset 0 0 14px rgba(212, 175, 97, 0.4);
+  animation: electricGlow 1.8s infinite alternate ease-in-out;
+}
+.hero-balance-card.boosted .hero-balance-value {
+  color: #fff9e6;
+  text-shadow: 0 0 16px rgba(240, 211, 138, 0.9), 0 0 24px rgba(79, 214, 196, 0.5);
+}
+
+@keyframes electricGlow {
+  0% { box-shadow: 0 0 14px rgba(212, 175, 97, 0.5), inset 0 0 8px rgba(212, 175, 97, 0.3); }
+  50% { box-shadow: 0 0 26px rgba(240, 211, 138, 0.85), inset 0 0 18px rgba(79, 214, 196, 0.35); }
+  100% { box-shadow: 0 0 18px rgba(212, 175, 97, 0.6), inset 0 0 10px rgba(212, 175, 97, 0.4); }
+}
+
+@keyframes badgePulse {
+  0% { transform: scale(0.96); opacity: 0.9; }
+  100% { transform: scale(1.04); opacity: 1; }
+}
+
+/* ---------- Permanent Multiplier Floating Button ---------- */
+.multiplier-btn {
+  position: absolute;
+  left: 18px;
+  bottom: 95px;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(22, 32, 47, 0.95), rgba(13, 20, 32, 0.98));
+  border: 2px solid var(--gold);
+  color: var(--gold-hi);
+  font-family: var(--font-display);
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(212, 175, 97, 0.5), 0 4px 12px rgba(0, 0, 0, 0.7);
+  animation: multGlow 2s infinite ease-in-out;
+}
+.multiplier-btn:active { transform: scale(0.92); }
+.multiplier-btn .mult-tag { font-size: 14px; font-weight: 800; line-height: 1; }
+.multiplier-btn .mult-sub { font-size: 8px; letter-spacing: 1px; color: var(--teal); }
+
+@keyframes multGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(212, 175, 97, 0.4); }
+  50% { transform: translateY(-3px); box-shadow: 0 0 24px rgba(240, 211, 138, 0.8), 0 0 8px var(--teal); }
+}
+
+/* Booster Modal Info */
+.booster-icon-wrap {
+  font-size: 40px;
+  color: var(--gold-hi);
+  filter: drop-shadow(0 0 12px rgba(212, 175, 97, 0.7));
+  margin-bottom: 6px;
+}
+.booster-info-box {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 20px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.booster-info-box strong { color: var(--parchment); }
+.booster-info-box .gold-text { color: var(--gold-hi); }
