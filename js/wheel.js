@@ -59,11 +59,29 @@ const Wheel = (() => {
     draw();
   }
 
-  // Spins to a uniformly random slice (equal odds) and reports it back.
+  // Helper to pick slice based on weights
+  function pickWeightedIndex() {
+    const slices = CONFIG.WHEEL_SLICES;
+    const totalWeight = slices.reduce((sum, s) => sum + (s.weight || 10), 0);
+    let roll = Math.random() * totalWeight;
+
+    for (let i = 0; i < slices.length; i++) {
+      const w = slices[i].weight || 10;
+      if (roll < w) return i;
+      roll -= w;
+    }
+    return 0;
+  }
+
+  // Spins to weighted slice with realistic landing animation
   function spin(callback) {
     const n = CONFIG.WHEEL_SLICES.length;
     const sliceDeg = 360 / n;
-    const targetIndex = Math.floor(Math.random() * n);
+    const targetIndex = pickWeightedIndex();
+
+    // Add slight random offset within the slice so needle doesn't always hit dead-center
+    const jitter = (Math.random() - 0.5) * (sliceDeg * 0.7);
+    const targetCenter = targetIndex * sliceDeg + sliceDeg / 2 + jitter;
 
     const targetCenter = targetIndex * sliceDeg + sliceDeg / 2; // from top, clockwise
     const extraSpins = 5 + Math.floor(Math.random() * 2);
