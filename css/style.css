@@ -345,3 +345,42 @@ html,body{
 .plot-label{
   font-size:9px; color:rgba(255,255,255,0.85);
 }
+
+/* ---------- Floating +2 EB Boost Button ---------- */
+.boost-btn {
+  position: absolute;
+  right: 18px;
+  bottom: 95px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(20, 28, 42, 0.95), rgba(12, 18, 28, 0.98));
+  border: 1.5px solid var(--gold);
+  color: var(--gold-hi);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(212, 175, 97, 0.4), 0 4px 12px rgba(0, 0, 0, 0.6);
+  animation: boostPulse 2s infinite ease-in-out;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+
+.boost-btn:active {
+  transform: scale(0.92);
+}
+
+.boost-btn .boost-icon {
+  font-size: 16px;
+  color: var(--teal);
+  animation: boostSpin 3s infinite linear;
+}
+
+@keyframes boostPulse {
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 14px rgba(212, 175, 97, 0.35); }
+  50% { transform: translateY(-4px); box-shadow: 0 0 24px rgba(212, 175, 97, 0.65); }
+}
