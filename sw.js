@@ -1,17 +1,18 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'poke-cache-v1.3.9';
+const CACHE_NAME = 'elden-earth-v0.0.1';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './style.css',
-    './global.js',
-    './effects.js',
-    './game.js',
-    './inventory.js',
-    './journey.js',
-    './defense.js',
-    './battle.js'
+    './css/style.css',
+    './js/main.js',
+    './js/wheel.js',
+    './js/game.js',
+    './js/diamonds.js',
+    './js/auth.js',
+    './js/storage.js',
+    './js/geo.js',
+    './js/config.js',
 ];
 
 // 1. Install & Cache All Assets
