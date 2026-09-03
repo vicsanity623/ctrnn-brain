@@ -1,11 +1,11 @@
 // ============================================================
-// Elden Earth — land grid
-// Draws the real-world tile grid near the current view,
-// colors tiles the player already owns, and sells empty ones.
+// Elden Earth — land grid & territory clusters
 // ============================================================
 const Grid = (() => {
   let map = null;
-  let layerGroup = null;
+  let emptyGridLayer = null;
+  let ownedPlotsLayer = null;
+  let avatarMarkersLayer = null;
   let onBuyAttempt = () => {};
   let pendingTile = null;
 
@@ -29,7 +29,13 @@ const Grid = (() => {
   function promptBuyTile(tx, ty) {
     const state = Store.get();
     const tid = tileId(tx, ty);
-    if (state.plots[tid]) return;
+
+    // If someone already owns this tile, prevent purchase
+    if (state.plots[tid]) {
+      alert("This tile is already claimed!");
+      return;
+    }
+
     if (state.eb < CONFIG.PLOT_COST_EB) {
       onBuyAttempt(false, null);
       return;
@@ -54,7 +60,18 @@ const Grid = (() => {
 
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
-    state.plots[tid] = { tx, ty, rarity: rarity.key, rate: rarity.rate };
+    
+    // Store owner info for multiplayer support
+    state.plots[tid] = {
+      tx,
+      ty,
+      rarity: rarity.key,
+      rate: rarity.rate,
+      ownerId: state.player.id || "guest",
+      ownerName: state.player.name || "Traveler",
+      avatar: state.player.avatar || "🙂",
+    };
+
     Store.save();
     onBuyAttempt(true, rarity);
     render();
@@ -71,31 +88,119 @@ const Grid = (() => {
     };
   }
 
+  // Group adjacent connected tiles into clusters (Flood Fill)
+  function getConnectedClusters(plots) {
+    const visited = new Set();
+    const clusters = [];
+
+    for (const tid in plots) {
+      if (visited.has(tid)) continue;
+
+      const cluster = [];
+      const queue = [plots[tid]];
+      visited.add(tid);
+      const owner = plots[tid].ownerId;
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        cluster.push(current);
+
+        // Check 4-directional neighbors (North, South, East, West)
+        const neighbors = [
+          tileId(current.tx + 1, current.ty),
+          tileId(current.tx - 1, current.ty),
+          tileId(current.tx, current.ty + 1),
+          tileId(current.tx, current.ty - 1),
+        ];
+
+        for (const nId of neighbors) {
+          if (plots[nId] && !visited.has(nId) && plots[nId].ownerId === owner) {
+            visited.add(nId);
+            queue.push(plots[nId]);
+          }
+        }
+      }
+      clusters.push(cluster);
+    }
+    return clusters;
+  }
+
   function render() {
-    if (!layerGroup) return;
-    layerGroup.clearLayers();
-    if (map.getZoom() < CONFIG.GRID_RENDER_MIN_ZOOM) return;
+    if (!emptyGridLayer || !ownedPlotsLayer || !avatarMarkersLayer) return;
+
+    emptyGridLayer.clearLayers();
+    ownedPlotsLayer.clearLayers();
+    avatarMarkersLayer.clearLayers();
 
     const state = Store.get();
-    const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
-    const tileCount = (maxTx - minTx + 1) * (maxTy - minTy + 1);
-    if (tileCount > CONFIG.GRID_RENDER_MAX_TILES) return;
+    const zoom = map.getZoom();
 
-    for (let tx = minTx; tx <= maxTx; tx++) {
-      for (let ty = minTy; ty <= maxTy; ty++) {
-        const tid = tileId(tx, ty);
-        const owned = state.plots[tid];
-        const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+    // 1. ALWAYS RENDER OWNED TILES (Visible at zoom 13+)
+    if (zoom >= 13) {
+      for (const tid in state.plots) {
+        const plot = state.plots[tid];
+        const corners = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
+        const color = rarityInfo(plot.rarity).color;
 
-        const style = owned
-          ? { color: rarityInfo(owned.rarity).color, weight: 1, fillColor: rarityInfo(owned.rarity).color, fillOpacity: 0.45 }
-          : { color: "rgba(233,223,200,0.35)", weight: 1, fillColor: "#000", fillOpacity: 0.02 };
+        L.polygon(corners, {
+          color: color,
+          weight: zoom >= 18 ? 1 : 0.5,
+          fillColor: color,
+          fillOpacity: 0.55,
+        }).addTo(ownedPlotsLayer);
+      }
 
-        const poly = L.polygon(corners, style);
-        if (!owned) {
-          poly.on("click", () => promptBuyTile(tx, ty));
+      // 2. RENDER SINGLE AVATAR PER CONNECTED CLUSTER
+      const clusters = getConnectedClusters(state.plots);
+      for (const cluster of clusters) {
+        // Calculate the centroid center of this connected cluster
+        let sumLat = 0, sumLon = 0;
+        for (const p of cluster) {
+          const centerMerc = Geo.fromMercator(
+            p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+            p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+          );
+          sumLat += centerMerc.lat;
+          sumLon += centerMerc.lon;
         }
-        poly.addTo(layerGroup);
+
+        const centerLat = sumLat / cluster.length;
+        const centerLon = sumLon / cluster.length;
+        const avatar = cluster[0].avatar || "🙂";
+
+        const avatarIcon = L.divIcon({
+          className: "",
+          html: `<div class="plot-avatar-badge">${avatar.startsWith("img:") ? `<img src="${avatar.slice(4)}">` : avatar}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        });
+
+        L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: false }).addTo(avatarMarkersLayer);
+      }
+    }
+
+    // 3. RENDER EMPTY BUYABLE TILES (Only when zoomed in close)
+    if (zoom >= CONFIG.GRID_RENDER_MIN_ZOOM) {
+      const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
+      const tileCount = (maxTx - minTx + 1) * (maxTy - minTy + 1);
+      if (tileCount > CONFIG.GRID_RENDER_MAX_TILES) return;
+
+      for (let tx = minTx; tx <= maxTx; tx++) {
+        for (let ty = minTy; ty <= maxTy; ty++) {
+          const tid = tileId(tx, ty);
+          if (state.plots[tid]) continue; // Already rendered in owned layer
+
+          const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+          const poly = L.polygon(corners, {
+            color: "rgba(233,223,200,0.35)",
+            weight: 1,
+            fillColor: "#000",
+            fillOpacity: 0.02,
+          });
+
+          poly.on("click", () => promptBuyTile(tx, ty));
+          poly.addTo(emptyGridLayer);
+        }
       }
     }
   }
@@ -103,10 +208,13 @@ const Grid = (() => {
   function init(leafletMap, callbacks) {
     map = leafletMap;
     onBuyAttempt = callbacks.onBuyAttempt || onBuyAttempt;
-    layerGroup = L.layerGroup().addTo(map);
+
+    ownedPlotsLayer = L.layerGroup().addTo(map);
+    avatarMarkersLayer = L.layerGroup().addTo(map);
+    emptyGridLayer = L.layerGroup().addTo(map);
+
     map.on("moveend zoomend", render);
 
-    // Modal action listeners
     const confirmBtn = document.getElementById("buy-confirm-btn");
     const cancelBtn = document.getElementById("buy-cancel-btn");
 
