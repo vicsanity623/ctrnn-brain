@@ -10,12 +10,12 @@ const CONFIG = {
 
   // --- Tile grid ---
   TILE_SIZE_METERS: 6.096,        // ~20 x 20 feet
-  GRID_RENDER_MIN_ZOOM: 19,       // grid only draws once zoomed in this close
-  GRID_RENDER_MAX_TILES: 2500,    // safety cap per redraw
+  GRID_RENDER_MIN_ZOOM: 16,       // grid only draws once zoomed in this close
+  GRID_RENDER_MAX_TILES: 1200,    // safety cap per redraw
 
   // --- Diamonds ---
-  DIAMOND_SPAWN_RADIUS_METERS: 182.88, // 200 yards
-  DIAMOND_COLLECT_RADIUS_METERS: 18.288, // 20 yards
+  DIAMOND_SPAWN_RADIUS_METERS: 160.35, // 200 yards
+  DIAMOND_COLLECT_RADIUS_METERS: 36.576, // 20 yards
   DIAMOND_MAX_ACTIVE: 18,
   DIAMOND_SPAWN_CHECK_MS: 20000,   // how often we consider spawning a new one
   DIAMOND_LIFETIME_MS: 30 * 60 * 1000, // diamonds expire & respawn elsewhere after this long
