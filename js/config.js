@@ -18,7 +18,7 @@ const CONFIG = {
   DIAMOND_COLLECT_RADIUS_METERS: 50,  // ~55 yards (Reachable reach)
   DIAMOND_MAX_ACTIVE: 12,
   DIAMOND_SPAWN_CHECK_MS: 30000,      // Checks for 1 new diamond every 30 seconds
-  DIAMOND_LIFETIME_MS: 90 * 1000,     // 90 seconds
+  DIAMOND_LIFETIME_MS: 540 * 1000,     // 540 seconds or 5 min
 
   // --- Diamond Extractor ---
   EXTRACTOR_MIN_TILES: 5,               // Requires 5+ connected plots
