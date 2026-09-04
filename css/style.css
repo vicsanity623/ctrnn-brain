@@ -1781,39 +1781,7 @@ html,body{
   color: #1a1204 !important;
 }
 
-/* ================= DAILY LOGIN CALENDAR ================= */
 
-/* Floating Bottom-Left HUD Button */
-.calendar-btn {
-  position: absolute;
-  left: 18px;
-  bottom: 165px; /* Sits right above the 30X Multiplier button */
-  z-index: 15;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.7));
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.calendar-btn:active {
-  transform: scale(0.92);
-}
-
-/* Glowing Red Notification Dot */
-.calendar-red-dot {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 14px;
-  height: 14px;
-  background: #ff3b30;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #ff3b30, 0 0 16px rgba(255, 59, 48, 0.8);
-  z-index: 2;
-  animation: redPulse 1.6s infinite alternate ease-in-out;
-}
 
 @keyframes redPulse {
   0% { transform: scale(0.9); box-shadow: 0 0 6px #ff3b30; }
@@ -1996,40 +1964,116 @@ html,body{
 
 /* ================= LEADERBOARD HUD & MODAL ================= */
 
-/* Floating Trophy Button (Directly above Calendar) */
-.leaderboard-btn {
+/* ================= UNIFIED SIDE HUD STACK (LEADERBOARD + CALENDAR) ================= */
+.side-hud-stack {
   position: absolute;
   left: 18px;
-  bottom: 228px; /* Sits cleanly above the Calendar button */
+  bottom: 160px; /* Positions both neatly above the bottom bar */
   z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.side-hud-btn {
   background: none;
   border: none;
   padding: 0;
+  margin: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.leaderboard-btn:active {
-  transform: scale(0.92);
+  position: relative;
+  pointer-events: auto;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.65));
 }
 
-.trophy-icon-wrap {
-  font-size: 38px;
-  filter: drop-shadow(0 0 10px rgba(212, 175, 97, 0.7));
-  animation: boostPulse 2.5s infinite ease-in-out;
+.side-hud-btn:active {
+  transform: scale(0.9);
 }
 
-.leaderboard-label {
+/* Matching 48px width cards for pixel-perfect vertical alignment */
+.side-hud-card {
+  width: 48px;
+  height: 50px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Trophy Button Card */
+.trophy-card {
+  background: linear-gradient(145deg, #1c2a3d, #0d1420);
+  border: 1.5px solid rgba(212, 175, 97, 0.65);
+  box-shadow: 0 0 12px rgba(212, 175, 97, 0.25), inset 0 0 10px rgba(212, 175, 97, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trophy-emoji {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+  animation: boostPulse 2.8s infinite ease-in-out;
+}
+
+.side-hud-subtext {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  color: var(--parchment);
+  letter-spacing: 0.8px;
+  color: var(--gold-hi);
+  margin-top: 3px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Calendar Card */
+.calendar-icon-card {
+  background: #f8f9fa;
+  border: 1.5px solid rgba(212, 175, 97, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-card-top {
+  background: #d1495b;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  padding: 2px 0;
   letter-spacing: 0.5px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.cal-card-body {
+  flex: 1;
+  color: #1a2230;
+  font-family: var(--font-body);
+  font-size: 19px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Glowing Red Notification Dot (Anchored to top-right of Calendar) */
+.calendar-red-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 13px;
+  height: 13px;
+  background: #ff3b30;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ff3b30, 0 0 16px rgba(255, 59, 48, 0.8);
+  z-index: 5;
+  animation: redPulse 1.6s infinite alternate ease-in-out;
 }
 
 /* Leaderboard Modal Card */
