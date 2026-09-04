@@ -8,8 +8,11 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 
 ## ✨ Implemented Core Features & Mechanics
 
-* [x] **🎮 3D WebGL Engine & 60° Isometric Camera:** Full Mapbox GL JS 3D vector engine with 60° isometric camera tilt, free 360° gesture rotation, and true 3D extruded city buildings.
-* [x] **🧍 3D Animated Mixamo Characters (Three.js WebGL):** Integrated Three.js custom layer rendering upright, hero-scaled 3D character models (`.glb`) at real-time GPS coordinates with automatic `Idle` $\leftrightarrow$ `Walk` animation blending.
+* [x] **🎮 3D WebGL Engine & 60° Isometric Camera:** Mapbox GL JS 3D vector engine with 60° isometric camera tilt, free 360° touch orbit gestures, and true 3D extruded city buildings.
+* [x] **🧭 True North Navigation & Compass Reset:** Dedicated compass button that smoothly animates camera bearing back to True North (0°) and restores default 18.5 zoom.
+* [x] **📐 "Buy Land" Cinematic 2D Mode:** One-tap button that smoothly flies the camera from 60° 3D down to a flat 2D top-down view (`pitch: 0`), reveals the 10×10 ft grid strictly within reach, and allows precise land claims without building occlusions.
+* [x] **🧍 3D Animated Mixamo Characters (Three.js WebGL):** Integrated Three.js custom layer rendering upright, hero-scaled 3D character models (`.glb`) at real-time GPS coordinates with automatic `Idle` $\leftrightarrow$ `Walk` speed-based animation blending.
+* [x] **👗 3D Wardrobe & Character Selector:** In-game wardrobe modal accessible via a gold **✏️ Pencil** on the Player Info profile card, allowing players to hot-swap between multiple 3D models (`Soldier`, `Xbot`, `Fox`, `CesiumMan`, `Custom`).
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
 * [x] **☁️ Firebase Cloud Saves & Recovery:** Permanent account backups stored in Google Cloud Firestore. Reinstalling the app or logging in on a new device instantly restores all EB, cash, diamonds, boost time, and territories.
 * [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that pre-fetches world plots and coordinates with zero race conditions.
@@ -32,20 +35,9 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ## 🎨 Visual & Sensory Roadmap
 
 * [x] **Phase 1: 3D Diamond Overhaul & Particle Burst FX** *(Completed)*
-  * 3D isometric faceted crystal with specular lighting & ground shadow.
-  * Idle floating/hover bobbing animation with rising ambient stardust.
-  * Mini particle explosion burst that shatters outward when collected.
 * [x] **Phase 2: 3D Isometric Plots & Territory Visuals** *(Completed)*
-  * 3D raised elevation borders on claimed plots with rarity glow edges.
-  * Extractor 3D crystal beacon with rotating energy rings.
 * [x] **Phase 3: HUD Micro-Interactions & Flying Coins** *(Completed)*
-  * Floating `+1 ◆` and `+EB` combat-text popups rising from tap points.
-  * Flying diamond particles traveling from the ground into your top HUD counter.
 * [x] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Completed)*
-  * Mapbox GL JS WebGL map engine with camera pitch (60° isometric angle) and 360° bearing rotation.
-  * True 3D extruded building blocks on close zoom-in.
-  * 3D Mixamo GLTF/GLB skeletal character models with `Idle` $\leftrightarrow$ `Walk` animation blending.
-  * Fixed third-person orbit camera locked dead-center onto the player with 1-mile zoom boundaries.
 * [ ] **Phase 4: Sound FX & Mobile Haptics** *(Next Phase)*
   * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
   * Haptic vibration feedback on iOS & Android.
