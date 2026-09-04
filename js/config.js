@@ -67,6 +67,5 @@ const CONFIG = {
     { id: "xbot",      name: "X-Operative",      file: "models/Xbot.glb",      scale: 1.2, icon: "🦾" },
     { id: "fox",       name: "Spirit Fox",       file: "models/Fox.glb",       scale: 0.025, icon: "🦊" },
     { id: "cesium",    name: "Cesium Runner",    file: "models/CesiumMan.glb", scale: 1.5, icon: "🏃" },
-    { id: "character", name: "Custom Champion",  file: "models/character.glb", scale: 1.2, icon: "👤" },
   ],
 };
