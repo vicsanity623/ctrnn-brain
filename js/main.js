@@ -483,8 +483,44 @@
   function wireUI() {
     window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
 
-    // --- Flying +EB Particle to Topbar HUD ---
-    function spawnFlyingEBToHUD(startX, startY, amount) {
+    // --- Flying 3D Gem Arc Particle to HUD ---
+    function spawnFlyingGemToHUD(startX, startY) {
+      const targetEl = el("stat-diamonds");
+      if (!targetEl) return;
+
+      const targetBounds = targetEl.getBoundingClientRect();
+      const endX = targetBounds.left + targetBounds.width / 2;
+      const endY = targetBounds.top + targetBounds.height / 2;
+
+      const gem = document.createElement("div");
+      gem.className = "flying-3d-gem";
+      gem.style.left = `${startX}px`;
+      gem.style.top = `${startY}px`;
+      gem.innerHTML = `
+        <svg viewBox="0 0 32 38">
+          <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
+          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+        </svg>
+      `;
+      document.body.appendChild(gem);
+
+      requestAnimationFrame(() => {
+        gem.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.4) rotate(360deg)`;
+        gem.style.opacity = "0.2";
+      });
+
+      setTimeout(() => {
+        gem.remove();
+        targetEl.classList.remove("hud-impact-bump");
+        void targetEl.offsetWidth;
+        targetEl.classList.add("hud-impact-bump");
+      }, 750);
+    }
+
+    // --- Multi-Particle Flying EB Stream Launcher ---
+    function launchFlyingEBStream(startX, startY, totalAmount) {
       const targetEl = el("stat-eb");
       if (!targetEl) return;
 
@@ -492,24 +528,39 @@
       const endX = targetBounds.left + targetBounds.width / 2;
       const endY = targetBounds.top + targetBounds.height / 2;
 
-      const ebParticle = document.createElement("div");
-      ebParticle.className = "flying-eb-particle";
-      ebParticle.style.left = `${startX}px`;
-      ebParticle.style.top = `${startY}px`;
-      ebParticle.innerHTML = `+${amount} EB`;
-      document.body.appendChild(ebParticle);
+      // Launch individual particles up to total amount (max 50)
+      const particleCount = Math.min(50, totalAmount);
+      const isJackpot = totalAmount >= 25;
 
-      requestAnimationFrame(() => {
-        ebParticle.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.6)`;
-        ebParticle.style.opacity = "0.2";
-      });
+      for (let i = 0; i < particleCount; i++) {
+        // Stagger each particle slightly in time & random burst spread
+        setTimeout(() => {
+          const eb = document.createElement("div");
+          eb.className = "flying-eb-coin" + (isJackpot ? " jackpot-spark" : "");
+          
+          // Random burst jitter from origin
+          const spreadX = (Math.random() - 0.5) * (isJackpot ? 120 : 60);
+          const spreadY = (Math.random() - 0.5) * (isJackpot ? 120 : 60);
+          eb.style.left = `${startX + spreadX}px`;
+          eb.style.top = `${startY + spreadY}px`;
+          eb.innerHTML = isJackpot ? `<span>⚡</span>` : `<span>EB</span>`;
+          document.body.appendChild(eb);
 
-      setTimeout(() => {
-        ebParticle.remove();
-        targetEl.classList.remove("hud-impact-bump");
-        void targetEl.offsetWidth;
-        targetEl.classList.add("hud-impact-bump");
-      }, 700);
+          requestAnimationFrame(() => {
+            const dx = endX - (startX + spreadX);
+            const dy = endY - (startY + spreadY);
+            eb.style.transform = `translate(${dx}px, ${dy}px) scale(0.45) rotate(${Math.random() * 360}deg)`;
+            eb.style.opacity = "0.15";
+          });
+
+          setTimeout(() => {
+            eb.remove();
+            targetEl.classList.remove("hud-impact-bump");
+            void targetEl.offsetWidth;
+            targetEl.classList.add("hud-impact-bump");
+          }, 750);
+        }, i * (totalAmount > 10 ? 25 : 80)); // Fast machine-gun cascade for 50 EB
+      }
     }
 
     // --- 30-Day Daily Login Calendar System ---
@@ -856,8 +907,11 @@
     }
 
     if (boostBtn) {
-      boostBtn.addEventListener("click", () => {
+      boostBtn.addEventListener("click", (e) => {
         clearTimeout(boostHideTimer);
+        const rect = boostBtn.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
         boostBtn.classList.add("hidden");
 
         const state = Store.get();
@@ -865,6 +919,9 @@
         Store.save();
         updateTopbar();
         showToast("⚡ Claimed +2.00 EB Boost!");
+
+        // Launch 2 flying EB sparks into the HUD!
+        launchFlyingEBStream(originX, originY, 2);
 
         // Schedule next appearance
         scheduleBoost();
@@ -972,13 +1029,32 @@
         const s = Store.get();
         if (!slice) return;
 
+        // Coordinates from the center of the wheel
+        const wheelEl = el("wheel-canvas");
+        const wRect = wheelEl ? wheelEl.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 };
+        const originX = wRect.left + wRect.width / 2;
+        const originY = wRect.top + wRect.height / 2;
+
         if (slice.type === "diamond") {
           s.diamonds = (Number(s.diamonds) || 0) + 1;
           el("wheel-result").textContent = "Your diamond found its way back to you. (◆ +1)";
           showToast("💎 +1 Diamond Refunded!");
+
+          // Auto-close wheel modal & launch flying gem to HUD
+          setTimeout(() => {
+            closeModal("wheel-modal");
+            spawnFlyingGemToHUD(originX, originY);
+          }, 800);
+
         } else if (slice.type === "miss") {
           el("wheel-result").textContent = "Better luck next time! (No reward)";
           showToast("🚫 Nothing this time — keep searching!");
+
+          // Auto-close wheel modal on miss
+          setTimeout(() => {
+            closeModal("wheel-modal");
+          }, 1200);
+
         } else {
           const winAmount = Number(slice.amount) || 0;
           s.eb = (Number(s.eb) || 0) + winAmount;
@@ -989,6 +1065,12 @@
           if (winAmount >= 25 && typeof Feed !== "undefined") {
             Feed.broadcast("jackpot", { amount: winAmount });
           }
+
+          // Auto-close wheel modal & launch cascading EB shower
+          setTimeout(() => {
+            closeModal("wheel-modal");
+            launchFlyingEBStream(originX, originY, winAmount);
+          }, 850);
         }
 
         Store.save();
