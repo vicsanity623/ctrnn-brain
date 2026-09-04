@@ -20,6 +20,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
   * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds with dual-scale typography and suppressed leading zeros under $1.00.
   * **Elden Bucks (EB):** Game currency used to claim new plots (100 EB) or construct base structures.
 * [x] **⚡ 30X / 50X Income Multiplier:** Stackable 1-hour booster (up to 6 hours max bank) that electrifies the UI with animated gold pulses and speeds up real-time rent generation. Alternate days feature a rare **0.05% chance for a 50X Super Multiplier**.
+* [x] **🖥️ HUD Micro-Interactions & Flying Coins** Floating `+1 ◆` and `+EB` combat-text popups rising from tap points. Flying diamond particles traveling from the ground into your top HUD counter.
 * [x] **💎 Automated Diamond Extractor:** Unlockable beacon for players owning **5+ connected plots** (Limit 1 per player) that automatically mines 1 Diamond every 2 minutes (holds up to 50 gems). Upgradable with Cash Balance to expand capacity and reduce mining time.
 * [x] **🎡 Weighted Diamond Spin Wheel:** Realistic physics-based spin wheel with weighted odds, jackpot prizes (25 EB & 50 EB), 3D canvas gems, diamond refunds, and **`🚫` (Miss)** bust slices with background failsafe recovery.
 * [x] **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal (supports inspecting other players).
@@ -36,7 +37,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **Phase 2: 3D Isometric Plots & Territory Visuals** *(Completed)*
   * 3D raised elevation borders on claimed plots with rarity glow edges.
   * Extractor 3D crystal beacon with rotating energy rings.
-* [ ] **Phase 3: HUD Micro-Interactions & Flying Coins**
+* [x] **Phase 3: HUD Micro-Interactions & Flying Coins**
   * Floating `+1 ◆` and `+EB` combat-text popups rising from tap points.
   * Flying diamond particles traveling from the ground into your top HUD counter.
 * [ ] **Phase 4: Sound FX & Mobile Haptics**
