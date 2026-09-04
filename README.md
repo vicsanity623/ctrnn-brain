@@ -15,6 +15,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **👗 3D Wardrobe & Character Selector:** In-game wardrobe modal accessible via a gold **✏️ Pencil** on the Player Info profile card, allowing players to hot-swap between multiple 3D models (`Soldier`, `Xbot`, `Fox`, `CesiumMan`, `Custom`).
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
 * [x] **☁️ Firebase Cloud Saves & Anti-Exploit Security:** Permanent account backups stored in Google Cloud Firestore with strict document overwriting and a persistent collected-diamond blacklist (`collectedDiamondIds`) that eliminates force-close duplication glitches.
+* [x] **💬 Global Live Activity Feed:** A subtle ticker at the bottom showing live accomplishments.
 * [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that pre-fetches world plots and coordinates with zero race conditions.
 * [x] **📱 Forced Portrait Guard:** Orientation guard overlay preventing unintended screen rotation on mobile devices.
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
@@ -65,7 +66,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ### 👑 III. Social, Multiplayer & Prestige
 * [ ] **10. 👑 Local Mayorship & Regional Dividends:**
   * The player owning the most plots in a town or city becomes **Mayor**, wears a golden crown, and collects a **1%–3% dividend** on every local land sale.
-* [ ] **11. 💬 Global Live Activity Feed:**
+* [x] **11. 💬 Global Live Activity Feed:**
   * A subtle ticker at the bottom showing live accomplishments: *"Artistic just claimed a Legendary plot in Phoenix!"*, *"Player X hit the 50 EB Jackpot!"*
 * [ ] **12. 🏆 Global & Local Leaderboards:**
   * Top 100 rankings for Most Plots Owned, Total Rent Accrued, and Active Mayors.
