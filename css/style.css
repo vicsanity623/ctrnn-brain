@@ -951,3 +951,131 @@ html,body{
   background-repeat: no-repeat;
   filter: drop-shadow(0 0 4px rgba(79, 214, 196, 0.8));
 }
+
+/* ================= PHASE 2: 3D PLOTS & ORBITAL EXTRACTOR ================= */
+
+/* 3D Raised Elevation Borders & Rarity Glows */
+.owned-plot-3d {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: fill-opacity 0.3s ease;
+}
+
+.owned-plot-3d.rarity-common {
+  filter: drop-shadow(0 0 3px rgba(143, 163, 184, 0.5));
+}
+.owned-plot-3d.rarity-rare {
+  filter: drop-shadow(0 0 6px rgba(79, 157, 214, 0.75));
+}
+.owned-plot-3d.rarity-epic {
+  filter: drop-shadow(0 0 8px rgba(168, 110, 224, 0.85));
+  animation: epicPulse 3s infinite alternate ease-in-out;
+}
+.owned-plot-3d.rarity-legendary {
+  filter: drop-shadow(0 0 10px rgba(224, 168, 79, 0.95)) drop-shadow(0 0 3px #ffffff);
+  animation: legendaryGleam 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes epicPulse {
+  0% { stroke-opacity: 0.8; fill-opacity: 0.52; }
+  100% { stroke-opacity: 1; fill-opacity: 0.65; }
+}
+
+@keyframes legendaryGleam {
+  0% { stroke-opacity: 0.85; filter: drop-shadow(0 0 6px rgba(224, 168, 79, 0.8)); }
+  100% { stroke-opacity: 1; filter: drop-shadow(0 0 14px rgba(224, 168, 79, 1)) drop-shadow(0 0 5px #fff); }
+}
+
+/* ---------- 3D Extractor Beacon with Orbital Energy Rings ---------- */
+.extractor-3d-wrap {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: auto;
+}
+
+.beacon-root {
+  position: relative;
+  width: 44px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+}
+
+/* Pulsing Ground Rune */
+.beacon-ground-aura {
+  position: absolute;
+  bottom: 6px;
+  width: 24px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(79, 214, 196, 0.8) 0%, transparent 75%);
+  box-shadow: 0 0 12px rgba(79, 214, 196, 0.9);
+  animation: groundRunePulse 2s infinite alternate ease-in-out;
+}
+
+/* 3D Floating Central Extractor Gem */
+.beacon-core-gem {
+  position: relative;
+  width: 22px;
+  height: 28px;
+  z-index: 2;
+  animation: beaconGemFloat 2.2s infinite alternate ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.9));
+}
+.beacon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Orbital Energy Rings */
+.orbit-ring {
+  position: absolute;
+  top: 14px;
+  left: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(79, 214, 196, 0.85);
+  box-shadow: 0 0 8px rgba(79, 214, 196, 0.6);
+  pointer-events: none;
+}
+
+.orbit-ring.ring-1 {
+  transform: rotateX(65deg) rotateZ(0deg);
+  animation: orbitSpin1 3.5s linear infinite;
+  border-color: #4fd6c4;
+}
+
+.orbit-ring.ring-2 {
+  transform: rotateX(65deg) rotateY(40deg) rotateZ(0deg);
+  animation: orbitSpin2 4.5s linear infinite reverse;
+  border-color: #f0d38a;
+  box-shadow: 0 0 8px rgba(240, 211, 138, 0.7);
+  width: 28px;
+  height: 28px;
+  left: 8px;
+  top: 16px;
+}
+
+@keyframes orbitSpin1 {
+  0% { transform: rotateX(65deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateZ(360deg); }
+}
+
+@keyframes orbitSpin2 {
+  0% { transform: rotateX(65deg) rotateY(40deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateY(40deg) rotateZ(360deg); }
+}
+
+@keyframes beaconGemFloat {
+  0% { transform: translateY(0px) scale(0.95); }
+  100% { transform: translateY(-6px) scale(1.05); }
+}
+
+@keyframes groundRunePulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
