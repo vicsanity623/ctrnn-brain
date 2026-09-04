@@ -162,8 +162,8 @@ const Diamonds = (() => {
         const el = createGemElement(dim, did);
         const m = new mapboxgl.Marker({
           element: el,
-          pitchAlignment: "map",
-          rotationAlignment: "map",
+          pitchAlignment: "viewport",    // Stands vertically upright in 3D
+          rotationAlignment: "viewport", // Faces player camera
         })
           .setLngLat([d.lon, d.lat])
           .addTo(map);
