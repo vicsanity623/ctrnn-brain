@@ -193,6 +193,14 @@ const Feed = (() => {
       feedCard.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
     }
 
+    // Add initial welcoming realm broadcast so the box is never blank
+    addEventLocally({
+      id: "welcome_ev",
+      message: `✨ Welcome to <strong>Elden Earth</strong>. Walk the realm & claim the ground beneath your feet!`,
+      type: "system",
+      timestamp: Date.now()
+    });
+
     listen();
   }
 
