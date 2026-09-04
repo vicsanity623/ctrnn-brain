@@ -6,6 +6,7 @@
   let map, sonarMarker, watchId;
   let currentPos = null;
   let toastTimer = null;
+  let updateSonarRadiusPixels = null;
 
   const el = (id) => document.getElementById(id);
 
