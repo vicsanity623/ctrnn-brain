@@ -1,19 +1,26 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'elden-earth-v0.3.5';
+const CACHE_NAME = 'elden-earth-v0.7.2';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './css/style.css',
     './manifest.json',
+    './models/CesiumMan.glb',
+    './models/Fox.glb',
+    './models/Soldier.glb',
+    './models/Xbot.glb',
     './js/main.js',
+    './js/loading.js',
     './js/wheel.js',
     './js/diamonds.js',
     './js/auth.js',
     './js/storage.js',
     './js/grid.js',
     './js/geo.js',
+    './js/feed.js',
     './js/config.js',
+    './js/character.js'
 ];
 
 // 1. Force Immediate Installation

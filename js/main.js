@@ -3,9 +3,10 @@
 // Wires sign-in -> location permission -> map -> game loop.
 // ============================================================
 (() => {
-  let map, playerMarker, collectionCircle, pulseWave1, pulseWave2, watchId;
+  let map, watchId;
   let currentPos = null;
   let toastTimer = null;
+  let pulseAnimId = null;
 
   const el = (id) => document.getElementById(id);
 
@@ -117,6 +118,10 @@
       av.textContent = avatar || "🙂";
     }
 
+    // Only show the edit pencil on your own profile
+    const editBtn = el("edit-avatar-btn");
+    if (editBtn) editBtn.style.display = isOtherPlayer ? "none" : "flex";
+
     // Initial Rent Display
     let rentVal = isOtherPlayer ? 0 : (state.cash || 0);
     el("info-total-rent").textContent = "$" + Number(rentVal).toFixed(15);
@@ -191,81 +196,266 @@
     );
   }
 
+  function updatePlayerRadiusLayer() {
+    if (!map || !currentPos) return;
+    const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
+    const ringCoords = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
+
+    const data = {
+      type: "FeatureCollection",
+      features: [
+        // 100m boundary polygon
+        {
+          type: "Feature",
+          properties: { type: "boundary" },
+          geometry: { type: "Polygon", coordinates: [ringCoords] }
+        },
+        // Center point for the pulsing shockwave
+        {
+          type: "Feature",
+          properties: { type: "center" },
+          geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+        }
+      ]
+    };
+
+    if (map.getSource("player-sonar-source")) {
+      map.getSource("player-sonar-source").setData(data);
+    }
+  }
+
   function handlePosition(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     if (!map) return;
-    playerMarker.setLatLng([currentPos.lat, currentPos.lon]);
-    collectionCircle.setLatLng([currentPos.lat, currentPos.lon]);
-    pulseWave1?.setLatLng([currentPos.lat, currentPos.lon]);
-    pulseWave2?.setLatLng([currentPos.lat, currentPos.lon]);
+    
+    // Move 3D Character & Geographic Radius Layer
+    Character3D.setPlayerPosition(currentPos.lon, currentPos.lat);
+    updatePlayerRadiusLayer();
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
-
-  // ---------------- Map / game ----------------
+  
+  // ---------------- 3D Map / Game Launch ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     el("locate-screen")?.classList.add("hidden");
     el("loading-screen")?.classList.add("hidden");
     el("game-screen")?.classList.remove("hidden");
 
-    map = L.map("map", { zoomControl: false, attributionControl: true })
-      .setView([currentPos.lat, currentPos.lon], 19);
-
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
+    mapboxgl.accessToken = mbToken;
 
-    L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${mbToken}`, {
-      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
-      tileSize: 512,
-      zoomOffset: -1,
-      maxZoom: 22,
-      maxNativeZoom: 22,
-    }).addTo(map);
-
-    playerMarker = L.marker([currentPos.lat, currentPos.lon], {
-      icon: L.divIcon({ className: "", html: '<div class="player-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
-      zIndexOffset: 1000,
-    }).addTo(map);
-
-    // Outer Static Boundary Circle
-    collectionCircle = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 1.5, fillColor: "#4fd6c4", fillOpacity: 0.04, dashArray: "4 6",
-    }).addTo(map);
-
-    // Continuous Expanding Radar Wave 1
-    pulseWave1 = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
-      className: "radar-wave wave-1",
-    }).addTo(map);
-
-    // Continuous Expanding Radar Wave 2 (Staggered offset)
-    pulseWave2 = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
-      className: "radar-wave wave-2",
-    }).addTo(map);
-
-    Diamonds.init(map, {
-      onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
-      onDenied: () => showToast("Too far — walk closer to collect it."),
+    // 1. Initialize Mapbox 3D Camera (Smooth Gestures + Locked to Player)
+    map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [currentPos.lon, currentPos.lat],
+      zoom: 18.5,
+      minZoom: 15.2,   // 1 mile max zoom-out
+      maxZoom: 19.6,   // Street-level max zoom-in
+      pitch: 60,
+      bearing: 0,
+      antialias: true,
+      dragPan: false,  // Map stays locked to player (cannot scroll away)
+      dragRotate: true,
+      touchZoomRotate: true,
     });
-    Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
 
-    Grid.init(map, {
-      onBuyAttempt: (success, rarity) => {
-        if (success) {
-          showToast(`Claimed a ${rarity.label} plot!`);
-          updateTopbar();
-          updateLandModal();
-        } else {
-          showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
+    // Smooth 1-finger camera orbit around player
+    let isOrbiting = false;
+    let lastTouchX = 0;
+    const canvas = map.getCanvas();
+
+    canvas.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        isOrbiting = true;
+        lastTouchX = e.touches[0].clientX;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener("touchmove", (e) => {
+      // Only orbit if 1 finger is down (leaves 2-finger pinch-zoom totally smooth)
+      if (isOrbiting && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - lastTouchX;
+        lastTouchX = e.touches[0].clientX;
+        map.setBearing(map.getBearing() + deltaX * 0.4);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener("touchend", () => { isOrbiting = false; });
+
+    // Re-lock center strictly when gestures finish (never interrupts animations mid-flight)
+    map.on("zoomend", () => {
+      if (currentPos) map.setCenter([currentPos.lon, currentPos.lat]);
+    });
+
+    map.on("load", () => {
+      // 2. Add True 3D Extruded Buildings
+      const layers = map.getStyle().layers;
+      const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#182232",
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "min_height"],
+          "fill-extrusion-opacity": 0.85,
+        },
+      }, labelLayerId);
+
+      // 3. Mount 3D Animated Character
+      Character3D.init(map, currentPos.lon, currentPos.lat);
+      
+      // 3.5. Mount 3D Ground Sonar Layer (Locked to exact real-world meters)
+      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
+      const initialRing = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
+
+      map.addSource("player-sonar-source", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: { type: "boundary" },
+              geometry: { type: "Polygon", coordinates: [initialRing] }
+            },
+            {
+              type: "Feature",
+              properties: { type: "center" },
+              geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+            }
+          ]
         }
-      },
+      });
+
+      // Subtle turquoise radar aura on the terrain
+      map.addLayer({
+        id: "player-sonar-fill",
+        type: "fill",
+        source: "player-sonar-source",
+        filter: ["==", ["get", "type"], "boundary"],
+        paint: {
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.05
+        }
+      }, labelLayerId);
+
+      // Dedicated GeoJSON Source for the Expanding Shockwave
+      map.addSource("player-wave-source", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: []
+        }
+      });
+
+      // Expanding Wave Fill (soft gradient)
+      map.addLayer({
+        id: "player-wave-fill",
+        type: "fill",
+        source: "player-wave-source",
+        paint: {
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.12
+        }
+      }, labelLayerId);
+
+      // Expanding Wave Crest (outer ripple ring)
+      map.addLayer({
+        id: "player-wave-line",
+        type: "line",
+        source: "player-wave-source",
+        paint: {
+          "line-color": "#4fd6c4",
+          "line-width": 2,
+          "line-opacity": 0.6
+        }
+      }, labelLayerId);
+
+      // Exact 100m Outer Dashed Boundary Ring
+      map.addLayer({
+        id: "player-sonar-line",
+        type: "line",
+        source: "player-sonar-source",
+        paint: {
+          "line-color": "#4fd6c4",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+          "line-opacity": 0.85
+        }
+      }, labelLayerId);
+
+      // Smooth Geodesic Pulse Animation (Reaches exact 100m edge, zero shader glitch)
+      const pulseDuration = 3200; // Smooth 3.2s expansion
+      let pulseStart = performance.now();
+
+      function animatePulse(timestamp) {
+        if (!map || !map.getSource("player-wave-source") || !currentPos) {
+          pulseAnimId = requestAnimationFrame(animatePulse);
+          return;
+        }
+
+        const elapsed = (timestamp - pulseStart) % pulseDuration;
+        const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
+
+        // Ease-out cubic curve: ripples fast from character, slows down smoothly at boundary
+        const easeOut = 1 - Math.pow(1 - linearProgress, 2.5);
+
+        // Radius scales from 2m up to the EXACT 100m boundary
+        const currentRadius = Math.max(2, easeOut * radiusM);
+
+        // Opacity smoothly fades to 0 before resetting, eliminating any snap/glitch
+        const fadeProgress = Math.pow(1 - linearProgress, 1.8);
+        const fillOpacity = fadeProgress * 0.14;
+        const lineOpacity = fadeProgress * 0.75;
+
+        // Generate the exact polygon at current expansion
+        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 48);
+
+        map.getSource("player-wave-source").setData({
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [wavePoly] }
+          }]
+        });
+
+        map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
+        map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
+
+        pulseAnimId = requestAnimationFrame(animatePulse);
+      }
+      pulseAnimId = requestAnimationFrame(animatePulse);
+      
+      // 4. Initialize Core Game Subsystems
+      Grid.init(map, {
+        onBuyAttempt: (success, rarity) => {
+          if (success) {
+            showToast(`Claimed a ${rarity.label} plot!`);
+            updateTopbar();
+            updateLandModal();
+          } else {
+            showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
+          }
+        },
+      });
+      Grid.render();
+
+      Diamonds.init(map, {
+        onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
+        onDenied: () => showToast("Too far — walk closer to collect it."),
+      });
+      Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
     });
-    Grid.render();
 
     Wheel.init();
+    if (typeof Feed !== "undefined") Feed.init();
     startIncomeLoop();
     wireUI();
   }
@@ -292,6 +482,253 @@
   // ---------------- UI wiring ----------------
   function wireUI() {
     window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
+
+    // --- Flying 3D Gem Arc Particle to HUD ---
+    function spawnFlyingGemToHUD(startX, startY) {
+      const targetEl = el("stat-diamonds");
+      if (!targetEl) return;
+
+      const targetBounds = targetEl.getBoundingClientRect();
+      const endX = targetBounds.left + targetBounds.width / 2;
+      const endY = targetBounds.top + targetBounds.height / 2;
+
+      const gem = document.createElement("div");
+      gem.className = "flying-3d-gem";
+      gem.style.left = `${startX}px`;
+      gem.style.top = `${startY}px`;
+      gem.innerHTML = `
+        <svg viewBox="0 0 32 38">
+          <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
+          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+        </svg>
+      `;
+      document.body.appendChild(gem);
+
+      requestAnimationFrame(() => {
+        gem.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.4) rotate(360deg)`;
+        gem.style.opacity = "0.2";
+      });
+
+      setTimeout(() => {
+        gem.remove();
+        targetEl.classList.remove("hud-impact-bump");
+        void targetEl.offsetWidth;
+        targetEl.classList.add("hud-impact-bump");
+      }, 750);
+    }
+
+    // --- Multi-Particle Flying EB Stream Launcher ---
+    function launchFlyingEBStream(startX, startY, totalAmount) {
+      const targetEl = el("stat-eb");
+      if (!targetEl) return;
+
+      const targetBounds = targetEl.getBoundingClientRect();
+      const endX = targetBounds.left + targetBounds.width / 2;
+      const endY = targetBounds.top + targetBounds.height / 2;
+
+      // Launch individual particles up to total amount (max 50)
+      const particleCount = Math.min(50, totalAmount);
+      const isJackpot = totalAmount >= 25;
+
+      for (let i = 0; i < particleCount; i++) {
+        // Stagger each particle slightly in time & random burst spread
+        setTimeout(() => {
+          const eb = document.createElement("div");
+          eb.className = "flying-eb-coin" + (isJackpot ? " jackpot-spark" : "");
+          
+          // Random burst jitter from origin
+          const spreadX = (Math.random() - 0.5) * (isJackpot ? 120 : 60);
+          const spreadY = (Math.random() - 0.5) * (isJackpot ? 120 : 60);
+          eb.style.left = `${startX + spreadX}px`;
+          eb.style.top = `${startY + spreadY}px`;
+          eb.innerHTML = isJackpot ? `<span>⚡</span>` : `<span>EB</span>`;
+          document.body.appendChild(eb);
+
+          requestAnimationFrame(() => {
+            const dx = endX - (startX + spreadX);
+            const dy = endY - (startY + spreadY);
+            eb.style.transform = `translate(${dx}px, ${dy}px) scale(0.45) rotate(${Math.random() * 360}deg)`;
+            eb.style.opacity = "0.15";
+          });
+
+          setTimeout(() => {
+            eb.remove();
+            targetEl.classList.remove("hud-impact-bump");
+            void targetEl.offsetWidth;
+            targetEl.classList.add("hud-impact-bump");
+          }, 750);
+        }, i * (totalAmount > 10 ? 25 : 80)); // Fast machine-gun cascade for 50 EB
+      }
+    }
+
+    // --- 30-Day Daily Login Calendar System ---
+    function getCalendarState() {
+      const state = Store.get();
+      if (!state.calendar) {
+        state.calendar = {
+          currentDay: 1,
+          lastClaimDate: null, // "YYYY-MM-DD"
+          totalClaimed: 0
+        };
+      }
+      return state.calendar;
+    }
+
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateCalendarHUD() {
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+      const isClaimedToday = cal.lastClaimDate === todayKey;
+
+      // Update HUD Calendar Card numbers
+      const now = new Date();
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      if (el("cal-hud-month")) el("cal-hud-month").textContent = months[now.getMonth()];
+      if (el("cal-hud-day")) el("cal-hud-day").textContent = now.getDate();
+
+      // Show / hide glowing red dot
+      const unreadDot = el("calendar-unread-dot");
+      if (unreadDot) {
+        if (!isClaimedToday) {
+          unreadDot.classList.remove("hidden");
+        } else {
+          unreadDot.classList.add("hidden");
+        }
+      }
+    }
+
+    function renderCalendarModal() {
+      const list = el("calendar-days-list");
+      if (!list) return;
+      list.innerHTML = "";
+
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+      const isClaimedToday = cal.lastClaimDate === todayKey;
+      const rewards = CONFIG.DAILY_CALENDAR_REWARDS || [];
+
+      rewards.forEach((r) => {
+        const dayNum = r.day;
+        const isPast = dayNum < cal.currentDay || (dayNum === cal.currentDay && isClaimedToday);
+        const isTodayActive = dayNum === cal.currentDay && !isClaimedToday;
+        const isFuture = dayNum > cal.currentDay;
+
+        const row = document.createElement("div");
+        row.className = "cal-day-row" + (isTodayActive ? " active" : "") + (isPast ? " claimed" : "") + (isFuture ? " locked" : "");
+
+        let actionHtml = "";
+        if (isPast) {
+          actionHtml = `<span class="cal-status-claimed">✓ Claimed</span>`;
+        } else if (isTodayActive) {
+          actionHtml = `<button class="cal-claim-btn" id="claim-day-${dayNum}">Claim +${r.eb} EB</button>`;
+        } else {
+          actionHtml = `<span class="cal-status-locked">🔒 Day ${dayNum}</span>`;
+        }
+
+        row.innerHTML = `
+          <div class="cal-day-left">
+            <span class="cal-day-badge">Day ${dayNum}</span>
+            <span class="cal-reward-amount">+${r.eb} EB</span>
+          </div>
+          <div class="cal-day-right">
+            ${actionHtml}
+          </div>
+        `;
+
+        list.appendChild(row);
+
+        if (isTodayActive) {
+          const claimBtn = row.querySelector(".cal-claim-btn");
+          claimBtn?.addEventListener("click", (e) => {
+            const rect = claimBtn.getBoundingClientRect();
+            claimDailyReward(r.eb, rect.left + rect.width / 2, rect.top + rect.height / 2);
+          });
+        }
+      });
+    }
+
+    function claimDailyReward(amount, clickX, clickY) {
+      const state = Store.get();
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+
+      if (cal.lastClaimDate === todayKey) return;
+
+      cal.lastClaimDate = todayKey;
+      cal.totalClaimed = (cal.totalClaimed || 0) + 1;
+      cal.currentDay = Math.min(30, cal.currentDay + 1);
+
+      state.eb = (Number(state.eb) || 0) + amount;
+      Store.save();
+      updateTopbar();
+      updateCalendarHUD();
+
+      // Trigger flying +EB particle to HUD
+      launchFlyingEBStream(clickX, clickY, amount);
+      showToast(`🎉 Claimed +${amount} Elden Bucks Daily Reward!`);
+
+      // Broadcast daily login streak to live global feed!
+      if (typeof Feed !== "undefined") {
+        Feed.broadcast("daily", { day: cal.totalClaimed });
+      }
+
+      // Auto-close calendar after claiming
+      setTimeout(() => {
+        closeModal("calendar-modal");
+      }, 650);
+    }
+
+    el("calendar-btn")?.addEventListener("click", () => {
+      renderCalendarModal();
+      openModal("calendar-modal");
+    });
+
+    updateCalendarHUD();
+
+    // --- 3D Character Wardrobe Selector ---
+    function renderWardrobe() {
+      const grid = el("wardrobe-grid");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      const state = Store.get();
+      const currentModelId = state?.player?.model3d || "soldier";
+      const characters = CONFIG.AVAILABLE_CHARACTERS || [];
+
+      characters.forEach((char) => {
+        const isSelected = char.id === currentModelId;
+        const card = document.createElement("div");
+        card.className = "wardrobe-card" + (isSelected ? " selected" : "");
+        card.innerHTML = `
+          <span class="char-icon">${char.icon || "👤"}</span>
+          <span class="char-name">${char.name}</span>
+          <span class="char-status">${isSelected ? "EQUIPPED" : "Equip"}</span>
+        `;
+
+        card.addEventListener("click", () => {
+          if (typeof Character3D !== "undefined" && Character3D.changeCharacter) {
+            Character3D.changeCharacter(char.id);
+            showToast(`Equipped ${char.name}!`);
+          }
+          closeModal("wardrobe-modal");
+          updatePlayerInfoModal();
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Open Wardrobe on Pencil Tap
+    el("edit-avatar-btn")?.addEventListener("click", () => {
+      renderWardrobe();
+      openModal("wardrobe-modal");
+    });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
       const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
@@ -475,8 +912,11 @@
     }
 
     if (boostBtn) {
-      boostBtn.addEventListener("click", () => {
+      boostBtn.addEventListener("click", (e) => {
         clearTimeout(boostHideTimer);
+        const rect = boostBtn.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
         boostBtn.classList.add("hidden");
 
         const state = Store.get();
@@ -484,6 +924,9 @@
         Store.save();
         updateTopbar();
         showToast("⚡ Claimed +2.00 EB Boost!");
+
+        // Launch 2 flying EB sparks into the HUD!
+        launchFlyingEBStream(originX, originY, 2);
 
         // Schedule next appearance
         scheduleBoost();
@@ -493,8 +936,57 @@
       scheduleBoost();
     }
 
-    el("recenter-btn").addEventListener("click", () => {
-      if (currentPos) map.setView([currentPos.lat, currentPos.lon], Math.max(map.getZoom(), 19));
+    // --- Smooth BUY LAND 2D Camera Transition ---
+    const buyLandBtn = el("buy-land-mode-btn");
+    const exitBuyBtn = el("exit-buy-mode-btn");
+    const buyBanner = el("buy-mode-banner");
+
+    function enterBuyLandMode() {
+      if (!map || !currentPos) return;
+      buyBanner?.classList.remove("hidden");
+      Grid.setBuyMode(true, currentPos);
+
+      // Smooth cinematic swoosh to top-down 2D
+      map.flyTo({
+        center: [currentPos.lon, currentPos.lat],
+        pitch: 0,       // Flat 2D top-down view
+        bearing: 0,     // Aligns to North
+        zoom: 19.2,
+        duration: 1000,
+        essential: true,
+      });
+    }
+
+    function exitBuyLandMode() {
+      if (!map || !currentPos) return;
+      buyBanner?.classList.add("hidden");
+      Grid.setBuyMode(false);
+
+      // Smooth return to 60° 3D Isometric View
+      map.flyTo({
+        center: [currentPos.lon, currentPos.lat],
+        pitch: 60,      // 60° 3D Isometric View
+        zoom: 18.5,
+        duration: 1000,
+        essential: true,
+      });
+    }
+
+    buyLandBtn?.addEventListener("click", enterBuyLandMode);
+    exitBuyBtn?.addEventListener("click", exitBuyLandMode);
+
+    // Reset Camera to True North & Default Zoom Level
+    el("recenter-btn")?.addEventListener("click", () => {
+      if (currentPos && map) {
+        map.flyTo({
+          center: [currentPos.lon, currentPos.lat],
+          bearing: 0,      // Snaps camera back to True North
+          pitch: 60,       // Resets to 3D Isometric View
+          zoom: 18.5,      // Returns to default sweetspot zoom
+          duration: 900,
+          essential: true,
+        });
+      }
     });
     
     // Tap Balance or Profile Chip to open Player Info Modal
@@ -542,18 +1034,48 @@
         const s = Store.get();
         if (!slice) return;
 
+        // Coordinates from the center of the wheel
+        const wheelEl = el("wheel-canvas");
+        const wRect = wheelEl ? wheelEl.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 };
+        const originX = wRect.left + wRect.width / 2;
+        const originY = wRect.top + wRect.height / 2;
+
         if (slice.type === "diamond") {
           s.diamonds = (Number(s.diamonds) || 0) + 1;
           el("wheel-result").textContent = "Your diamond found its way back to you. (◆ +1)";
           showToast("💎 +1 Diamond Refunded!");
+
+          // Auto-close wheel modal & launch flying gem to HUD
+          setTimeout(() => {
+            closeModal("wheel-modal");
+            spawnFlyingGemToHUD(originX, originY);
+          }, 800);
+
         } else if (slice.type === "miss") {
           el("wheel-result").textContent = "Better luck next time! (No reward)";
           showToast("🚫 Nothing this time — keep searching!");
+
+          // Auto-close wheel modal on miss
+          setTimeout(() => {
+            closeModal("wheel-modal");
+          }, 1200);
+
         } else {
           const winAmount = Number(slice.amount) || 0;
           s.eb = (Number(s.eb) || 0) + winAmount;
           el("wheel-result").textContent = `🎉 You won ${winAmount} EB!`;
           showToast(`🎉 Won +${winAmount} Elden Bucks!`);
+
+          // Broadcast 25 EB or 50 EB Jackpots worldwide!
+          if (winAmount >= 25 && typeof Feed !== "undefined") {
+            Feed.broadcast("jackpot", { amount: winAmount });
+          }
+
+          // Auto-close wheel modal & launch cascading EB shower
+          setTimeout(() => {
+            closeModal("wheel-modal");
+            launchFlyingEBStream(originX, originY, winAmount);
+          }, 850);
         }
 
         Store.save();

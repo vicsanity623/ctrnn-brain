@@ -57,13 +57,33 @@ const Bootloader = (() => {
       // 4. Mapbox 512px Retina Engine & Layer Groups (75%)
       await step(150, 75, "Mounting Mapbox 512px Retina vector tile engine...");
 
-      // 5. Global Multiplayer Claims Sync (90%)
-      await step(200, 90, "Streaming global claimed territories from Firestore...");
+      // 5. Global Multiplayer Claims Sync (Directly write to Grid memory)
+      setProgress(85, "Pre-fetching all claimed world plots from Firestore...");
+      const db = Store.getDb();
+      if (db) {
+        try {
+          const snapshot = await db.collection("plots").get();
+          const state = Store.get();
+          if (!state.plots) state.plots = {};
 
-      // 6. World Populated & Diamonds Seeded (100%)
-      await step(150, 100, "Realm synchronized. Entering Elden Earth...");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+          snapshot.forEach((doc) => {
+            const plotData = doc.data();
+            if (typeof Grid !== "undefined" && Grid.setGlobalPlot) {
+              Grid.setGlobalPlot(doc.id, plotData);
+            }
+            if (plotData.ownerId === state.player.id) {
+              state.plots[doc.id] = plotData;
+            }
+          });
+          Store.save();
+        } catch (e) {
+          console.warn("[Bootloader] Firestore plot preload error:", e);
+        }
+      }
 
+      // 6. World Populated & Ready
+      await step(200, 100, "Realm synchronized. Entering Elden Earth...");
+      
       // Hide Loader & Launch Game
       setTimeout(() => {
         el("loading-screen")?.classList.add("hidden");

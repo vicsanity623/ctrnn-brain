@@ -26,9 +26,9 @@ const CONFIG = {
 
   // --- Diamonds ---
   DIAMOND_SPAWN_RADIUS_METERS: 200,   // ~220 yards (Spreads them across neighborhood)
-  DIAMOND_COLLECT_RADIUS_METERS: 70,  // ~55 yards (Reachable reach)
-  DIAMOND_MAX_ACTIVE: 3,
-  DIAMOND_SPAWN_CHECK_MS: 15000,      // Checks for 1 new diamond every 30 seconds
+  DIAMOND_COLLECT_RADIUS_METERS: 100,  // ~55 yards (Reachable reach)
+  DIAMOND_MAX_ACTIVE: 13,
+  DIAMOND_SPAWN_CHECK_MS: 35000,      // Checks for 1 new diamond every 30 seconds
   DIAMOND_LIFETIME_MS: 540 * 1000,     // 540 seconds or 5 min
 
   // --- Diamond Extractor ---
@@ -59,5 +59,48 @@ const CONFIG = {
     { key: "rare",      label: "Rare",      rate: 0.000000016,  weight: 30, color: "#4f9dd6" }, // 30%
     { key: "epic",      label: "Epic",      rate: 0.000000022,  weight: 15, color: "#a86ee0" }, // 15%
     { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f" }, // 5%
+  ],
+  
+  // --- 3D Character Roster (Heroic Scale) ---
+  AVAILABLE_CHARACTERS: [
+    { id: "soldier",   name: "Vanguard Soldier", file: "models/Soldier.glb",   scale: 4.8, icon: "🛡️" },
+    { id: "xbot",      name: "X-Operative",      file: "models/Xbot.glb",      scale: 4.2, icon: "🦾" },
+    { id: "fox",       name: "Spirit Fox",       file: "models/Fox.glb",       scale: 0.08, icon: "🦊" },
+    { id: "cesium",    name: "Cesium Runner",    file: "models/CesiumMan.glb", scale: 5.0, icon: "🏃" },
+  ],
+
+  // --- 30-Day Daily Login Calendar ---
+  // Base 3 EB daily, scaling on Day 2 & every 5th day up to Day 30 (200 EB Jackpot)
+  DAILY_CALENDAR_REWARDS: [
+    { day: 1,  eb: 3   },
+    { day: 2,  eb: 5   }, // Scaling boost
+    { day: 3,  eb: 3   },
+    { day: 4,  eb: 3   },
+    { day: 5,  eb: 10  }, // Milestone 5
+    { day: 6,  eb: 3   },
+    { day: 7,  eb: 3   },
+    { day: 8,  eb: 3   },
+    { day: 9,  eb: 3   },
+    { day: 10, eb: 20  }, // Milestone 10
+    { day: 11, eb: 3   },
+    { day: 12, eb: 3   },
+    { day: 13, eb: 3   },
+    { day: 14, eb: 3   },
+    { day: 15, eb: 35  }, // Milestone 15
+    { day: 16, eb: 3   },
+    { day: 17, eb: 3   },
+    { day: 18, eb: 3   },
+    { day: 19, eb: 3   },
+    { day: 20, eb: 50  }, // Milestone 20
+    { day: 21, eb: 3   },
+    { day: 22, eb: 3   },
+    { day: 23, eb: 3   },
+    { day: 24, eb: 3   },
+    { day: 25, eb: 75  }, // Milestone 25
+    { day: 26, eb: 3   },
+    { day: 27, eb: 3   },
+    { day: 28, eb: 3   },
+    { day: 29, eb: 3   },
+    { day: 30, eb: 200 }, // Milestone 30 (Grand Jackpot)
   ],
 };

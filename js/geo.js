@@ -59,5 +59,22 @@ const Geo = (() => {
     ];
   }
 
-  return { toMercator, fromMercator, haversine, randomPointInRadius, tileForLatLon, tileBounds };
+  // Generates an exact geographic circle polygon in real-world meters
+  function createCirclePolygon(centerLat, centerLon, radiusMeters, points = 64) {
+    const km = radiusMeters / 1000;
+    const coords = [];
+    const distanceX = km / (111.320 * Math.cos(centerLat * Math.PI / 180));
+    const distanceY = km / 110.574;
+
+    for (let i = 0; i < points; i++) {
+      const theta = (i / points) * (2 * Math.PI);
+      const x = distanceX * Math.cos(theta);
+      const y = distanceY * Math.sin(theta);
+      coords.push([centerLon + x, centerLat + y]);
+    }
+    coords.push(coords[0]); // Close ring
+    return coords;
+  }
+
+  return { toMercator, fromMercator, haversine, randomPointInRadius, tileForLatLon, tileBounds, createCirclePolygon };
 })();

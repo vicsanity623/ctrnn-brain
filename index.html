@@ -6,7 +6,12 @@
 <title>Elden Earth</title>
 <meta name="description" content="Walk the real world, claim the tile beneath your feet." />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<!-- Mapbox GL JS 3D WebGL Engine & Three.js -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css" />
@@ -20,6 +25,15 @@
 <link rel="apple-touch-icon" href="assets/icon.png" />
 </head>
 <body>
+
+<!-- ===================== PORTRAIT MODE GUARD ===================== -->
+<div id="portrait-guard">
+  <div class="portrait-guard-card">
+    <div class="portrait-guard-icon">📱</div>
+    <h2>Portrait Mode Only</h2>
+    <p>Please rotate your phone vertically to continue playing Elden Earth.</p>
+  </div>
+</div>
 
 <!-- ===================== SIGN-IN SCREEN ===================== -->
 <div id="signin-screen" class="screen">
@@ -66,7 +80,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.23</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v0.7.2</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -119,9 +133,34 @@
     <span class="mult-sub">BOOST</span>
   </button>
 
+  <!-- Daily Login Calendar HUD Button with Red Notification Dot -->
+  <button id="calendar-btn" class="calendar-btn" aria-label="Daily Calendar">
+    <div id="calendar-unread-dot" class="calendar-red-dot hidden"></div>
+    <div class="calendar-icon-card">
+      <div class="cal-card-top" id="cal-hud-month">JUL</div>
+      <div class="cal-card-body" id="cal-hud-day">17</div>
+    </div>
+  </button>
+
+  <!-- Permanent Collapsable Worldwide Feed Card -->
+  <div id="live-feed-card" class="live-feed-card">
+    <div id="feed-interactive-header" class="feed-header-line" title="Tap to toggle feed">
+      <div class="feed-title-wrap">
+        <span class="feed-badge">Feed:</span>
+        <span class="feed-dot"></span>
+        <span id="feed-unread-badge" class="feed-unread-pill hidden">0</span>
+      </div>
+      <button id="feed-toggle-icon" class="feed-toggle-btn" aria-label="Toggle Feed">▴</button>
+    </div>
+    <div id="feed-scroll-container" class="feed-scroll-container">
+      <div class="feed-empty-msg">Connecting to live feed...</div>
+    </div>
+  </div>
+
   <!-- Bottom bar -->
   <div id="bottombar">
-    <button id="recenter-btn" class="round-btn" aria-label="Recenter">◎</button>
+    <button id="recenter-btn" class="round-btn" aria-label="Recenter">𖤓</button>
+    <button id="buy-land-mode-btn" class="btn btn-buy-land">Buy Land</button>
     <button id="earn-btn" class="btn btn-earn">Earn</button>
     <button id="land-btn" class="round-btn" aria-label="My Land">▦</button>
   </div>
@@ -167,9 +206,12 @@
     <button class="close-btn" data-close="player-info-modal">✕</button>
     <h2>Player Info</h2>
     
-    <!-- Profile Row -->
+    <!-- Profile Row with ✎ Edit Pencil -->
     <div class="profile-header-card">
-      <div id="info-avatar" class="info-avatar">🙂</div>
+      <div class="avatar-edit-wrapper">
+        <div id="info-avatar" class="info-avatar">🙂</div>
+        <button id="edit-avatar-btn" class="edit-avatar-badge" title="Change 3D Character">✎</button>
+      </div>
       <div class="info-name-box">
         <span id="info-name" class="info-player-name">Traveler</span>
       </div>
@@ -214,6 +256,16 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===================== CHARACTER WARDROBE MODAL ===================== -->
+<div id="wardrobe-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="wardrobe-modal">✕</button>
+    <h2>3D Wardrobe</h2>
+    <p class="modal-sub">Select your 3D explorer model.</p>
+    <div id="wardrobe-grid" class="wardrobe-grid"></div>
   </div>
 </div>
 
@@ -318,6 +370,21 @@
   </div>
 </div>
 
+<!-- ===================== 30-DAY DAILY LOGIN CALENDAR MODAL ===================== -->
+<div id="calendar-modal" class="modal hidden">
+  <div class="modal-card calendar-modal-card">
+    <button class="close-btn" data-close="calendar-modal">✕</button>
+    <div class="calendar-modal-header">
+      <span class="cal-modal-icon">📅</span>
+      <h2>Daily Rewards</h2>
+      <p class="modal-sub">Log in daily to claim scaling Elden Bucks!</p>
+    </div>
+    <div id="calendar-days-list" class="calendar-days-list">
+      <!-- Generated dynamically in main.js -->
+    </div>
+  </div>
+</div>
+
 <div id="signout-wrap" style="display:none">
   <button id="signout-btn">Sign out</button>
 </div>
@@ -336,7 +403,9 @@
 <script src="js/diamonds.js"></script>
 <script src="js/grid.js"></script>
 <script src="js/loading.js"></script>
+<script src="js/character.js"></script>
 <script src="js/wheel.js"></script>
+<script src="js/feed.js"></script>
 <script src="js/main.js"></script>
 
 <!-- Service Worker Registration with Instant Auto-Update -->

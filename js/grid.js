@@ -1,14 +1,14 @@
 // ============================================================
-// Elden Earth — land grid & real-time multiplayer sync
+// Elden Earth — land grid & real-time multiplayer sync (Mapbox 3D)
 // ============================================================
 const Grid = (() => {
   let map = null;
-  let emptyGridLayer = null;
-  let ownedPlotsLayer = null;
-  let avatarMarkersLayer = null;
   let onBuyAttempt = () => {};
   let pendingTile = null;
-  let globalPlots = {}; // All plots across all players worldwide
+  let globalPlots = {};
+  let activeMarkers = [];
+  let isBuyMode = false;
+  let playerCoords = null;
 
   function tileId(tx, ty) { return tx + "_" + ty; }
 
@@ -37,7 +37,6 @@ const Grid = (() => {
     const tid = tileId(tx, ty);
     const allPlots = getAllPlots();
 
-    // Prevent buying if claimed by ANY player
     if (allPlots[tid]) {
       const owner = allPlots[tid].ownerName || "another player";
       alert(`This tile is already claimed by ${owner}!`);
@@ -69,7 +68,22 @@ const Grid = (() => {
 
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
-    
+
+    if (map) {
+      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+      const centerLat = (corners[0][0] + corners[2][0]) / 2;
+      const centerLon = (corners[0][1] + corners[2][1]) / 2;
+      const pt = map.project([centerLon, centerLat]);
+
+      const popup = document.createElement("div");
+      popup.className = "combat-text-popup";
+      popup.style.left = `${pt.x}px`;
+      popup.style.top = `${pt.y}px`;
+      popup.innerHTML = `+1 ${rarity.label} Plot!`;
+      document.body.appendChild(popup);
+      setTimeout(() => popup.remove(), 1100);
+    }
+
     const plotData = {
       tx,
       ty,
@@ -81,19 +95,26 @@ const Grid = (() => {
       claimedAt: Date.now(),
     };
 
-    // Save locally
     state.plots[tid] = plotData;
     globalPlots[tid] = plotData;
     Store.save();
     onBuyAttempt(true, rarity);
     render();
 
-    // Broadcast live claim to Firebase Firestore
+    // Broadcast land claim to global feed with location tag
+    if (typeof Feed !== "undefined") {
+      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+      const cLat = (corners[0][0] + corners[2][0]) / 2;
+      const cLon = (corners[0][1] + corners[2][1]) / 2;
+      Feed.resolveCity(cLat, cLon).then((loc) => {
+        Feed.broadcast("land", { rarity: rarity.label, location: loc });
+      });
+    }
+
     const db = Store.getDb();
     if (db) {
       try {
         await db.collection("plots").doc(tid).set(plotData);
-        console.log(`[Multiplayer] Claim broadcasted for tile ${tid}`);
       } catch (err) {
         console.warn("[Multiplayer] Broadcast error:", err);
       }
@@ -111,169 +132,270 @@ const Grid = (() => {
     };
   }
 
-  // Flood Fill cluster grouping for all players
-  function getConnectedClusters(plots) {
-    const visited = new Set();
-    const clusters = [];
-
-    for (const tid in plots) {
-      if (visited.has(tid)) continue;
-
-      const cluster = [];
-      const queue = [plots[tid]];
-      visited.add(tid);
-      const owner = plots[tid].ownerId;
-
-      while (queue.length > 0) {
-        const current = queue.shift();
-        cluster.push(current);
-
-        const neighbors = [
-          tileId(current.tx + 1, current.ty),
-          tileId(current.tx - 1, current.ty),
-          tileId(current.tx, current.ty + 1),
-          tileId(current.tx, current.ty - 1),
-        ];
-
-        for (const nId of neighbors) {
-          if (plots[nId] && !visited.has(nId) && plots[nId].ownerId === owner) {
-            visited.add(nId);
-            queue.push(plots[nId]);
-          }
-        }
-      }
-      clusters.push(cluster);
-    }
-    return clusters;
-  }
-
   function render() {
-    if (!emptyGridLayer || !ownedPlotsLayer || !avatarMarkersLayer) return;
+    if (!map || !map.getStyle()) return;
 
-    emptyGridLayer.clearLayers();
-    ownedPlotsLayer.clearLayers();
-    avatarMarkersLayer.clearLayers();
+    activeMarkers.forEach(m => m.remove());
+    activeMarkers = [];
 
     const state = Store.get();
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // 1. RENDER ALL WORLD PLOTS (Zoom 13+)
-    if (zoom >= 13) {
-      for (const tid in allPlots) {
-        const plot = allPlots[tid];
-        const corners = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
-        const color = rarityInfo(plot.rarity).color;
-        const rKey = plot.rarity?.key || plot.rarity || "common";
+    // 1. RENDER CLAIMED PLOTS (Instantly)
+    const claimedFeatures = [];
+    for (const tid in allPlots) {
+      const plot = allPlots[tid];
+      const bounds = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
+      const coords = bounds.map(pt => [pt[1], pt[0]]);
+      coords.push(coords[0]);
 
-        L.polygon(corners, {
-          color: color,
-          weight: zoom >= 18 ? 2 : 1,
-          fillColor: color,
-          fillOpacity: 0.58,
-          className: `owned-plot-3d rarity-${rKey}`,
-        }).addTo(ownedPlotsLayer);
-      }
+      claimedFeatures.push({
+        type: "Feature",
+        properties: {
+          color: rarityInfo(plot.rarity).color,
+          rarity: plot.rarity,
+          ownerId: plot.ownerId,
+        },
+        geometry: { type: "Polygon", coordinates: [coords] },
+      });
+    }
 
-      // 2. RENDER CLUSTERED AVATARS FOR ALL PLAYERS
-      const clusters = getConnectedClusters(allPlots);
-      let playerExtractorRendered = false;
+    const claimedGeoJSON = { type: "FeatureCollection", features: claimedFeatures };
 
-      for (const cluster of clusters) {
-        let sumLat = 0, sumLon = 0;
-        for (const p of cluster) {
-          const centerMerc = Geo.fromMercator(
-            p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
-            p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
-          );
-          sumLat += centerMerc.lat;
-          sumLon += centerMerc.lon;
-        }
+    if (map.getSource("plots-source")) {
+      map.getSource("plots-source").setData(claimedGeoJSON);
+    } else {
+      map.addSource("plots-source", { type: "geojson", data: claimedGeoJSON });
 
-        const centerLat = sumLat / cluster.length;
-        const centerLon = sumLon / cluster.length;
-        const isSelf = cluster[0].ownerId === state.player.id;
-        const avatar = isSelf ? (state.player.avatar || "🙂") : (cluster[0].avatar || "🙂");
+      map.addLayer({
+        id: "plots-fill",
+        type: "fill",
+        source: "plots-source",
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": 0.65,
+        },
+      });
 
-        const innerContent = avatar.startsWith("img:")
-          ? `<img src="${avatar.slice(4)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;display:block;">`
-          : `<span style="font-size:13px;line-height:1;">${avatar}</span>`;
+      map.addLayer({
+        id: "plots-line",
+        type: "line",
+        source: "plots-source",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 2,
+        },
+      });
+    }
 
-        const avatarIcon = L.divIcon({
-          className: "custom-plot-icon",
-          html: `<div style="width:24px;height:24px;border-radius:50%;border:2px solid #d4af61;background:#0d1420;box-shadow:0 0 10px rgba(0,0,0,0.9), 0 0 6px rgba(212,175,97,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;">${innerContent}</div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        });
+    // 2. RENDER EMPTY PURCHASE GRID ONLY IN "BUY LAND" MODE OR ZOOM 18+
+    const emptyGridFeatures = [];
+    if (isBuyMode && playerCoords) {
+      const ts = CONFIG.TILE_SIZE_METERS;
+      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 50;
+      const centerTile = Geo.tileForLatLon(playerCoords.lat, playerCoords.lon, ts);
+      const tileRadius = Math.ceil(radiusM / ts);
 
-        const marker = L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: true }).addTo(avatarMarkersLayer);
-        marker.on("click", () => {
-          // Open player info (for self or inspected player)
-          const evt = new CustomEvent("openPlayerInfo", { detail: { cluster, isSelf } });
-          window.dispatchEvent(evt);
-        });
+      for (let dx = -tileRadius; dx <= tileRadius; dx++) {
+        for (let dy = -tileRadius; dy <= tileRadius; dy++) {
+          const tx = centerTile.tx + dx;
+          const ty = centerTile.ty + dy;
+          const tid = tileId(tx, ty);
+          if (allPlots[tid]) continue;
 
-        // 3D Orbital Extractor for current player
-        if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
-          playerExtractorRendered = true;
+          const bounds = Geo.tileBounds(tx, ty, ts);
+          const cLat = (bounds[0][0] + bounds[2][0]) / 2;
+          const cLon = (bounds[0][1] + bounds[2][1]) / 2;
 
-          const extractorIcon = L.divIcon({
-            className: "extractor-3d-wrap",
-            html: `
-              <div class="beacon-root">
-                <div class="beacon-ground-aura"></div>
-                <div class="orbit-ring ring-1"></div>
-                <div class="orbit-ring ring-2"></div>
-                <div class="beacon-core-gem">
-                  <svg viewBox="0 0 32 38" class="beacon-svg">
-                    <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
-                    <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
-                    <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
-                    <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
-                  </svg>
-                </div>
-              </div>
-            `,
-            iconSize: [44, 52],
-            iconAnchor: [-10, 26],
-          });
+          // Only tiles inside player radius
+          if (Geo.haversine(playerCoords.lat, playerCoords.lon, cLat, cLon) <= radiusM) {
+            const coords = bounds.map(pt => [pt[1], pt[0]]);
+            coords.push(coords[0]);
 
-          const extractorMarker = L.marker([centerLat, centerLon], { icon: extractorIcon, interactive: true }).addTo(avatarMarkersLayer);
-          extractorMarker.on("click", () => {
-            const evt = new CustomEvent("openExtractorModal");
-            window.dispatchEvent(evt);
-          });
+            emptyGridFeatures.push({
+              type: "Feature",
+              properties: { tx, ty },
+              geometry: { type: "Polygon", coordinates: [coords] },
+            });
+          }
         }
       }
     }
 
-    // 3. RENDER EMPTY BUYABLE TILES
-    if (zoom >= CONFIG.GRID_RENDER_MIN_ZOOM) {
-      const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
-      const tileCount = (maxTx - minTx + 1) * (maxTy - minTy + 1);
-      if (tileCount > CONFIG.GRID_RENDER_MAX_TILES) return;
+    const emptyGeoJSON = { type: "FeatureCollection", features: emptyGridFeatures };
 
-      for (let tx = minTx; tx <= maxTx; tx++) {
-        for (let ty = minTy; ty <= maxTy; ty++) {
-          const tid = tileId(tx, ty);
-          if (allPlots[tid]) continue;
+    if (map.getSource("empty-grid-source")) {
+      map.getSource("empty-grid-source").setData(emptyGeoJSON);
+    } else {
+      map.addSource("empty-grid-source", { type: "geojson", data: emptyGeoJSON });
 
-          const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
-          const poly = L.polygon(corners, {
-            color: "rgba(233,223,200,0.35)",
-            weight: 1,
-            fillColor: "#000",
-            fillOpacity: 0.02,
+      map.addLayer({
+        id: "empty-grid-fill",
+        type: "fill",
+        source: "empty-grid-source",
+        paint: {
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.08,
+        },
+      });
+
+      map.addLayer({
+        id: "empty-grid-line",
+        type: "line",
+        source: "empty-grid-source",
+        paint: {
+          "line-color": "#4fd6c4",
+          "line-width": 1.5,
+        },
+      });
+    }
+
+    // 3. RENDER CLUSTERED AVATARS & EXTRACTOR BEACONS (1 Avatar per Connected Territory)
+    if (zoom >= 14) {
+      const visited = new Set();
+      let playerExtractorRendered = false;
+
+      // Find all connected tile clusters using 4-directional flood fill
+      for (const startTid in allPlots) {
+        if (visited.has(startTid)) continue;
+
+        const startPlot = allPlots[startTid];
+        const clusterOwnerId = startPlot.ownerId;
+        const cluster = [];
+        const queue = [startPlot];
+        visited.add(startTid);
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          cluster.push(current);
+
+          // Guarantee integer values to prevent string concatenation ("100" + 1 = "1001")
+          const cx = parseInt(current.tx, 10);
+          const cy = parseInt(current.ty, 10);
+
+          // Check 4 adjacent orthogonal neighbors (N, S, E, W)
+          const neighbors = [
+            tileId(cx + 1, cy),
+            tileId(cx - 1, cy),
+            tileId(cx, cy + 1),
+            tileId(cx, cy - 1),
+          ];
+
+          for (const nId of neighbors) {
+            if (!visited.has(nId) && allPlots[nId] && allPlots[nId].ownerId === clusterOwnerId) {
+              visited.add(nId);
+              queue.push(allPlots[nId]);
+            }
+          }
+        }
+
+        // Calculate average centroid for the entire connected cluster
+        let totalLat = 0;
+        let totalLon = 0;
+
+        for (const p of cluster) {
+          const px = parseInt(p.tx, 10);
+          const py = parseInt(p.ty, 10);
+          const centerMerc = Geo.fromMercator(
+            px * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+            py * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+          );
+          totalLat += centerMerc.lat;
+          totalLon += centerMerc.lon;
+        }
+
+        const centroidLat = totalLat / cluster.length;
+        const centroidLon = totalLon / cluster.length;
+
+        const isSelf = clusterOwnerId === state.player.id;
+        const rep = cluster[0];
+        const avatar = isSelf ? (state.player.avatar || "🙂") : (rep.avatar || "🙂");
+
+        const innerContent = avatar.startsWith("img:")
+          ? `<img src="${avatar.slice(4)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;display:block;">`
+          : `<span style="font-size:15px;line-height:1;">${avatar}</span>`;
+
+        // Count badge if more than 1 tile connected
+        const countBadge = cluster.length > 1
+          ? `<span style="position:absolute;bottom:-4px;right:-4px;background:#d4af61;color:#0b1118;font-size:10px;font-weight:800;border-radius:10px;padding:1px 5px;box-shadow:0 0 4px rgba(0,0,0,0.9);line-height:1.2;">${cluster.length}</span>`
+          : "";
+
+        const el = document.createElement("div");
+        el.className = "custom-plot-icon standing-plot-sign";
+        el.innerHTML = `
+          <div class="sign-avatar-disc">
+            ${innerContent}
+            ${countBadge}
+          </div>
+          <div class="sign-stem"></div>
+          <div class="sign-ground-shadow"></div>
+        `;
+
+        el.addEventListener("click", () => {
+          const evt = new CustomEvent("openPlayerInfo", { detail: { cluster, isSelf } });
+          window.dispatchEvent(evt);
+        });
+
+        // "viewport" makes the sign stand vertically upright & billboard toward the player camera
+        const m = new mapboxgl.Marker({
+          element: el,
+          anchor: "bottom",              // Anchors the bottom tip of the stem to the exact ground coordinates
+          pitchAlignment: "viewport",    // Stands vertically upright (not flat on the ground)
+          rotationAlignment: "viewport", // Rotates to continuously face the camera
+        })
+          .setLngLat([centroidLon, centroidLat])
+          .addTo(map);
+
+        activeMarkers.push(m);
+
+        // Mount Extractor at the centroid if criteria met
+        if (isSelf && Object.keys(state.plots || {}).length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
+          playerExtractorRendered = true;
+
+          const beaconEl = document.createElement("div");
+          beaconEl.className = "extractor-3d-wrap";
+          beaconEl.innerHTML = `
+            <div class="beacon-root">
+              <div class="beacon-ground-aura"></div>
+              <div class="orbit-ring ring-1"></div>
+              <div class="orbit-ring ring-2"></div>
+              <div class="beacon-core-gem">
+                <svg viewBox="0 0 32 38" class="beacon-svg">
+                  <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+                  <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+                  <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+                  <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+                </svg>
+              </div>
+            </div>
+          `;
+          beaconEl.addEventListener("click", () => {
+            const evt = new CustomEvent("openExtractorModal");
+            window.dispatchEvent(evt);
           });
 
-          poly.on("click", () => promptBuyTile(tx, ty));
-          poly.addTo(emptyGridLayer);
+          const extMarker = new mapboxgl.Marker({ element: beaconEl, pitchAlignment: "map", rotationAlignment: "map" })
+            .setLngLat([centroidLon + 0.00008, centroidLat + 0.00008])
+            .addTo(map);
+
+          activeMarkers.push(extMarker);
         }
       }
     }
   }
 
-  // Real-Time Firebase Listener for Global Claims
+  function setBuyMode(active, coords = null) {
+    isBuyMode = active;
+    if (coords) playerCoords = coords;
+    render();
+  }
+
+  function setGlobalPlot(tid, data) {
+    globalPlots[tid] = data;
+    render();
+  }
+
   function listenToGlobalPlots() {
     const db = Store.getDb();
     if (!db) return;
@@ -290,37 +412,47 @@ const Grid = (() => {
           }
         });
         render();
-      }, (err) => console.warn("[Multiplayer] Sync stream error:", err));
+      }, (err) => console.warn("[Multiplayer] Sync error:", err));
     } catch (err) {
-      console.warn("[Multiplayer] Init listener error:", err);
+      console.warn("[Multiplayer] Listener error:", err);
     }
   }
 
-  function init(leafletMap, callbacks) {
-    map = leafletMap;
+  function init(mapboxMap, callbacks) {
+    map = mapboxMap;
     onBuyAttempt = callbacks.onBuyAttempt || onBuyAttempt;
 
-    ownedPlotsLayer = L.layerGroup().addTo(map);
-    avatarMarkersLayer = L.layerGroup().addTo(map);
-    emptyGridLayer = L.layerGroup().addTo(map);
+    map.on("click", (e) => {
+      if (!isBuyMode) return; // Only allow buying in Buy Land mode
+      const { lng, lat } = e.lngLat;
+      const t = Geo.tileForLatLon(lat, lng, CONFIG.TILE_SIZE_METERS);
+      promptBuyTile(t.tx, t.ty);
+    });
 
-    map.on("moveend zoomend", render);
-
+    // Wire up Confirm & Cancel buttons for Claim Land modal
     const confirmBtn = document.getElementById("buy-confirm-btn");
     const cancelBtn = document.getElementById("buy-cancel-btn");
+    const buyModal = document.getElementById("buy-modal");
 
-    if (confirmBtn) confirmBtn.addEventListener("click", executeBuy);
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
-        pendingTile = null;
-        const modal = document.getElementById("buy-modal");
-        if (modal) modal.classList.add("hidden");
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => {
+        executeBuy();
       });
     }
 
-    // Connect WebSocket stream
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        pendingTile = null;
+        if (buyModal) buyModal.classList.add("hidden");
+      });
+    }
+
+    // Multiple render hooks to guarantee instantaneous plot display
+    map.on("idle", render);
+    map.on("moveend zoomend", render);
     listenToGlobalPlots();
+    render();
   }
 
-  return { init, render, promptBuyTile, getAllPlots };
+  return { init, render, promptBuyTile, executeBuy, getAllPlots, setBuyMode, setGlobalPlot };
 })();
