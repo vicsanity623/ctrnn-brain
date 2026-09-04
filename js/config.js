@@ -60,4 +60,12 @@ const CONFIG = {
     { key: "epic",      label: "Epic",      rate: 0.000000022,  weight: 15, color: "#a86ee0" }, // 15%
     { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f" }, // 5%
   ],
+  
+  // --- 3D Character Models Roster ---
+  AVAILABLE_CHARACTERS: [
+    { id: "robot",   name: "Cyber Bot",      file: "models/robot.glb",   scale: 1.0, icon: "🤖", idleAnim: "Idle",   walkAnim: "Walking" },
+    { id: "soldier", name: "Vanguard",       file: "models/soldier.glb", scale: 1.2, icon: "🛡️", idleAnim: "Idle",   walkAnim: "Walk" },
+    { id: "xbot",    name: "X-Operative",    file: "models/xbot.glb",    scale: 1.0, icon: "🦾", idleAnim: "idle",   walkAnim: "walk" },
+    { id: "fox",     name: "Spirit Fox",     file: "models/fox.glb",     scale: 0.02, icon: "🦊", idleAnim: "Survey", walkAnim: "Walk" },
+  ],
 };
