@@ -56,7 +56,6 @@ const Character3D = (() => {
       render: function (gl, matrix) {
         if (!currentModel) return;
 
-        // Coordinate transformation: GPS Lat/Lng -> Mapbox Mercator Matrix
         const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
           [playerCoords.lng, playerCoords.lat],
           0
@@ -65,7 +64,6 @@ const Character3D = (() => {
         const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
 
         const m = new THREE.Matrix4().fromArray(matrix);
-        // Stands character upright (90 deg X-rotation) and rotates with movement heading
         const l = new THREE.Matrix4()
           .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
           .scale(new THREE.Vector3(scale, -scale, scale))
@@ -73,6 +71,10 @@ const Character3D = (() => {
           .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
 
         camera.projectionMatrix = m.multiply(l);
+
+        // CLEAR DEPTH BUFFER: Ensures character renders on top of all 3D buildings!
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+
         renderer.resetState();
         renderer.render(scene, camera);
         mapInstance.triggerRepaint();
