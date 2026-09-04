@@ -301,11 +301,11 @@
 
       if (el("extractor-lvl-badge")) el("extractor-lvl-badge").textContent = `Level ${lvl}`;
       if (el("extractor-next-timer")) el("extractor-next-timer").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-      if (el("extractor-stored-count")) el("extractor-stored-count").textContent = `${state.extractor.stored} / ${maxStored} ◆`;
+      if (el("extractor-stored-count")) el("extractor-stored-count").innerHTML = `${state.extractor.stored} / ${maxStored} <span class="hud-gem-icon"></span>`;
       if (el("extractor-next-perk")) el("extractor-next-perk").textContent = nextIsCapacity ? "Next: +1 Max Diamond Capacity" : "Next: -0.0001% Mining Time";
       if (el("upgrade-extractor-btn")) el("upgrade-extractor-btn").textContent = `Upgrade ($${nextCost.toFixed(2)})`;
       if (el("collect-extractor-btn")) {
-        el("collect-extractor-btn").textContent = `Collect All (${state.extractor.stored} ◆)`;
+        el("collect-extractor-btn").innerHTML = `Collect All (${state.extractor.stored} <span class="hud-gem-icon"></span>)`;
         el("collect-extractor-btn").disabled = state.extractor.stored === 0;
       }
     }
