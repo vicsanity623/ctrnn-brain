@@ -77,7 +77,6 @@ const Character3D = (() => {
 
         renderer.resetState();
         renderer.render(scene, camera);
-        mapInstance.triggerRepaint();
       },
     };
 
@@ -86,16 +85,32 @@ const Character3D = (() => {
     }
     mapInstance.addLayer(customLayer);
 
-    // Animation Ticker Loop
+    // Power-Efficient Animation Loop (Pauses when app is in background)
     let clock = new THREE.Clock();
+    let animFrameId = null;
+
     function animate() {
-      requestAnimationFrame(animate);
+      if (document.hidden) {
+        animFrameId = null;
+        return;
+      }
+      animFrameId = requestAnimationFrame(animate);
       if (mixer) {
         const delta = clock.getDelta();
         mixer.update(delta);
+        // Only repaint when animations advance
+        if (mapInstance) mapInstance.triggerRepaint();
       }
     }
     animate();
+
+    // Auto-pause when switching tabs or locking phone to save battery
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !animFrameId) {
+        clock.getDelta(); // Reset clock delta so animation doesn't jump
+        animate();
+      }
+    });
   }
 
   function loadModel(characterId) {
