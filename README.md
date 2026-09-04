@@ -1,4 +1,4 @@
-# Elden Earth
+# 🌍 Elden Earth (2026 Edition)
 
 A real-world geo-location territory-claiming and idle income game. Walk the real world, collect diamonds, spin the fortune wheel for Elden Bucks (EB), claim real 10×10 ft tiles beneath your feet, and earn simulated passive rent ($USD) every fraction of a second.
 
@@ -6,18 +6,37 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 
 ---
 
-## ✨ Key Features & Mechanics
+## ✨ Implemented Core Features & Mechanics
 
-* **🗺️ 512px HD Mapbox Retina Graphics:** High-definition dark-themed vector tiles with crisp street grids and building footprints up to Zoom 22.
-* **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded 40-yard collection radius.
-* **💵 Dual-Currency Economy:**
-  * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds.
+* [x] **🗺️ 512px HD Mapbox Retina Graphics:** High-definition dark-themed vector tiles with crisp street grids and building footprints up to Zoom 22.
+* [x] **💎 3D Hovering Gemstones & Particle FX:** Isometric 3D faceted crystal with specular lighting, real-time ground shadows, ambient rising stardust, and a 10-point particle explosion on collection.
+* [x] **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded collection radius.
+* [x] **💵 Dual-Currency Economy:**
+  * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds with dual-scale typography and suppressed leading zeros under $1.00.
   * **Elden Bucks (EB):** Game currency used to claim new plots (100 EB) or construct base structures.
-* **⚡ 30X / 50X Income Multiplier:** Stackable 1-hour booster (up to 6 hours max bank) that electrifies the UI with animated gold pulses and speeds up real-time rent generation. Alternate days feature a rare **0.05% chance for a 50X Super Multiplier**.
-* **💎 Automated Diamond Extractor:** Unlockable beacon for players owning **5+ connected plots** that automatically mines 1 Diamond every 8 hours while offline. Upgradable with Cash Balance to expand storage capacity and reduce mining time.
-* **🎡 Weighted Diamond Spin Wheel:** Realistic physics-based spin wheel with weighted odds, jackpot prizes (25 EB & 50 EB), diamond refunds, and **`🚫` (Miss)** bust slices.
-* **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal.
-* **📱 Progressive Web App (PWA):** Installable directly to iOS & Android home screens with offline asset caching via `sw.js`.
+* [x] **⚡ 30X / 50X Income Multiplier:** Stackable 1-hour booster (up to 6 hours max bank) that electrifies the UI with animated gold pulses and speeds up real-time rent generation. Alternate days feature a rare **0.05% chance for a 50X Super Multiplier**.
+* [x] **💎 Automated Diamond Extractor:** Unlockable beacon for players owning **5+ connected plots** that automatically mines 1 Diamond every 2 minutes (holds up to 50 gems). Upgradable with Cash Balance to expand capacity and reduce mining time.
+* [x] **🎡 Weighted Diamond Spin Wheel:** Realistic physics-based spin wheel with weighted odds, jackpot prizes (25 EB & 50 EB), diamond refunds, and **`🚫` (Miss)** bust slices with background failsafe recovery.
+* [x] **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal.
+* [x] **📱 Progressive Web App (PWA):** Installable directly to iOS & Android home screens with offline asset caching via `sw.js`.
+
+---
+
+## 🎨 Visual & Sensory Roadmap
+
+* [x] **Phase 1: 3D Diamond Overhaul & Particle Burst FX** *(Completed)*
+  * 3D isometric faceted crystal with specular lighting & ground shadow.
+  * Idle floating/hover bobbing animation with rising ambient stardust.
+  * Mini particle explosion burst that shatters outward when collected.
+* [ ] **Phase 2: 3D Isometric Plots & Territory Visuals** *(In Progress)*
+  * 3D raised elevation borders on claimed plots with rarity glow edges.
+  * Extractor 3D crystal beacon with rotating energy rings.
+* [ ] **Phase 3: HUD Micro-Interactions & Flying Coins**
+  * Floating `+1 ◆` and `+EB` combat-text popups rising from tap points.
+  * Flying diamond particles traveling from the ground into your top HUD counter.
+* [ ] **Phase 4: Sound FX & Mobile Haptics**
+  * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
+  * Haptic vibration feedback on iOS & Android.
 
 ---
 
@@ -36,7 +55,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
     ├── auth.js         # Google Identity Services OAuth & instant guest auto-login
     ├── diamonds.js     # Spawn engine, expiration timer, and tap-to-collect logic
     ├── grid.js         # 10x10ft tile rendering, flood-fill territory clustering & buy modal
-    ├── wheel.js        # Canvas-rendered 10-slice wheel with weighted RNG
+    ├── wheel.js        # Canvas-rendered 10-slice wheel with weighted RNG & failsafe timer
     └── main.js         # Game loop, 500ms ticker, booster countdowns, and UI wiring
 ```
 
@@ -80,18 +99,18 @@ All gameplay tuning parameters are centralized in **`js/config.js`**:
 
 ---
 
-## 🗺️ Future Roadmap: Top 10 Planned Features
+## 🗺️ Gameplay Feature Roadmap
 
-1. **👑 Local Mayorship & Territory Dividends:** Player with the most plots in a city becomes Mayor, earns a commission on local tile sales, and displays their crown atop the city.
-2. **📅 300-Day Daily Login Calendar:** Scaling login streak rewards giving daily EB up to a Day 300 Jackpot (200 EB).
-3. **⚡ 50X "Blood Moon" Weekend Flash Events:** Time-limited global events where the multiplier jumps to 50X for 24 hours.
-4. **🎁 Mystery Map Chests:** Rare Bronze, Silver, and Golden chests appearing on the map requiring diamond keys to open.
-5. **🏰 3D Plot Landmarks & Upgrades:** Customizable visual monuments (Castles, Neon Shrines, Towers) providing local parcel income boosts.
-6. **🛂 Passport Stamps & Explorer Badges:** Collectible badges for traveling to new cities that award permanent account-wide +5% rent multipliers.
-7. **📜 Daily Quests & Weekly Bounties:** Engaging rotation of tasks (e.g., *Collect 3 diamonds*, *Spin 2 times*) for bonus EB.
-8. **🔥 Multiplayer Firestore Sync:** Real-time WebSocket synchronization across players to see claimed lands live worldwide without refreshing.
-9. **🛡️ Realm Guilds & Joint Kingdoms:** Alliance territories pooling diamonds into a communal Guild Vault to trigger kingdom-wide buffs.
-10. **🔊 Sensory Juice, SFX & Mobile Haptics:** Tactile vibrations and audio fanfares on diamond collection, wheel spins, and land claims.
+* [ ] **1. 👑 Local Mayorship & Territory Dividends:** Player with the most plots in a city becomes Mayor, earns a commission on local tile sales, and displays their crown atop the city.
+* [ ] **2. 📅 300-Day Daily Login Calendar:** Scaling login streak rewards giving daily EB up to a Day 300 Jackpot (200 EB).
+* [ ] **3. ⚡ 50X "Blood Moon" Weekend Flash Events:** Time-limited global events where the multiplier jumps to 50X for 24 hours.
+* [ ] **4. 🎁 Mystery Map Chests:** Rare Bronze, Silver, and Golden chests appearing on the map requiring diamond keys to open.
+* [ ] **5. 🏰 3D Plot Landmarks & Upgrades:** Customizable visual monuments (Castles, Neon Shrines, Towers) providing local parcel income boosts.
+* [ ] **6. 🛂 Passport Stamps & Explorer Badges:** Collectible badges for traveling to new cities that award permanent account-wide +5% rent multipliers.
+* [ ] **7. 📜 Daily Quests & Weekly Bounties:** Engaging rotation of tasks (e.g., *Collect 3 diamonds*, *Spin 2 times*) for bonus EB.
+* [ ] **8. 🔥 Multiplayer Firestore Sync:** Real-time WebSocket synchronization across players to see claimed lands live worldwide without refreshing.
+* [ ] **9. 🛡️ Realm Guilds & Joint Kingdoms:** Alliance territories pooling diamonds into a communal Guild Vault to trigger kingdom-wide buffs.
+* [ ] **10. 🔊 Sensory Juice, SFX & Mobile Haptics:** Tactile vibrations and audio fanfares on diamond collection, wheel spins, and land claims.
 
 ---
 
