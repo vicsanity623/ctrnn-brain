@@ -61,13 +61,36 @@ const Store = (() => {
     return state;
   }
 
-  function save() {
+  let cloudSyncTimer = null;
+
+  function save(immediateCloud = false) {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
-      syncToCloud();
+      
+      if (immediateCloud) {
+        clearTimeout(cloudSyncTimer);
+        syncToCloud();
+      } else {
+        // Debounce cloud sync to once every 25 seconds during passive idle ticking
+        if (!cloudSyncTimer) {
+          cloudSyncTimer = setTimeout(() => {
+            syncToCloud();
+            cloudSyncTimer = null;
+          }, 25000);
+        }
+      }
     } catch (e) {
       console.warn("Could not save game.", e);
     }
+  }
+
+  // Force cloud sync before closing/unloading the page
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeunload", () => {
+      if (state && state.player && state.player.id) {
+        syncToCloud();
+      }
+    });
   }
 
   // Cloud Save to Firestore (Full Document Overwrite so deleted diamonds actually delete)
