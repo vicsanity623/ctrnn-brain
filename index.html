@@ -133,8 +133,22 @@
     <span class="mult-sub">BOOST</span>
   </button>
 
-  <!-- Unified Side HUD Stack (Leaderboard + Calendar) -->
+  <!-- Unified Side HUD Stack (Extractor + Leaderboard + Calendar) -->
   <div class="side-hud-stack">
+    <!-- Diamond Extractor Quick Button -->
+    <button id="extractor-hud-btn" class="side-hud-btn extractor-btn hidden" aria-label="Diamond Extractor">
+      <div id="extractor-unread-dot" class="calendar-red-dot hidden"></div>
+      <div class="side-hud-card extractor-hud-card">
+        <svg viewBox="0 0 32 38" class="extractor-hud-svg">
+          <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+        </svg>
+      </div>
+      <span class="side-hud-subtext">Mine</span>
+    </button>
+
     <!-- Leaderboard Button -->
     <button id="leaderboard-btn" class="side-hud-btn leaderboard-btn" aria-label="Leaderboards">
       <div class="side-hud-card trophy-card">
