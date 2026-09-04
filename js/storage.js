@@ -22,7 +22,7 @@ const Store = (() => {
 
   function defaultState() {
     return {
-      player: { name: "Traveler", id: null, avatar: "🙂" },
+      player: { name: "Traveler", id: null, avatar: "🙂", model3d: "robot" },
       cash: 0,
       eb: 150,
       diamonds: 0,
