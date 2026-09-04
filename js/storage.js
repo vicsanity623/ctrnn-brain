@@ -44,7 +44,16 @@ const Store = (() => {
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      state = raw ? Object.assign(defaultState(), JSON.parse(raw)) : defaultState();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state = Object.assign(defaultState(), parsed);
+        // Deep merge extractor object so nested properties are never lost
+        if (parsed.extractor) {
+          state.extractor = Object.assign(defaultState().extractor, parsed.extractor);
+        }
+      } else {
+        state = defaultState();
+      }
     } catch (e) {
       console.warn("Save data unreadable, starting fresh.", e);
       state = defaultState();
@@ -86,12 +95,26 @@ const Store = (() => {
       const doc = await firestore.collection("saves").doc(playerId).get();
       if (doc.exists) {
         const cloudData = doc.data();
-        // Preserve local liveDiamonds if local is newer to prevent resurrecting collected gems
+        // Preserve local liveDiamonds & local built extractor state
         const localDiamonds = (state && state.liveDiamonds) ? state.liveDiamonds : {};
+        const localExtractor = (state && state.extractor) ? state.extractor : null;
+
         state = Object.assign(defaultState(), cloudData);
+
         // Only keep diamonds that exist in BOTH or let local deletion take precedence
         if (Object.keys(localDiamonds).length < Object.keys(state.liveDiamonds || {}).length) {
           state.liveDiamonds = localDiamonds;
+        }
+
+        // Never allow cloud sync to un-build an already built extractor
+        if (localExtractor && localExtractor.built) {
+          if (!state.extractor || !state.extractor.built) {
+            state.extractor = localExtractor;
+          } else {
+            // Keep the higher level / newer harvest
+            state.extractor.level = Math.max(state.extractor.level || 1, localExtractor.level || 1);
+            state.extractor.stored = Math.max(state.extractor.stored || 0, localExtractor.stored || 0);
+          }
         }
       }
 
