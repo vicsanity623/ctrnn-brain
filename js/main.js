@@ -245,7 +245,7 @@
       // 3. Mount 3D Animated Character
       Character3D.init(map, currentPos.lon, currentPos.lat);
       
-      // 3.5. Mount 3D Isometric Sonar Pulse Radius
+      // 3.5. Mount 3D Isometric Sonar Pulse Radius (Locked to Real Meters)
       const sonarEl = document.createElement("div");
       sonarEl.className = "sonar-ground-anchor";
       sonarEl.innerHTML = `
@@ -254,13 +254,28 @@
         <div class="sonar-wave-ring wave-2"></div>
       `;
 
+      // Helper to calculate exact screen pixels for real-world meters
+      function updateSonarRadiusPixels() {
+        const meters = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 50;
+        const lat = currentPos.lat;
+        const zoom = map.getZoom();
+        const metersPerPx = (40075016.686 * Math.abs(Math.cos(lat * Math.PI / 180))) / Math.pow(2, zoom + 8);
+        const pixelRadius = meters / metersPerPx;
+        const diameter = Math.max(10, pixelRadius * 2);
+        sonarEl.style.width = `${diameter}px`;
+        sonarEl.style.height = `${diameter}px`;
+      }
+
       sonarMarker = new mapboxgl.Marker({
         element: sonarEl,
         rotationAlignment: "map",
-        pitchAlignment: "map", // Flattens smoothly onto 3D ground plane
+        pitchAlignment: "map",
       })
         .setLngLat([currentPos.lon, currentPos.lat])
         .addTo(map);
+
+      updateSonarRadiusPixels();
+      map.on("zoom", updateSonarRadiusPixels);
 
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
