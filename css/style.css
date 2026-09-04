@@ -1348,13 +1348,13 @@ html,body{
 /* ================= 3D GROUND SONAR RADAR ================= */
 .sonar-ground-anchor {
   position: relative;
-  width: 260px;
-  height: 260px;
-  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
   pointer-events: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: width, height;
 }
 
 /* Outer Dashed Boundary Circle */
