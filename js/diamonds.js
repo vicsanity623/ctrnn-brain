@@ -118,6 +118,55 @@ const Diamonds = (() => {
     }
   }
 
+  // Floating Combat Text Helper
+  function spawnFloatingText(x, y, htmlContent) {
+    const popup = document.createElement("div");
+    popup.className = "combat-text-popup";
+    popup.style.left = `${x}px`;
+    popup.style.top = `${y}px`;
+    popup.innerHTML = htmlContent;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1100);
+  }
+
+  // Flying 3D Gem Arc Particle to HUD
+  function spawnFlyingGemToHUD(startX, startY) {
+    const targetEl = document.getElementById("stat-diamonds");
+    if (!targetEl) return;
+
+    const targetBounds = targetEl.getBoundingClientRect();
+    const endX = targetBounds.left + targetBounds.width / 2;
+    const endY = targetBounds.top + targetBounds.height / 2;
+
+    const gem = document.createElement("div");
+    gem.className = "flying-3d-gem";
+    gem.style.left = `${startX}px`;
+    gem.style.top = `${startY}px`;
+    gem.innerHTML = `
+      <svg viewBox="0 0 32 38">
+        <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
+        <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+        <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+        <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+      </svg>
+    `;
+    document.body.appendChild(gem);
+
+    // Force reflow then animate transition to top HUD
+    requestAnimationFrame(() => {
+      gem.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.4) rotate(360deg)`;
+      gem.style.opacity = "0.2";
+    });
+
+    // Impact event on HUD arrival
+    setTimeout(() => {
+      gem.remove();
+      targetEl.classList.remove("hud-impact-bump");
+      void targetEl.offsetWidth; // Trigger reflow for animation restart
+      targetEl.classList.add("hud-impact-bump");
+    }, 750);
+  }
+
   function attemptCollect(did) {
     const state = Store.get();
     const d = state.liveDiamonds[did];
@@ -127,8 +176,13 @@ const Diamonds = (() => {
       return;
     }
 
-    // Trigger visual particle explosion
-    triggerParticleExplosion(d.lat, d.lon);
+    // Trigger Screen VFX: Tap Explosion, Flying 3D Gem, & Floating +1 Text
+    if (map) {
+      const pt = map.latLngToContainerPoint([d.lat, d.lon]);
+      triggerParticleExplosion(d.lat, d.lon);
+      spawnFloatingText(pt.x, pt.y - 15, `+1 <span class="hud-gem-icon"></span>`);
+      spawnFlyingGemToHUD(pt.x, pt.y);
+    }
 
     delete state.liveDiamonds[did];
     state.diamonds = (Number(state.diamonds) || 0) + 1;
