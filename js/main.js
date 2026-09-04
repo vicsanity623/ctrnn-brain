@@ -100,7 +100,7 @@
     if (el("count-legendary")) el("count-legendary").textContent = counts.legendary;
   }
   
-  function updatePlayerInfoModal(targetPlayerData = null) {
+  async function updatePlayerInfoModal(targetPlayerData = null) {
     const state = Store.get();
     const isOtherPlayer = targetPlayerData && targetPlayerData.ownerId !== state.player.id;
     
@@ -117,8 +117,24 @@
       av.textContent = avatar || "🙂";
     }
 
-    // Total Rent (Hidden for privacy if inspecting other players)
-    el("info-total-rent").textContent = isOtherPlayer ? "••••••••••••••••" : "$" + (state.cash || 0).toFixed(15);
+    // Initial Rent Display
+    let rentVal = isOtherPlayer ? 0 : (state.cash || 0);
+    el("info-total-rent").textContent = "$" + Number(rentVal).toFixed(15);
+
+    // Fetch and display the other player's live cloud earnings
+    if (isOtherPlayer && targetPlayerData.ownerId) {
+      const db = Store.getDb();
+      if (db) {
+        try {
+          const doc = await db.collection("saves").doc(targetPlayerData.ownerId).get();
+          if (doc.exists && doc.data().cash !== undefined) {
+            el("info-total-rent").textContent = "$" + Number(doc.data().cash).toFixed(15);
+          }
+        } catch (e) {
+          console.warn("[PlayerInfo] Error fetching player cash:", e);
+        }
+      }
+    }
 
     // Calculate Counts from global plots
     const allPlots = (typeof Grid !== "undefined" && Grid.getAllPlots) ? Grid.getAllPlots() : state.plots;
