@@ -598,9 +598,17 @@
     buyLandBtn?.addEventListener("click", enterBuyLandMode);
     exitBuyBtn?.addEventListener("click", exitBuyLandMode);
 
-    el("recenter-btn").addEventListener("click", () => {
+    // Reset Camera to True North & Default Zoom Level
+    el("recenter-btn")?.addEventListener("click", () => {
       if (currentPos && map) {
-        map.flyTo({ center: [currentPos.lon, currentPos.lat], duration: 800 });
+        map.flyTo({
+          center: [currentPos.lon, currentPos.lat],
+          bearing: 0,      // Snaps camera back to True North
+          pitch: 60,       // Resets to 3D Isometric View
+          zoom: 18.5,      // Returns to default sweetspot zoom
+          duration: 900,
+          essential: true,
+        });
       }
     });
     
