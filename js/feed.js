@@ -122,6 +122,11 @@ const Feed = (() => {
     } else if (type === "daily") {
       const day = details.day || 1;
       message = `📅 <strong>${playerName}</strong> has logged in for <strong>${day} day${day > 1 ? "s" : ""} in a row!</strong> Welcome back! 🔥`;
+    } else if (type === "dividend") {
+      const mayor = details.mayorName || "The Mayor";
+      const city = details.city || "the Realm";
+      const amount = details.amount || 2;
+      message = `👑 <strong>${mayor}</strong> collected a <strong>${amount} EB</strong> Mayorship dividend from a land sale in <em>${city}</em>!`;
     }
 
     const localEv = {
