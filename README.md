@@ -16,6 +16,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
 * [x] **☁️ Firebase Cloud Saves & Anti-Exploit Security:** Permanent account backups stored in Google Cloud Firestore with strict document overwriting and a persistent collected-diamond blacklist (`collectedDiamondIds`) that eliminates force-close duplication glitches.
 * [x] **💬 Global Live Activity Feed:** A subtle activity feed ticker at the top showing live accomplishments.
+* [x] **📅 30-Day Daily Login Calendar:** Scaling daily check-in rewards: Day 2 = 5 EB, Day 7 = 20 EB, Day 12 = 75 EB, scaling up to a **200 EB Jackpot on Day 30**.
 * [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that pre-fetches world plots and coordinates with zero race conditions.
 * [x] **📱 Forced Portrait Guard:** Orientation guard overlay preventing unintended screen rotation on mobile devices.
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
@@ -80,7 +81,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ---
 
 ### 📅 IV. Retention & Daily Progression
-* [ ] **16. 📅 30-Day Daily Login Calendar:**
+* [x] **16. 📅 30-Day Daily Login Calendar:**
   * Scaling daily check-in rewards: Day 2 = 5 EB, Day 7 = 20 EB, Day 12 = 75 EB, scaling up to a **200 EB Jackpot on Day 30**.
 * [ ] **17. 📜 Daily Quests & Weekly Bounties:**
   * 3 daily missions (*Collect 3 diamonds*, *Spin twice*, *Keep 30X active for 2 hrs*) rewarding bonus EB.
