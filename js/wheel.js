@@ -73,8 +73,13 @@ const Wheel = (() => {
     return 0;
   }
 
-  // Spins to weighted slice with realistic landing animation
+  let isCurrentlySpinning = false;
+
+  // Spins to weighted slice with realistic landing animation & failsafe recovery
   function spin(callback) {
+    if (isCurrentlySpinning) return;
+    isCurrentlySpinning = true;
+
     const n = CONFIG.WHEEL_SLICES.length;
     const sliceDeg = 360 / n;
     const targetIndex = pickWeightedIndex();
@@ -94,11 +99,20 @@ const Wheel = (() => {
     canvas.style.transform = `rotate(${finalRotation}deg)`;
     rotation = finalRotation;
 
-    const onEnd = () => {
-      canvas.removeEventListener("transitionend", onEnd);
+    let finished = false;
+    const finishSpin = () => {
+      if (finished) return;
+      finished = true;
+      isCurrentlySpinning = false;
+      canvas.removeEventListener("transitionend", finishSpin);
       callback(CONFIG.WHEEL_SLICES[targetIndex]);
     };
-    canvas.addEventListener("transitionend", onEnd);
+
+    // Primary listener: CSS transition finishes
+    canvas.addEventListener("transitionend", finishSpin, { once: true });
+
+    // Failsafe backup timer: Resolves spin even if browser backgrounded or interrupted
+    setTimeout(finishSpin, 4300);
   }
 
   return { init, spin };
