@@ -11,10 +11,8 @@ const Store = (() => {
       if (typeof firebase !== "undefined" && CONFIG.FIREBASE_CONFIG && CONFIG.FIREBASE_CONFIG.apiKey) {
         if (!firebase.apps.length) {
           firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
-          console.log("[Firebase] App initialized successfully.");
         }
         db = firebase.firestore();
-        console.log("[Firebase] Firestore connected.");
       }
     } catch (e) {
       console.warn("[Firebase] Init error:", e);
@@ -63,37 +61,41 @@ const Store = (() => {
   // Cloud Save to Firestore
   function syncToCloud() {
     const firestore = getDb();
-    if (!firestore || !state || !state.player) return;
-
-    // Ensure player has an ID
-    if (!state.player.id) {
-      state.player.id = "player-" + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem(KEY, JSON.stringify(state));
-    }
+    if (!firestore || !state || !state.player || !state.player.id) return;
 
     try {
       firestore.collection("saves").doc(state.player.id).set(state, { merge: true })
-        .then(() => console.log(`[Cloud] Save synced successfully for: ${state.player.id}`))
         .catch(err => console.warn("[Cloud] Sync failed:", err));
     } catch (err) {
       console.warn("[Cloud] Error during sync:", err);
     }
   }
 
-  // Load from Cloud when logging into Google
+  // Load from Cloud when logging into Google (Full Restore)
   async function syncFromCloud(playerId) {
     const firestore = getDb();
     if (!firestore || !playerId) return null;
 
     try {
+      // 1. Fetch player save document
       const doc = await firestore.collection("saves").doc(playerId).get();
       if (doc.exists) {
         const cloudData = doc.data();
         state = Object.assign(defaultState(), cloudData);
-        localStorage.setItem(KEY, JSON.stringify(state));
-        console.log("[Cloud] Cloud save restored:", playerId);
-        return state;
       }
+
+      // 2. Query and restore all plots owned by this player from world map
+      const plotSnap = await firestore.collection("plots").where("ownerId", "==", playerId).get();
+      if (!plotSnap.empty) {
+        if (!state.plots) state.plots = {};
+        plotSnap.forEach((pDoc) => {
+          state.plots[pDoc.id] = pDoc.data();
+        });
+      }
+
+      localStorage.setItem(KEY, JSON.stringify(state));
+      console.log(`[Cloud] Restored account for ${playerId} with ${Object.keys(state.plots || {}).length} plots.`);
+      return state;
     } catch (err) {
       console.warn("[Cloud] Load error:", err);
     }
@@ -122,7 +124,7 @@ const Store = (() => {
     return isBoosted ? baseRate * (state.boostMultiplier || 30) : baseRate;
   }
 
-  // Apply offline earnings
+  // Apply offline earnings & offline extractor progress
   function applyOfflineProgress() {
     const now = Date.now();
     const elapsedSec = Math.max(0, (now - (state.lastTick || now)) / 1000);
