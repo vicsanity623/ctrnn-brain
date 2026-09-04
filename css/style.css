@@ -874,6 +874,40 @@ html,body{
   display: none;
 }
 
+/* ================= EDIT NAME BADGE & WRAPPER ================= */
+.info-name-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-name-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1.5px solid var(--gold);
+  color: var(--gold-hi);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.edit-name-badge:active {
+  transform: scale(0.9);
+}
+
+.edit-name-badge:hover {
+  background: var(--line);
+  color: #ffffff;
+}
+
 /* ---------- Player Info Modal ---------- */
 .player-info-card {
   text-align: left;
