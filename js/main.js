@@ -118,9 +118,11 @@
       av.textContent = avatar || "🙂";
     }
 
-    // Only show the edit pencil on your own profile
-    const editBtn = el("edit-avatar-btn");
-    if (editBtn) editBtn.style.display = isOtherPlayer ? "none" : "flex";
+    // Only show the edit pencils on your own profile
+    const editAvatarBtn = el("edit-avatar-btn");
+    const editNameBtn = el("edit-name-btn");
+    if (editAvatarBtn) editAvatarBtn.style.display = isOtherPlayer ? "none" : "flex";
+    if (editNameBtn) editNameBtn.style.display = isOtherPlayer ? "none" : "inline-flex";
 
     // Initial Rent Display
     let rentVal = isOtherPlayer ? 0 : (state.cash || 0);
@@ -751,10 +753,54 @@
       });
     }
 
-    // Open Wardrobe on Pencil Tap
+    // Open Wardrobe on Avatar Pencil Tap
     el("edit-avatar-btn")?.addEventListener("click", () => {
       renderWardrobe();
       openModal("wardrobe-modal");
+    });
+
+    // Rename Player on Name Pencil Tap
+    el("edit-name-btn")?.addEventListener("click", async () => {
+      const state = Store.get();
+      const currentName = state?.player?.name || "Traveler";
+      const newName = prompt("Choose your realm name (2–16 characters):", currentName);
+
+      if (!newName) return;
+      const cleanName = newName.trim().slice(0, 16);
+      if (cleanName.length < 2 || cleanName === currentName) return;
+
+      // 1. Update local state & HUD
+      state.player.name = cleanName;
+      Store.save();
+      updateTopbar();
+      updatePlayerInfoModal();
+      showToast(`Name updated to "${cleanName}"!`);
+
+      // 2. Broadcast name change to all owned plots in Firestore so other players see it
+      const db = Store.getDb();
+      if (db && state.player.id) {
+        try {
+          const batch = db.batch();
+          const snap = await db.collection("plots").where("ownerId", "==", state.player.id).get();
+          snap.forEach((doc) => {
+            batch.update(doc.ref, { ownerName: cleanName });
+          });
+          await batch.commit();
+
+          // Also update Grid memory locally
+          if (typeof Grid !== "undefined" && Grid.render) {
+            for (const tid in state.plots) {
+              if (state.plots[tid].ownerId === state.player.id) {
+                state.plots[tid].ownerName = cleanName;
+              }
+            }
+            Grid.render();
+          }
+          console.log(`[Multiplayer] Successfully updated ownerName on ${snap.size} plots to "${cleanName}".`);
+        } catch (err) {
+          console.warn("[Multiplayer] Error updating name across plots:", err);
+        }
+      }
     });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
