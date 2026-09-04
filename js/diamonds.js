@@ -9,12 +9,16 @@ const Diamonds = (() => {
   let onDenied = () => {};
   let spawnTimer = null;
 
-  // 3D Faceted Crystal with ambient rising dust particles
+  // 3D Faceted Crystal with randomized organic hover & ambient stardust
   function icon(dim) {
+    // Generate individual random duration (slower: 2.8s - 3.8s) & negative start delay
+    const randomDuration = (2.8 + Math.random() * 1.0).toFixed(2) + "s";
+    const randomDelay = (-Math.random() * 3.5).toFixed(2) + "s";
+
     return L.divIcon({
       className: "diamond-3d-wrapper" + (dim ? " far" : ""),
       html: `
-        <div class="gem-anchor">
+        <div class="gem-anchor" style="--hover-dur:${randomDuration}; --hover-delay:${randomDelay};">
           <div class="gem-shadow"></div>
           <div class="gem-3d">
             <svg viewBox="0 0 32 38" class="gem-svg">
