@@ -1,5 +1,5 @@
 // ============================================================
-// Elden Earth — land grid & territory clusters
+// Elden Earth — land grid & real-time multiplayer sync
 // ============================================================
 const Grid = (() => {
   let map = null;
@@ -8,6 +8,7 @@ const Grid = (() => {
   let avatarMarkersLayer = null;
   let onBuyAttempt = () => {};
   let pendingTile = null;
+  let globalPlots = {}; // All plots across all players worldwide
 
   function tileId(tx, ty) { return tx + "_" + ty; }
 
@@ -26,13 +27,20 @@ const Grid = (() => {
     return CONFIG.PLOT_RARITIES.find(r => r.key === key) || CONFIG.PLOT_RARITIES[0];
   }
 
+  function getAllPlots() {
+    const state = Store.get();
+    return Object.assign({}, globalPlots, state.plots);
+  }
+
   function promptBuyTile(tx, ty) {
     const state = Store.get();
     const tid = tileId(tx, ty);
+    const allPlots = getAllPlots();
 
-    // If someone already owns this tile, prevent purchase
-    if (state.plots[tid]) {
-      alert("This tile is already claimed!");
+    // Prevent buying if claimed by ANY player
+    if (allPlots[tid]) {
+      const owner = allPlots[tid].ownerName || "another player";
+      alert(`This tile is already claimed by ${owner}!`);
       return;
     }
 
@@ -46,7 +54,7 @@ const Grid = (() => {
     if (modal) modal.classList.remove("hidden");
   }
 
-  function executeBuy() {
+  async function executeBuy() {
     if (!pendingTile) return;
     const { tx, ty } = pendingTile;
     pendingTile = null;
@@ -56,25 +64,40 @@ const Grid = (() => {
 
     const state = Store.get();
     const tid = tileId(tx, ty);
-    if (state.plots[tid] || state.eb < CONFIG.PLOT_COST_EB) return;
+    const allPlots = getAllPlots();
+    if (allPlots[tid] || state.eb < CONFIG.PLOT_COST_EB) return;
 
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
     
-    // Store owner info for multiplayer support
-    state.plots[tid] = {
+    const plotData = {
       tx,
       ty,
       rarity: rarity.key,
       rate: rarity.rate,
-      ownerId: state.player.id || "guest",
+      ownerId: state.player.id || "guest-" + Math.random().toString(36).slice(2, 8),
       ownerName: state.player.name || "Traveler",
       avatar: state.player.avatar || "🙂",
+      claimedAt: Date.now(),
     };
 
+    // Save locally
+    state.plots[tid] = plotData;
+    globalPlots[tid] = plotData;
     Store.save();
     onBuyAttempt(true, rarity);
     render();
+
+    // Broadcast live claim to Firebase Firestore
+    const db = Store.getDb();
+    if (db) {
+      try {
+        await db.collection("plots").doc(tid).set(plotData);
+        console.log(`[Multiplayer] Claim broadcasted for tile ${tid}`);
+      } catch (err) {
+        console.warn("[Multiplayer] Broadcast error:", err);
+      }
+    }
   }
 
   function visibleTileRange() {
@@ -88,7 +111,7 @@ const Grid = (() => {
     };
   }
 
-  // Group adjacent connected tiles into clusters (Flood Fill)
+  // Flood Fill cluster grouping for all players
   function getConnectedClusters(plots) {
     const visited = new Set();
     const clusters = [];
@@ -105,7 +128,6 @@ const Grid = (() => {
         const current = queue.shift();
         cluster.push(current);
 
-        // Check 4-directional neighbors (North, South, East, West)
         const neighbors = [
           tileId(current.tx + 1, current.ty),
           tileId(current.tx - 1, current.ty),
@@ -133,16 +155,17 @@ const Grid = (() => {
     avatarMarkersLayer.clearLayers();
 
     const state = Store.get();
+    const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // 1. ALWAYS RENDER OWNED TILES (Visible at zoom 13+)
+    // 1. RENDER ALL WORLD PLOTS (Zoom 13+)
     if (zoom >= 13) {
-      for (const tid in state.plots) {
-        const plot = state.plots[tid];
+      for (const tid in allPlots) {
+        const plot = allPlots[tid];
         const corners = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
         const color = rarityInfo(plot.rarity).color;
-
         const rKey = plot.rarity?.key || plot.rarity || "common";
+
         L.polygon(corners, {
           color: color,
           weight: zoom >= 18 ? 2 : 1,
@@ -152,12 +175,11 @@ const Grid = (() => {
         }).addTo(ownedPlotsLayer);
       }
 
-      // 2. RENDER SINGLE AVATAR & AT MOST 1 EXTRACTOR BEACON PER PLAYER
-      const clusters = getConnectedClusters(state.plots);
-      let playerExtractorRendered = false; // Strictly limits to 1 Extractor on the map
+      // 2. RENDER CLUSTERED AVATARS FOR ALL PLAYERS
+      const clusters = getConnectedClusters(allPlots);
+      let playerExtractorRendered = false;
 
       for (const cluster of clusters) {
-        // Calculate the centroid center of this connected cluster
         let sumLat = 0, sumLon = 0;
         for (const p of cluster) {
           const centerMerc = Geo.fromMercator(
@@ -170,7 +192,7 @@ const Grid = (() => {
 
         const centerLat = sumLat / cluster.length;
         const centerLon = sumLon / cluster.length;
-        const isSelf = cluster[0].ownerId === state.player.id || cluster[0].ownerId === "guest";
+        const isSelf = cluster[0].ownerId === state.player.id;
         const avatar = isSelf ? (state.player.avatar || "🙂") : (cluster[0].avatar || "🙂");
 
         const innerContent = avatar.startsWith("img:")
@@ -186,13 +208,14 @@ const Grid = (() => {
 
         const marker = L.marker([centerLat, centerLon], { icon: avatarIcon, interactive: true }).addTo(avatarMarkersLayer);
         marker.on("click", () => {
-          const evt = new CustomEvent("openPlayerInfo");
+          // Open player info (for self or inspected player)
+          const evt = new CustomEvent("openPlayerInfo", { detail: { cluster, isSelf } });
           window.dispatchEvent(evt);
         });
 
-        // Strictly spawn ONLY ONE Extractor on the player's qualifying territory
+        // 3D Orbital Extractor for current player
         if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
-          playerExtractorRendered = true; // Prevents any second extractor from ever spawning
+          playerExtractorRendered = true;
 
           const extractorIcon = L.divIcon({
             className: "extractor-3d-wrap",
@@ -224,7 +247,7 @@ const Grid = (() => {
       }
     }
 
-    // 3. RENDER EMPTY BUYABLE TILES (Only when zoomed in close)
+    // 3. RENDER EMPTY BUYABLE TILES
     if (zoom >= CONFIG.GRID_RENDER_MIN_ZOOM) {
       const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
       const tileCount = (maxTx - minTx + 1) * (maxTy - minTy + 1);
@@ -233,7 +256,7 @@ const Grid = (() => {
       for (let tx = minTx; tx <= maxTx; tx++) {
         for (let ty = minTy; ty <= maxTy; ty++) {
           const tid = tileId(tx, ty);
-          if (state.plots[tid]) continue; // Already rendered in owned layer
+          if (allPlots[tid]) continue;
 
           const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
           const poly = L.polygon(corners, {
@@ -247,6 +270,29 @@ const Grid = (() => {
           poly.addTo(emptyGridLayer);
         }
       }
+    }
+  }
+
+  // Real-Time Firebase Listener for Global Claims
+  function listenToGlobalPlots() {
+    const db = Store.getDb();
+    if (!db) return;
+
+    try {
+      db.collection("plots").onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const tid = change.doc.id;
+          const data = change.doc.data();
+          if (change.type === "added" || change.type === "modified") {
+            globalPlots[tid] = data;
+          } else if (change.type === "removed") {
+            delete globalPlots[tid];
+          }
+        });
+        render();
+      }, (err) => console.warn("[Multiplayer] Sync stream error:", err));
+    } catch (err) {
+      console.warn("[Multiplayer] Init listener error:", err);
     }
   }
 
@@ -271,7 +317,10 @@ const Grid = (() => {
         if (modal) modal.classList.add("hidden");
       });
     }
+
+    // Connect WebSocket stream
+    listenToGlobalPlots();
   }
 
-  return { init, render, promptBuyTile };
+  return { init, render, promptBuyTile, getAllPlots };
 })();
