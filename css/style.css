@@ -832,7 +832,7 @@ html,body{
   justify-content: center;
 }
 
-/* Cast Ground Shadow (breathes in sync with hover) */
+/* Cast Ground Shadow (breathes with individual diamond rate) */
 .gem-shadow {
   position: absolute;
   bottom: 2px;
@@ -840,18 +840,20 @@ html,body{
   transform: translateX(-50%);
   width: 18px;
   height: 6px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.7) 0%, transparent 75%);
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.6) 0%, transparent 75%);
   border-radius: 50%;
-  animation: shadowPulse 2.4s ease-in-out infinite;
+  animation: shadowPulse var(--hover-dur, 3.2s) ease-in-out infinite;
+  animation-delay: var(--hover-delay, 0s);
 }
 
-/* 3D Gem Floating / Hovering Animation */
+/* 3D Gem Floating / Hovering Animation (Slower, softer, individual) */
 .gem-3d {
   position: relative;
   width: 30px;
   height: 36px;
-  animation: gemHover 2.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.85));
+  animation: gemHover var(--hover-dur, 3.2s) ease-in-out infinite;
+  animation-delay: var(--hover-delay, 0s);
+  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.75));
 }
 .gem-svg {
   width: 100%;
@@ -886,15 +888,14 @@ html,body{
 .dust-particle.p2 { right: 8px; bottom: 6px; animation: riseDust 2.6s infinite 0.8s ease-out; }
 .dust-particle.p3 { left: 16px; bottom: 2px; animation: riseDust 2.4s infinite 1.4s ease-out; }
 
-/* Keyframes */
 @keyframes gemHover {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-7px) rotate(1.5deg); }
+  50% { transform: translateY(-3.5px) rotate(1deg); } /* Subtle 3.5px hover */
 }
 
 @keyframes shadowPulse {
-  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.7; }
-  50% { transform: translateX(-50%) scale(0.65); opacity: 0.35; }
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+  50% { transform: translateX(-50%) scale(0.8); opacity: 0.35; }
 }
 
 @keyframes sparkleTwinkle {
