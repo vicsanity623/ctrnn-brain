@@ -899,11 +899,19 @@
         return;
       }
       state.eb -= cost;
+      if (!state.extractor) state.extractor = { level: 1 };
       state.extractor.built = true;
+      state.extractor.level = 1;
       state.extractor.lastHarvest = Date.now();
       state.extractor.stored = 0;
       Store.save();
       updateTopbar();
+
+      // Immediately render 3D Extractor Beacon on map
+      if (typeof Grid !== "undefined" && Grid.render) {
+        Grid.render();
+      }
+
       showToast("💎 Diamond Extractor Constructed!");
       openExtractorModal();
     });
