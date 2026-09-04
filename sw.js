@@ -1,5 +1,5 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'elden-earth-v0.3.7';
+const CACHE_NAME = 'elden-earth-v0.3.8';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -15,6 +15,7 @@ const ASSETS_TO_CACHE = [
     './js/grid.js',
     './js/geo.js',
     './js/config.js',
+    './js/character.js'
 ];
 
 // 1. Force Immediate Installation
