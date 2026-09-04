@@ -987,6 +987,64 @@ html,body{
   100% { stroke-opacity: 1; filter: drop-shadow(0 0 14px rgba(224, 168, 79, 1)) drop-shadow(0 0 5px #fff); }
 }
 
+
+/* ================= 2.5D STANDING PLOT SIGNBOARD ================= */
+.standing-plot-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto !important;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.9));
+  transform-origin: bottom center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+
+.standing-plot-sign:active {
+  transform: scale(0.92);
+}
+
+/* Upright Circular Avatar Disc */
+.sign-avatar-disc {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #d4af61;
+  background: #0d1420;
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.9), 0 0 8px rgba(212, 175, 97, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  animation: floatPlotBadge 3s ease-in-out infinite alternate;
+}
+
+/* Subtle Vertical Float */
+@keyframes floatPlotBadge {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-3px); }
+}
+
+/* Golden Stem Pinning Sign into the Ground */
+.sign-stem {
+  width: 2px;
+  height: 12px;
+  background: linear-gradient(to bottom, #d4af61, rgba(212, 175, 97, 0.2));
+  z-index: 1;
+}
+
+/* Soft Ground Shadow Beneath the Stem */
+.sign-ground-shadow {
+  width: 16px;
+  height: 5px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.75) 0%, transparent 80%);
+  border-radius: 50%;
+  margin-top: -2px;
+}
+
 /* ---------- 3D Extractor Beacon with Orbital Energy Rings ---------- */
 .extractor-3d-wrap {
   background: transparent !important;
