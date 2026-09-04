@@ -432,19 +432,6 @@
         pulseAnimId = requestAnimationFrame(animatePulse);
       }
       pulseAnimId = requestAnimationFrame(animatePulse);
-
-      // Exact 100m dashed boundary ring matching the Buy Land grid circumference
-      map.addLayer({
-        id: "player-sonar-line",
-        type: "line",
-        source: "player-sonar-source",
-        paint: {
-          "line-color": "#4fd6c4",
-          "line-width": 2,
-          "line-dasharray": [3, 2],
-          "line-opacity": 0.85
-        }
-      }, labelLayerId);
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
