@@ -55,7 +55,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.14</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.15</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -210,7 +210,14 @@
 <div id="extractor-modal" class="modal hidden">
   <div class="modal-card extractor-card">
     <button class="close-btn" data-close="extractor-modal">✕</button>
-    <div class="extractor-glow-icon">💎</div>
+    <div class="extractor-glow-icon">
+      <svg viewBox="0 0 32 38" style="width:38px;height:46px;display:inline-block;filter:drop-shadow(0 0 10px #4fd6c4);">
+        <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+        <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+        <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+        <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+      </svg>
+    </div>
     <h2>Diamond Extractor</h2>
     <p class="modal-sub">Automated mining beacon for your home base.</p>
 
@@ -218,7 +225,7 @@
     <div id="extractor-unbuilt-view" class="extractor-view hidden">
       <div class="extractor-status-box">
         <p>Construct an automated extractor on your territory to harvest free diamonds while offline.</p>
-        <div class="req-line">Requirements: <strong>5+ Connected Plots</strong></div>
+        <div class="req-line">Requirements: <strong>5+ Connected Plots (Limit 1 Base)</strong></div>
         <div class="req-line">Build Cost: <strong>50 EB</strong></div>
       </div>
       <button id="build-extractor-btn" class="btn btn-primary">Build Extractor (50 EB)</button>
@@ -233,7 +240,7 @@
         </div>
         <div class="stat-row">
           <span>Rate:</span>
-          <strong>1 ◆ / 8 Hours</strong>
+          <strong>1 <span class="hud-gem-icon"></span> / 2 Mins</strong>
         </div>
         <div class="stat-row">
           <span>Next Diamond In:</span>
@@ -241,10 +248,10 @@
         </div>
         <div class="stat-row">
           <span>Ready to Collect:</span>
-          <strong id="extractor-stored-count" class="diamond-ready-val">0 / 50 ◆</strong>
+          <strong id="extractor-stored-count" class="diamond-ready-val">0 / 50 <span class="hud-gem-icon"></span></strong>
         </div>
       </div>
-      <button id="collect-extractor-btn" class="btn btn-primary">Collect All (0 ◆)</button>
+      <button id="collect-extractor-btn" class="btn btn-primary">Collect All (0 <span class="hud-gem-icon"></span>)</button>
     </div>
   </div>
 </div>
