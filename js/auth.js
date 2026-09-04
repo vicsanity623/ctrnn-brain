@@ -40,29 +40,44 @@ const Auth = (() => {
       return;
     }
 
-    // Wait for the Google script to be ready, then render the button.
+    //let attempts = 0;
     const tryInit = () => {
+      attempts++;
       if (!window.google || !google.accounts || !google.accounts.id) {
-        setTimeout(tryInit, 200);
+        if (attempts < 30) {
+          setTimeout(tryInit, 150);
+        } else {
+          console.warn("[Auth] Google GSI script failed to load. Check network connection.");
+        }
         return;
       }
-      google.accounts.id.initialize({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        callback: (resp) => {
-          const payload = decodeJwt(resp.credential);
-          if (!payload) return;
-          const state = Store.get();
-          state.player.id = "google-" + payload.sub;
-          state.player.name = payload.given_name || payload.name || "Traveler";
-          state.player.avatar = payload.picture ? "img:" + payload.picture : "🙂";
-          Store.save();
-          onSignedIn(state.player);
-        },
-      });
-      google.accounts.id.renderButton(slot, {
-        theme: "filled_black", shape: "pill", size: "large", width: 280,
-      });
+
+      try {
+        google.accounts.id.initialize({
+          client_id: CONFIG.GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            const payload = decodeJwt(resp.credential);
+            if (!payload) return;
+            const state = Store.get();
+            state.player.id = "google-" + payload.sub;
+            state.player.name = payload.given_name || payload.name || "Traveler";
+            state.player.avatar = payload.picture ? "img:" + payload.picture : "🙂";
+            Store.save();
+            onSignedIn(state.player);
+          },
+        });
+
+        google.accounts.id.renderButton(slot, {
+          theme: "filled_black",
+          shape: "pill",
+          size: "large",
+          width: 280,
+        });
+      } catch (err) {
+        console.error("[Auth] Google render error:", err);
+      }
     };
+
     tryInit();
   }
 
