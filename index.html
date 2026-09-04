@@ -133,6 +133,15 @@
     <span class="mult-sub">BOOST</span>
   </button>
 
+  <!-- Daily Login Calendar HUD Button with Red Notification Dot -->
+  <button id="calendar-btn" class="calendar-btn" aria-label="Daily Calendar">
+    <div id="calendar-unread-dot" class="calendar-red-dot hidden"></div>
+    <div class="calendar-icon-card">
+      <div class="cal-card-top" id="cal-hud-month">JUL</div>
+      <div class="cal-card-body" id="cal-hud-day">17</div>
+    </div>
+  </button>
+
   <!-- Permanent Collapsable Worldwide Feed Card -->
   <div id="live-feed-card" class="live-feed-card">
     <div id="feed-interactive-header" class="feed-header-line" title="Tap to toggle feed">
@@ -357,6 +366,21 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" data-close="booster-modal">Cancel</button>
       <button id="activate-boost-btn" class="btn btn-primary">Activate Boost</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 30-DAY DAILY LOGIN CALENDAR MODAL ===================== -->
+<div id="calendar-modal" class="modal hidden">
+  <div class="modal-card calendar-modal-card">
+    <button class="close-btn" data-close="calendar-modal">✕</button>
+    <div class="calendar-modal-header">
+      <span class="cal-modal-icon">📅</span>
+      <h2>Daily Rewards</h2>
+      <p class="modal-sub">Log in daily to claim scaling Elden Bucks!</p>
+    </div>
+    <div id="calendar-days-list" class="calendar-days-list">
+      <!-- Generated dynamically in main.js -->
     </div>
   </div>
 </div>
