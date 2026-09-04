@@ -80,7 +80,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.4.9</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.5.0</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -163,19 +163,6 @@
   </div>
 </div>
 
-<!-- ===================== CHARACTER WARDROBE MODAL ===================== -->
-<div id="wardrobe-modal" class="modal hidden">
-  <div class="modal-card">
-    <button class="close-btn" data-close="wardrobe-modal">✕</button>
-    <h2>Wardrobe</h2>
-    <p class="modal-sub">Choose your 3D avatar on the world map.</p>
-    
-    <div id="wardrobe-grid" class="wardrobe-grid">
-      <!-- Generated dynamically from CONFIG.AVAILABLE_CHARACTERS -->
-    </div>
-  </div>
-</div>
-
 <!-- ===================== LAND / STATS MODAL ===================== -->
 <div id="land-modal" class="modal hidden">
   <div class="modal-card">
@@ -201,9 +188,12 @@
     <button class="close-btn" data-close="player-info-modal">✕</button>
     <h2>Player Info</h2>
     
-    <!-- Profile Row -->
+    <!-- Profile Row with ✎ Edit Pencil -->
     <div class="profile-header-card">
-      <div id="info-avatar" class="info-avatar">🙂</div>
+      <div class="avatar-edit-wrapper">
+        <div id="info-avatar" class="info-avatar">🙂</div>
+        <button id="edit-avatar-btn" class="edit-avatar-badge" title="Change 3D Character">✎</button>
+      </div>
       <div class="info-name-box">
         <span id="info-name" class="info-player-name">Traveler</span>
       </div>
@@ -248,6 +238,16 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===================== CHARACTER WARDROBE MODAL ===================== -->
+<div id="wardrobe-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="wardrobe-modal">✕</button>
+    <h2>3D Wardrobe</h2>
+    <p class="modal-sub">Select your 3D explorer model.</p>
+    <div id="wardrobe-grid" class="wardrobe-grid"></div>
   </div>
 </div>
 
