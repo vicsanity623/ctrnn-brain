@@ -20,7 +20,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
 * [x] **🖥️ HUD Micro-Interactions & Flying 3D Gems:** Floating `+1 ◆` and `+EB` combat-text popups rising from tap points, accompanied by physical flying 3D crystals traveling from the street into the top HUD counter with impact bumps.
 * [x] **🏰 3D Raised Parcels & Orbital Extractor:** Elevation bevels and neon rarity glow edges on claimed plots flush with the ground, plus a 3D levitating Extractor Beacon with counter-rotating orbital energy rings.
-* [x] **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded collection radius that dynamically locks to real-world meters across all zoom levels.
+* [x] **📡 Dynamic 100m Geodesic Sonar & GPU Shockwaves:** Full geodesic Web Mercator polygon circle generator (`createCirclePolygon`) producing an exact 100-meter outer dashed perimeter matching the Buy Land claim grid 1:1, driven by multi-stage, 60fps GPU-accelerated WebGL radar shockwaves that expand smoothly from the player to the boundary.
 * [x] **💵 Dual-Currency Economy:**
   * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds with dual-scale typography and suppressed leading zeros under $1.00.
   * **Elden Bucks (EB):** Game currency used to claim new plots (100 EB) or construct base structures.
@@ -39,10 +39,10 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **Phase 3: HUD Micro-Interactions & Flying Coins** *(Completed)*
 * [x] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Completed)*
 * [ ] **Phase 4: Sound FX & Mobile Haptics** *(Next Phase)*
-  * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
-  * Haptic vibration feedback on iOS & Android.
+  * Synthesized Web Audio API sound chimes for diamond collection, wheel ratchet clicks, and land claims (zero external audio file dependencies).
+  * Native haptic vibration cadences (`navigator.vibrate`) on iOS & Android.
 * [ ] **Phase 6: 🌐 Community Globe Tab** *(Upcoming Feature)*
-  * Dedicated interactive 3D Earth Globe viewing mode.
+  * Dedicated interactive 3D Earth Globe viewing mode (`map.setProjection('globe')`).
   * Free worldwide camera controls to spin the planet, inspect global territories, and zoom into international player empires without leaving your home base.
 
 ---
@@ -63,7 +63,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 │   └── character.glb   # Custom Champion
 └── js/
     ├── config.js       # Central tuning file (rates, drop weights, radiuses, Firebase keys)
-    ├── geo.js          # Web Mercator math, tile bounds, and Haversine distance calculations
+    ├── geo.js          # Web Mercator math, geodesic circle generator, tile bounds & Haversine
     ├── storage.js      # Save engine, Firestore cloud sync, offline progress & rate lookups
     ├── auth.js         # Google Identity Services OAuth & cloud save retrieval
     ├── loading.js      # Bootloader pipeline, progress bar & zero-race condition loader
@@ -71,7 +71,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
     ├── diamonds.js     # Spawn engine, expiration timer, and 3D crystal particle FX
     ├── grid.js         # 10x10ft tile rendering, flood-fill clustering & multiplayer sync
     ├── wheel.js        # Canvas-rendered 10-slice wheel with 3D gems & failsafe timer
-    └── main.js         # Game loop, 500ms ticker, booster countdowns, and UI wiring
+    └── main.js         # Game loop, 500ms ticker, WebGL sonar pulse animation & UI wiring
 ```
 
 ---
