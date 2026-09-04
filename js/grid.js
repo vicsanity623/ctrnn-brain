@@ -97,7 +97,7 @@ const Grid = (() => {
 
     state.plots[tid] = plotData;
     globalPlots[tid] = plotData;
-    Store.save();
+    Store.save(true); // Force immediate cloud sync on land purchase
     onBuyAttempt(true, rarity);
     render();
 
