@@ -1183,3 +1183,52 @@ html,body{
   color: var(--gold-hi);
   font-weight: 700;
 }
+
+/* ---------- Portrait Guard Overlay ---------- */
+#portrait-guard {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--ink);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.portrait-guard-card {
+  max-width: 320px;
+}
+
+.portrait-guard-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: rotatePhone 2.5s infinite ease-in-out;
+}
+
+#portrait-guard h2 {
+  font-family: var(--font-display);
+  color: var(--gold-hi);
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+#portrait-guard p {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@keyframes rotatePhone {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+/* Activate overlay whenever mobile device enters landscape mode */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  #portrait-guard {
+    display: flex !important;
+  }
+}
