@@ -3,7 +3,7 @@
 // Wires sign-in -> location permission -> map -> game loop.
 // ============================================================
 (() => {
-  let map, playerMarker, collectionCircle, pulseWave1, pulseWave2, watchId;
+  let map, sonarMarker, watchId;
   let currentPos = null;
   let toastTimer = null;
 
@@ -244,6 +244,23 @@
 
       // 3. Mount 3D Animated Character
       Character3D.init(map, currentPos.lon, currentPos.lat);
+      
+      // 3.5. Mount 3D Isometric Sonar Pulse Radius
+      const sonarEl = document.createElement("div");
+      sonarEl.className = "sonar-ground-anchor";
+      sonarEl.innerHTML = `
+        <div class="sonar-boundary-ring"></div>
+        <div class="sonar-wave-ring wave-1"></div>
+        <div class="sonar-wave-ring wave-2"></div>
+      `;
+
+      sonarMarker = new mapboxgl.Marker({
+        element: sonarEl,
+        rotationAlignment: "map",
+        pitchAlignment: "map", // Flattens smoothly onto 3D ground plane
+      })
+        .setLngLat([currentPos.lon, currentPos.lat])
+        .addTo(map);
 
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
