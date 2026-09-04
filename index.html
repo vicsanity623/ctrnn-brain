@@ -6,7 +6,11 @@
 <title>Elden Earth</title>
 <meta name="description" content="Walk the real world, claim the tile beneath your feet." />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<!-- Mapbox GL JS 3D WebGL Engine & Three.js -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css" />
@@ -75,7 +79,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.3</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.4.1</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -148,6 +152,19 @@
     </div>
     <button id="spin-btn" class="btn btn-primary">Spin (1 <span class="hud-gem-icon"></span>)</button>
     <p id="wheel-result" class="wheel-result"></p>
+  </div>
+</div>
+
+<!-- ===================== CHARACTER WARDROBE MODAL ===================== -->
+<div id="wardrobe-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="wardrobe-modal">✕</button>
+    <h2>Wardrobe</h2>
+    <p class="modal-sub">Choose your 3D avatar on the world map.</p>
+    
+    <div id="wardrobe-grid" class="wardrobe-grid">
+      <!-- Generated dynamically from CONFIG.AVAILABLE_CHARACTERS -->
+    </div>
   </div>
 </div>
 
