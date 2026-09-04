@@ -670,14 +670,18 @@
       updateCalendarHUD();
 
       // Trigger flying +EB particle to HUD
-      spawnFlyingEBToHUD(clickX, clickY, amount);
+      launchFlyingEBStream(clickX, clickY, amount);
       showToast(`🎉 Claimed +${amount} Elden Bucks Daily Reward!`);
+
+      // Broadcast daily login streak to live global feed!
+      if (typeof Feed !== "undefined") {
+        Feed.broadcast("daily", { day: cal.totalClaimed });
+      }
 
       // Auto-close calendar after claiming
       setTimeout(() => {
         closeModal("calendar-modal");
       }, 650);
-    }
 
     el("calendar-btn")?.addEventListener("click", () => {
       renderCalendarModal();
