@@ -438,7 +438,14 @@
     el("hero-balance-card").addEventListener("click", openPlayerInfo);
     document.querySelector(".player-chip")?.addEventListener("click", openPlayerInfo);
 
-    el("earn-btn").addEventListener("click", () => openModal("wheel-modal"));
+    el("earn-btn").addEventListener("click", () => {
+      // Safety unlock in case modal was closed mid-spin
+      const spinBtn = el("spin-btn");
+      if (spinBtn && !el("wheel-result").textContent.includes("Spinning")) {
+        spinBtn.disabled = false;
+      }
+      openModal("wheel-modal");
+    });
     el("land-btn").addEventListener("click", () => { updateLandModal(); openModal("land-modal"); });
     el("menu-btn").addEventListener("click", () => openModal("menu-modal"));
 
