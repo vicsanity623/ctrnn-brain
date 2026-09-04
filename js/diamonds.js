@@ -199,6 +199,7 @@ const Diamonds = (() => {
 
   function pruneExpired() {
     const state = Store.get();
+    if (!state.liveDiamonds) state.liveDiamonds = {};
     const now = Date.now();
     let changed = false;
     for (const did in state.liveDiamonds) {
@@ -213,32 +214,43 @@ const Diamonds = (() => {
   function trySpawn() {
     if (!playerPos) return;
     const state = Store.get();
+    if (!state.liveDiamonds) state.liveDiamonds = {};
     pruneExpired();
+
+    const now = Date.now();
+    const spawnInterval = CONFIG.DIAMOND_SPAWN_CHECK_MS || 35000;
+
+    // Cooldown gate: Prevent force-close reload exploit
+    if (state.lastDiamondSpawn && (now - state.lastDiamondSpawn < spawnInterval)) {
+      return;
+    }
+
     const count = Object.keys(state.liveDiamonds).length;
     if (count >= CONFIG.DIAMOND_MAX_ACTIVE) return;
+
     const p = Geo.randomPointInRadius(playerPos.lat, playerPos.lon, CONFIG.DIAMOND_SPAWN_RADIUS_METERS);
-    state.liveDiamonds[id()] = { lat: p.lat, lon: p.lon, spawnedAt: Date.now() };
+    state.liveDiamonds[id()] = { lat: p.lat, lon: p.lon, spawnedAt: now };
+    state.lastDiamondSpawn = now;
     Store.save();
     renderAll();
-  }
-
-  function seedIfEmpty() {
-    const state = Store.get();
-    if (Object.keys(state.liveDiamonds).length === 0) {
-      for (let i = 0; i < 4; i++) trySpawn();
-    }
   }
 
   function init(mapboxMap, callbacks) {
     map = mapboxMap;
     onCollect = callbacks.onCollect || onCollect;
     onDenied = callbacks.onDenied || onDenied;
-    spawnTimer = setInterval(trySpawn, CONFIG.DIAMOND_SPAWN_CHECK_MS);
+    pruneExpired();
+    renderAll();
+
+    // Regular spawn ticker
+    if (spawnTimer) clearInterval(spawnTimer);
+    spawnTimer = setInterval(trySpawn, CONFIG.DIAMOND_SPAWN_CHECK_MS || 35000);
   }
 
   function setPlayerPosition(lat, lon) {
     playerPos = { lat, lon };
-    seedIfEmpty();
+    pruneExpired();
+    trySpawn();
     renderAll();
   }
 
