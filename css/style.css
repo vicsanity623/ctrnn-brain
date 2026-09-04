@@ -1080,3 +1080,106 @@ html,body{
   0% { transform: scale(0.85); opacity: 0.6; }
   100% { transform: scale(1.2); opacity: 1; }
 }
+
+/* ================= LOADING SCREEN & PROGRESS BAR ================= */
+.loader-card {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loader-gem-wrap {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.loader-gem {
+  font-size: 34px;
+  color: var(--teal);
+  text-shadow: 0 0 20px rgba(79, 214, 196, 0.9);
+  animation: boostPulse 2s infinite ease-in-out;
+}
+
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--gold);
+  border-right-color: var(--teal);
+  animation: loaderRingSpin 1.8s linear infinite;
+}
+
+@keyframes loaderRingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--gold-hi);
+  margin: 0 0 2px;
+}
+
+.loader-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin: 0 0 24px;
+}
+
+/* Progress Bar Container */
+.loader-bar-outer {
+  width: 100%;
+  height: 10px;
+  background: rgba(13, 20, 32, 0.9);
+  border: 1px solid rgba(212, 175, 97, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.8), inset 0 0 6px rgba(0, 0, 0, 0.9);
+  margin-bottom: 8px;
+}
+
+.loader-bar-inner {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4fd6c4 0%, #d4af61 50%, #f0d38a 100%);
+  box-shadow: 0 0 14px rgba(240, 211, 138, 0.9);
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+/* Console-like Status Text */
+.loader-meta-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.loader-status {
+  color: #a8f5ec;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+  text-align: left;
+}
+
+.loader-percent {
+  color: var(--gold-hi);
+  font-weight: 700;
+}
