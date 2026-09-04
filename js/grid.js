@@ -312,12 +312,14 @@ const Grid = (() => {
           : "";
 
         const el = document.createElement("div");
-        el.className = "custom-plot-icon";
+        el.className = "custom-plot-icon standing-plot-sign";
         el.innerHTML = `
-          <div style="position:relative;width:30px;height:30px;border-radius:50%;border:2px solid #d4af61;background:#0d1420;box-shadow:0 0 12px rgba(0,0,0,0.9), 0 0 8px rgba(212,175,97,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <div class="sign-avatar-disc">
             ${innerContent}
             ${countBadge}
           </div>
+          <div class="sign-stem"></div>
+          <div class="sign-ground-shadow"></div>
         `;
 
         el.addEventListener("click", () => {
@@ -325,7 +327,13 @@ const Grid = (() => {
           window.dispatchEvent(evt);
         });
 
-        const m = new mapboxgl.Marker({ element: el, pitchAlignment: "map", rotationAlignment: "map" })
+        // "viewport" makes the sign stand vertically upright & billboard toward the player camera
+        const m = new mapboxgl.Marker({
+          element: el,
+          anchor: "bottom",              // Anchors the bottom tip of the stem to the exact ground coordinates
+          pitchAlignment: "viewport",    // Stands vertically upright (not flat on the ground)
+          rotationAlignment: "viewport", // Rotates to continuously face the camera
+        })
           .setLngLat([centroidLon, centroidLat])
           .addTo(map);
 
