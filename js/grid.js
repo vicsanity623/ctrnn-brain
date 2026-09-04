@@ -367,7 +367,7 @@ const Grid = (() => {
           playerExtractorRendered = true;
 
           const beaconEl = document.createElement("div");
-          beaconEl.className = "extractor-3d-wrap";
+          beaconEl.className = "extractor-3d-wrap standing-extractor-wrap";
           beaconEl.innerHTML = `
             <div class="beacon-root">
               <div class="beacon-ground-aura"></div>
@@ -388,7 +388,13 @@ const Grid = (() => {
             window.dispatchEvent(evt);
           });
 
-          const extMarker = new mapboxgl.Marker({ element: beaconEl, pitchAlignment: "map", rotationAlignment: "map" })
+          // Upright 2.5D billboard that faces the player's camera smoothly
+          const extMarker = new mapboxgl.Marker({
+            element: beaconEl,
+            anchor: "bottom",              // Grounded at the bottom
+            pitchAlignment: "viewport",    // Stands vertically upright in 3D
+            rotationAlignment: "viewport", // Always rotates to face the player
+          })
             .setLngLat([centroidLon + 0.00008, centroidLat + 0.00008])
             .addTo(map);
 
