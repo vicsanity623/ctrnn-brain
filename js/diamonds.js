@@ -148,7 +148,13 @@ const Diamonds = (() => {
     }
 
     // Add or update markers
+    const collected = new Set(state.collectedDiamondIds || []);
     for (const did in live) {
+      // Never render a diamond that has already been collected
+      if (collected.has(did)) {
+        delete live[did];
+        continue;
+      }
       const d = live[did];
       const dim = !withinCollectRange(d.lat, d.lon);
 
@@ -189,6 +195,12 @@ const Diamonds = (() => {
       spawnFloatingText(pt.x, pt.y - 20, `+1 <span class="hud-gem-icon"></span>`);
       spawnFlyingGemToHUD(pt.x, pt.y);
     }
+
+    // Blacklist this diamond ID forever so no cloud sync or reload can ever restore it
+    if (!state.collectedDiamondIds) state.collectedDiamondIds = [];
+    state.collectedDiamondIds.push(did);
+    // Keep list capped at recent 100 IDs
+    if (state.collectedDiamondIds.length > 100) state.collectedDiamondIds.shift();
 
     delete state.liveDiamonds[did];
     state.diamonds = (Number(state.diamonds) || 0) + 1;
