@@ -101,6 +101,16 @@ const Grid = (() => {
     onBuyAttempt(true, rarity);
     render();
 
+    // Broadcast land claim to global feed with location tag
+    if (typeof Feed !== "undefined") {
+      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+      const cLat = (corners[0][0] + corners[2][0]) / 2;
+      const cLon = (corners[0][1] + corners[2][1]) / 2;
+      Feed.resolveCity(cLat, cLon).then((loc) => {
+        Feed.broadcast("land", { rarity: rarity.label, location: loc });
+      });
+    }
+
     const db = Store.getDb();
     if (db) {
       try {
