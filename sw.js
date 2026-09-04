@@ -1,5 +1,5 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'elden-earth-v0.6.7';
+const CACHE_NAME = 'elden-earth-v0.6.8';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -18,6 +18,7 @@ const ASSETS_TO_CACHE = [
     './js/storage.js',
     './js/grid.js',
     './js/geo.js',
+    './js/feed.js',
     './js/config.js',
     './js/character.js'
 ];
