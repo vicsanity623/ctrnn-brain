@@ -526,8 +526,47 @@
       scheduleBoost();
     }
 
+    // --- Smooth BUY LAND 2D Camera Transition ---
+    const buyLandBtn = el("buy-land-mode-btn");
+    const exitBuyBtn = el("exit-buy-mode-btn");
+    const buyBanner = el("buy-mode-banner");
+
+    function enterBuyLandMode() {
+      if (!map || !currentPos) return;
+      buyBanner?.classList.remove("hidden");
+      Grid.setBuyMode(true, currentPos);
+
+      // Smoothly fly camera to Top-Down 2D view (pitch: 0) directly above player
+      map.flyTo({
+        center: [currentPos.lon, currentPos.lat],
+        pitch: 0,      // Perfect Flat 2D Top-Down View
+        bearing: 0,
+        zoom: 19.5,
+        duration: 1200,
+      });
+    }
+
+    function exitBuyLandMode() {
+      if (!map || !currentPos) return;
+      buyBanner?.classList.add("hidden");
+      Grid.setBuyMode(false);
+
+      // Smoothly restore 3D Isometric View (pitch: 60)
+      map.flyTo({
+        center: [currentPos.lon, currentPos.lat],
+        pitch: 60,     // Restore 60° Isometric 3D View
+        zoom: 18.5,
+        duration: 1200,
+      });
+    }
+
+    buyLandBtn?.addEventListener("click", enterBuyLandMode);
+    exitBuyBtn?.addEventListener("click", exitBuyLandMode);
+
     el("recenter-btn").addEventListener("click", () => {
-      if (currentPos) map.setView([currentPos.lat, currentPos.lon], Math.max(map.getZoom(), 19));
+      if (currentPos && map) {
+        map.flyTo({ center: [currentPos.lon, currentPos.lat], duration: 800 });
+      }
     });
     
     // Tap Balance or Profile Chip to open Player Info Modal
