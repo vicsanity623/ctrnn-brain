@@ -514,6 +514,11 @@
 
     // --- Flying 3D Gem Arc Particle to HUD ---
     function spawnFlyingGemToHUD(startX, startY) {
+      launchFlyingGemStream(startX, startY, 1);
+    }
+
+    // --- Multi-Gem Flying Diamond Stream Launcher ---
+    function launchFlyingGemStream(startX, startY, count) {
       const targetEl = el("stat-diamonds");
       if (!targetEl) return;
 
@@ -521,31 +526,42 @@
       const endX = targetBounds.left + targetBounds.width / 2;
       const endY = targetBounds.top + targetBounds.height / 2;
 
-      const gem = document.createElement("div");
-      gem.className = "flying-3d-gem";
-      gem.style.left = `${startX}px`;
-      gem.style.top = `${startY}px`;
-      gem.innerHTML = `
-        <svg viewBox="0 0 32 38">
-          <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
-          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
-          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
-          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
-        </svg>
-      `;
-      document.body.appendChild(gem);
+      const particleCount = Math.min(25, Math.max(1, count));
 
-      requestAnimationFrame(() => {
-        gem.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.4) rotate(360deg)`;
-        gem.style.opacity = "0.2";
-      });
+      for (let i = 0; i < particleCount; i++) {
+        setTimeout(() => {
+          const spreadX = (Math.random() - 0.5) * 80;
+          const spreadY = (Math.random() - 0.5) * 50;
 
-      setTimeout(() => {
-        gem.remove();
-        targetEl.classList.remove("hud-impact-bump");
-        void targetEl.offsetWidth;
-        targetEl.classList.add("hud-impact-bump");
-      }, 750);
+          const gem = document.createElement("div");
+          gem.className = "flying-3d-gem";
+          gem.style.left = `${startX + spreadX}px`;
+          gem.style.top = `${startY + spreadY}px`;
+          gem.innerHTML = `
+            <svg viewBox="0 0 32 38">
+              <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
+              <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+              <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+              <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+            </svg>
+          `;
+          document.body.appendChild(gem);
+
+          requestAnimationFrame(() => {
+            const dx = endX - (startX + spreadX);
+            const dy = endY - (startY + spreadY);
+            gem.style.transform = `translate(${dx}px, ${dy}px) scale(0.4) rotate(${Math.random() * 360}deg)`;
+            gem.style.opacity = "0.2";
+          });
+
+          setTimeout(() => {
+            gem.remove();
+            targetEl.classList.remove("hud-impact-bump");
+            void targetEl.offsetWidth;
+            targetEl.classList.add("hud-impact-bump");
+          }, 750);
+        }, i * (count > 5 ? 40 : 80));
+      }
     }
 
     // --- Multi-Particle Flying EB Stream Launcher ---
@@ -938,18 +954,34 @@
       openExtractorModal();
     });
 
-    // Collect Diamonds Button
-    el("collect-extractor-btn")?.addEventListener("click", () => {
-      const state = Store.get();
-      if (!state.extractor || state.extractor.stored <= 0) return;
-      const count = state.extractor.stored;
-      state.diamonds += count;
-      state.extractor.stored = 0;
-      Store.save();
-      updateTopbar();
-      showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
-      checkExtractorTick();
-    });
+    // Collect Diamonds Button with Multi-Gem Particle Shower & Auto-Close
+    const collectExtBtn = el("collect-extractor-btn");
+    if (collectExtBtn) {
+      collectExtBtn.addEventListener("click", (e) => {
+        const state = Store.get();
+        if (!state.extractor || state.extractor.stored <= 0) return;
+
+        const count = state.extractor.stored;
+        const rect = collectExtBtn.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+
+        state.diamonds = (Number(state.diamonds) || 0) + count;
+        state.extractor.stored = 0;
+        Store.save();
+        updateTopbar();
+        showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
+        checkExtractorTick();
+
+        // Launch flying diamonds straight into top HUD Diamonds counter!
+        launchFlyingGemStream(originX, originY, count);
+
+        // Auto-close Extractor modal after short celebration delay
+        setTimeout(() => {
+          closeModal("extractor-modal");
+        }, 650);
+      });
+    }
 
     // Check extractor every 2 seconds
     setInterval(checkExtractorTick, 2000);
