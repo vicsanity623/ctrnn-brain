@@ -69,6 +69,22 @@ const Grid = (() => {
 
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
+
+    // Trigger floating combat text at land claim point
+    if (map) {
+      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+      const centerLat = (corners[0][0] + corners[2][0]) / 2;
+      const centerLon = (corners[0][1] + corners[2][1]) / 2;
+      const pt = map.latLngToContainerPoint([centerLat, centerLon]);
+
+      const popup = document.createElement("div");
+      popup.className = "combat-text-popup";
+      popup.style.left = `${pt.x}px`;
+      popup.style.top = `${pt.y}px`;
+      popup.innerHTML = `+1 ${rarity.label} Plot!`;
+      document.body.appendChild(popup);
+      setTimeout(() => popup.remove(), 1100);
+    }
     
     const plotData = {
       tx,
