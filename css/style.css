@@ -811,3 +811,130 @@ html,body{
 .extractor-status-box .gold-text { color: var(--gold-hi); }
 .diamond-ready-val { color: var(--teal); font-size: 16px; font-weight: 800; }
 .req-line { font-size: 13px; margin-top: 4px; }
+
+/* ================= 3D DIAMOND & PARTICLE FX ================= */
+.diamond-3d-wrapper {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: auto;
+}
+.diamond-3d-wrapper.far {
+  opacity: 0.55;
+  filter: grayscale(40%);
+}
+
+.gem-anchor {
+  position: relative;
+  width: 36px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cast Ground Shadow (breathes in sync with hover) */
+.gem-shadow {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.7) 0%, transparent 75%);
+  border-radius: 50%;
+  animation: shadowPulse 2.4s ease-in-out infinite;
+}
+
+/* 3D Gem Floating / Hovering Animation */
+.gem-3d {
+  position: relative;
+  width: 30px;
+  height: 36px;
+  animation: gemHover 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.85));
+}
+.gem-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Specular Star Sparkles */
+.gem-sparkle-1, .gem-sparkle-2 {
+  position: absolute;
+  color: #ffffff;
+  font-size: 10px;
+  opacity: 0;
+  text-shadow: 0 0 6px #fff;
+  pointer-events: none;
+}
+.gem-sparkle-1 { top: 2px; right: 4px; animation: sparkleTwinkle 2.8s infinite 0.4s; }
+.gem-sparkle-2 { bottom: 8px; left: 2px; animation: sparkleTwinkle 2.8s infinite 1.6s; font-size: 8px; }
+
+/* Rising Ambient Stardust Particles */
+.dust-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #a8f5ec;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #4fd6c4;
+  opacity: 0;
+  pointer-events: none;
+}
+.dust-particle.p1 { left: 6px; bottom: 4px; animation: riseDust 2.2s infinite ease-out; }
+.dust-particle.p2 { right: 8px; bottom: 6px; animation: riseDust 2.6s infinite 0.8s ease-out; }
+.dust-particle.p3 { left: 16px; bottom: 2px; animation: riseDust 2.4s infinite 1.4s ease-out; }
+
+/* Keyframes */
+@keyframes gemHover {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(1.5deg); }
+}
+
+@keyframes shadowPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.7; }
+  50% { transform: translateX(-50%) scale(0.65); opacity: 0.35; }
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+}
+
+@keyframes riseDust {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-22px) scale(1.4); }
+}
+
+/* ================= TAP EXPLOSION VFX ================= */
+.gem-explosion-container {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+}
+
+.burst-spark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #4fd6c4 60%, #1d7a6e 100%);
+  box-shadow: 0 0 10px #4fd6c4, 0 0 16px #a8f5ec;
+  animation: sparkBurst 0.6s cubic-bezier(0.12, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes sparkBurst {
+  0% {
+    transform: translate(0, 0) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
