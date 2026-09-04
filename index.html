@@ -1,632 +1,493 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poke UI</title>
-    <!-- PWA Requirements -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="assets/icon.png"> <!-- Add an icon to your assets folder -->
-    
-    <!-- Tailwind CSS for modern 2026 UI -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Elden Earth</title>
+<meta name="description" content="Walk the real world, claim the tile beneath your feet." />
+
+<!-- Mapbox GL JS 3D WebGL Engine & Three.js -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- PWA Manifest & App Icons -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#111827" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="assets/icon.png" />
 </head>
-<body class="bg-gray-900 text-white h-screen w-screen overflow-hidden font-sans select-none touch-manipulation">
+<body>
+
+<!-- ===================== PORTRAIT MODE GUARD ===================== -->
+<div id="portrait-guard">
+  <div class="portrait-guard-card">
+    <div class="portrait-guard-icon">📱</div>
+    <h2>Portrait Mode Only</h2>
+    <p>Please rotate your phone vertically to continue playing Elden Earth.</p>
+  </div>
+</div>
+
+<!-- ===================== SIGN-IN SCREEN ===================== -->
+<div id="signin-screen" class="screen">
+  <div class="signin-card">
+    <div class="brand">
+      <div class="brand-gem">◆</div>
+      <h1>Elden Earth</h1>
+      <p class="tagline">Claim the ground you walk on.</p>
+    </div>
+    <div id="g_id_signin_slot" class="google-slot"></div>
+    <button id="guest-btn" class="btn btn-primary">Play as Guest</button>
+    <p class="fine-print">Guest data is saved only on this device.</p>
+  </div>
+</div>
+
+<!-- ===================== BOOT / LOADING SCREEN ===================== -->
+<div id="loading-screen" class="screen hidden">
+  <div class="loader-card">
+    <div class="loader-gem-wrap">
+      <div class="loader-gem">◆</div>
+      <div class="loader-ring"></div>
+    </div>
+    <h2 class="loader-title">ELDEN EARTH</h2>
+    <p class="loader-sub">Connecting to the Realm</p>
+
+    <!-- Progress Bar -->
+    <div class="loader-bar-outer">
+      <div id="loader-progress-bar" class="loader-bar-inner"></div>
+    </div>
     
-    <!-- 1. LOADING SCREEN -->
-    <div id="loading-screen" class="screen active flex flex-col items-center justify-center h-full bg-gradient-to-b from-blue-900 to-gray-900 z-50 absolute w-full">
-        <h1 class="text-4xl font-black mb-4 animate-pulse">Initializing System...</h1>
-        <div class="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div id="loading-bar" class="h-full bg-blue-400 w-0 transition-all duration-500"></div>
+    <div class="loader-meta-row">
+      <span id="loader-status-text" class="loader-status">> Initializing systems...</span>
+      <span id="loader-percent-text" class="loader-percent">0%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div id="game-screen" class="screen hidden">
+
+  <!-- Top status bar -->
+  <div id="topbar">
+    <!-- Hero Simulated Cash Balance Bar -->
+    <div class="hero-balance-card" id="hero-balance-card">
+      <div class="hero-top-line">
+        <div class="hero-brand-title">
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v0.7.8</span>
         </div>
+        <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
+      </div>
+      <div class="hero-balance-value" id="stat-cash">
+        <span class="cash-dollar">$</span><span class="cash-point">.</span><span class="cash-decimal">000000000000000</span>
+      </div>
     </div>
 
-    <!-- 2. MAIN MENU -->
-    <div id="main-menu" class="screen flex flex-col items-center justify-center h-full bg-[url('assets/bg.jpg')] bg-cover w-full absolute hidden">
-        <div class="glass-panel p-8 rounded-3xl text-center flex flex-col gap-4 w-10/12 max-w-sm shadow-2xl backdrop-blur-md">
-            <h1 class="text-5xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-500 title-glow">POKÉ CARE</h1>
-            <button onclick="handleStartNewGame()" class="btn-primary py-4 rounded-xl text-xl font-bold bg-blue-600 hover:bg-blue-500 shadow-lg active:scale-95 transition-all">Start New Game</button>
-            <button onclick="startGame(false)" id="btn-continue" class="btn-secondary py-4 rounded-xl text-xl font-bold bg-gray-700 hover:bg-gray-600 hidden shadow-lg active:scale-95 transition-all">Continue</button>
-        </div>
+    <!-- Secondary Stats Arranged Beneath (EB, Diamonds, Income, Menu) -->
+    <div class="substats-row">
+      <div class="player-chip">
+        <span id="player-avatar">🙂</span>
+        <span id="player-name">Traveler</span>
+      </div>
+
+      <div class="sub-stat">
+        <span class="stat-label">Elden Bucks</span>
+        <span class="stat-value" id="stat-eb">150 EB</span>
+      </div>
+
+      <div class="sub-stat">
+        <span class="stat-label">Diamonds</span>
+        <span class="stat-value" id="stat-diamonds">0 ◆</span>
+      </div>
+
+      <div class="sub-stat">
+        <span class="stat-label">Income</span>
+        <span class="stat-value" id="stat-rate">$0.00000000/s</span>
+      </div>
+
+      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Floating +2 EB Boost Button -->
+  <button id="boost-btn" class="boost-btn hidden">
+    <span class="boost-icon">⚡</span>
+    <span class="boost-text">+2 EB</span>
+  </button>
+
+  <!-- Permanent 30X/50X Multiplier Button -->
+  <button id="multiplier-btn" class="multiplier-btn">
+    <span class="mult-tag" id="mult-label">30X</span>
+    <span class="mult-sub">BOOST</span>
+  </button>
+
+  <!-- Unified Side HUD Stack (Leaderboard + Calendar) -->
+  <div class="side-hud-stack">
+    <!-- Leaderboard Button -->
+    <button id="leaderboard-btn" class="side-hud-btn leaderboard-btn" aria-label="Leaderboards">
+      <div class="side-hud-card trophy-card">
+        <span class="trophy-emoji">🏆</span>
+      </div>
+      <span class="side-hud-subtext">Ranks</span>
+    </button>
+
+    <!-- Daily Login Calendar Button -->
+    <button id="calendar-btn" class="side-hud-btn calendar-btn" aria-label="Daily Calendar">
+      <div id="calendar-unread-dot" class="calendar-red-dot hidden"></div>
+      <div class="side-hud-card calendar-icon-card">
+        <div class="cal-card-top" id="cal-hud-month">SEP</div>
+        <div class="cal-card-body" id="cal-hud-day">4</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- Permanent Collapsable Worldwide Feed Card -->
+  <div id="live-feed-card" class="live-feed-card">
+    <div id="feed-interactive-header" class="feed-header-line" title="Tap to toggle feed">
+      <div class="feed-title-wrap">
+        <span class="feed-badge">Feed:</span>
+        <span class="feed-dot"></span>
+        <span id="feed-unread-badge" class="feed-unread-pill hidden">0</span>
+      </div>
+      <button id="feed-toggle-icon" class="feed-toggle-btn" aria-label="Toggle Feed">▴</button>
+    </div>
+    <div id="feed-scroll-container" class="feed-scroll-container">
+      <div class="feed-empty-msg">Connecting to live feed...</div>
+    </div>
+  </div>
+
+  <!-- Floating Done Pill (Appears centered right above BUY LAND & EARN buttons) -->
+  <div id="buy-mode-banner" class="buy-mode-banner hidden">
+    <span class="buy-mode-instruction">Tap tile to claim (100 EB)</span>
+    <button id="exit-buy-mode-btn" class="btn btn-exit-buy">Done ✓</button>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottombar">
+    <button id="recenter-btn" class="round-btn" aria-label="Recenter">𖤓</button>
+    <button id="buy-land-mode-btn" class="btn btn-buy-land">Buy Land</button>
+    <button id="earn-btn" class="btn btn-earn">Earn</button>
+    <button id="land-btn" class="round-btn" aria-label="My Land">▦</button>
+  </div>
+</div>
+
+<!-- ===================== SPIN WHEEL MODAL ===================== -->
+<div id="wheel-modal" class="modal hidden">
+  <div class="modal-card wheel-card">
+    <button class="close-btn" data-close="wheel-modal">✕</button>
+    <h2>Diamond Wheel</h2>
+    <p class="modal-sub">1 <span class="hud-gem-icon"></span> per spin</p>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer">▼</div>
+      <canvas id="wheel-canvas" width="320" height="320"></canvas>
+    </div>
+    <button id="spin-btn" class="btn btn-primary">Spin (1 <span class="hud-gem-icon"></span>)</button>
+    <p id="wheel-result" class="wheel-result"></p>
+  </div>
+</div>
+
+<!-- ===================== LAND / STATS MODAL ===================== -->
+<div id="land-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="land-modal">✕</button>
+    <h2>My Land</h2>
+    <div class="land-stats">
+      <div class="land-stat"><span id="land-count">0</span><label>Plots owned</label></div>
+      <div class="land-stat"><span id="land-rate">0.00000000</span><label>EB / sec</label></div>
+    </div>
+    <div class="rarity-legend">
+      <div><i class="swatch common"></i>Common (<span id="count-common">0</span>) — 50% — $0.0000000011/s</div>
+      <div><i class="swatch rare"></i>Rare (<span id="count-rare">0</span>) — 30% — $0.000000016/s</div>
+      <div><i class="swatch epic"></i>Epic (<span id="count-epic">0</span>) — 15% — $0.000000022/s</div>
+      <div><i class="swatch legendary"></i>Legendary (<span id="count-legendary">0</span>) — 5% — $0.000000044/s</div>
+    </div>
+    <p class="fine-print">Tap any unclaimed tile on the map (zoom in close) to buy it for 100 EB. Rarity is random.</p>
+  </div>
+</div>
+
+<!-- ===================== PLAYER INFO MODAL ===================== -->
+<div id="player-info-modal" class="modal hidden">
+  <div class="modal-card player-info-card">
+    <button class="close-btn" data-close="player-info-modal">✕</button>
+    <h2>Player Info</h2>
+    
+    <!-- Profile Row with ✎ Edit Pencil -->
+    <div class="profile-header-card">
+      <div class="avatar-edit-wrapper">
+        <div id="info-avatar" class="info-avatar">🙂</div>
+        <button id="edit-avatar-btn" class="edit-avatar-badge" title="Change 3D Character">✎</button>
+      </div>
+      <div class="info-name-box">
+        <span id="info-name" class="info-player-name">Traveler</span>
+        <button id="edit-name-btn" class="edit-name-badge" title="Change Player Name">✎</button>
+      </div>
     </div>
 
-    <!-- 3. INTRO STORY SCREEN -->
-    <div id="intro-screen" class="screen flex flex-col items-center justify-between h-full bg-gray-800 w-full absolute hidden p-6">
-        <div class="mt-20">
-            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png" class="w-48 mx-auto filter drop-shadow-xl animate-bounce">
-        </div>
-        <div class="glass-panel p-6 rounded-2xl w-full mb-10">
-            <p id="story-text" class="text-lg mb-4 h-24">Welcome to the world of Pokemon! Your dream to become a Master begins now.</p>
-            <button onclick="nextStory()" class="w-full py-3 bg-white text-black rounded-lg font-bold">Next</button>
-        </div>
+    <!-- Total Rent Accrued -->
+    <div class="info-section">
+      <div class="info-section-title">TOTAL RENT ACCRUED:</div>
+      <div class="info-cash-box">
+        <span class="cash-icon">📈</span>
+        <span id="info-total-rent" class="info-cash-val">$0.000000000000000</span>
+      </div>
     </div>
 
-    <!-- 4. MAIN HUB (CARE SYSTEM) -->
-    <div id="hub-screen" class="screen flex flex-col h-full bg-gradient-to-b from-green-900 to-gray-900 w-full absolute hidden relative">
-        <div id="time-overlay" class="absolute inset-0 pointer-events-none z-20 transition-colors duration-1000"></div>
-        <!-- Stats Top Bar -->
-        <div class="flex justify-between items-center p-4 glass-panel m-4 rounded-2xl">
-            <div onclick="openStats()" class="cursor-pointer active:scale-95 transition-transform bg-white/10 p-2 pr-4 rounded-xl border border-white/20 shadow-md">
-                <div class="flex items-center gap-2">
-                    <h2 id="hub-name" class="text-lg font-black uppercase truncate max-w-[145px]">Bulbasaur</h2>
-                    <span class="text-[9px] bg-blue-500 px-2 py-0.5 rounded-full font-bold shadow-inner">STATS 📊</span>
-                </div>
-                <div class="flex items-center gap-2 mt-0.5 ml-1">
-                    <p class="text-xs text-gray-300 font-semibold">Lv. <span id="hub-level" class="text-white font-bold">1</span></p>
-                    <span class="text-gray-500 text-xs">•</span>
-                    <p class="text-xs text-orange-400 font-black tracking-wide flex items-center gap-0.5">
-                        <span>⚡</span><span id="hub-power">181</span> <span class="text-[9px] text-orange-200/80 font-bold uppercase">CP</span>
-                    </p>
-                </div>
-            </div>
-            
-            <div class="flex flex-col items-end gap-2">
-                <button onclick="openParty()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-xs font-black shadow-md border border-indigo-400/40 flex items-center gap-1 transition-all">
-                    <span>🐾 Party</span>
-                    <span id="party-count-badge" class="bg-black/40 px-1.5 py-0.2 rounded-full text-[10px]">1</span>
-                </button>
-                <div class="flex gap-1 flex-wrap justify-end max-w-[120px]" id="heart-container">
-                    <!-- Hearts injected here -->
-                </div>
-            </div>
+    <!-- Mayorship & Regional Dividends Section -->
+    <div class="info-section">
+      <div class="info-section-title">MAYORSHIP & DIVIDENDS:</div>
+      <div class="info-mayor-card">
+        <div class="mayor-status-row">
+          <span class="mayor-crown-pill" id="info-mayor-status">👑 Mayor of Phoenix, AZ</span>
+          <span class="dividend-rate-pill">2% Royalty</span>
         </div>
-
-        <!-- Symmetrical Active Sweep Widget (Top-Left Hub) -->
-        <div id="sweep-widget" onclick="claimSweepRewards()" class="hidden absolute top-36 left-6 z-30 cursor-pointer bg-black/60 backdrop-blur-md border border-orange-500/50 px-3 py-2 rounded-2xl flex items-center gap-2.5 shadow-lg active:scale-95 transition-all min-w-[135px]">
-            <div class="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <span id="sweep-widget-icon" class="text-2xl select-none animate-pulse">⚔️</span>
-            </div>
-            <div class="flex flex-col text-left">
-                <span id="sweep-widget-title" class="text-[10px] text-orange-400 font-bold uppercase tracking-wider truncate max-w-[85px]">Sweeping...</span>
-                <span id="sweep-widget-timer" class="text-xs font-black text-yellow-300">00s</span>
-            </div>
+        <div class="mayor-dividend-row">
+          <span class="dividend-label">Lifetime Dividends Collected:</span>
+          <strong class="dividend-val" id="info-total-dividends">0 EB</strong>
         </div>
-
-        <!-- Idle Berry Bush Widget (Top-Right Hub) -->
-        <div id="berry-bush" onclick="harvestBush()" class="absolute top-36 right-6 z-30 cursor-pointer bg-black/40 backdrop-blur-md border border-green-500/40 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-lg active:scale-95 transition-all min-w-[135px]">
-            <div id="berry-stack-container" class="relative w-10 h-8 flex items-center justify-center shrink-0"></div>
-            
-            <div class="flex flex-col text-left">
-                <span class="text-[10px] text-green-400 font-bold uppercase tracking-wider">Berry Bush</span>
-                <span id="bush-count" class="text-xs font-black text-white">Growing...</span>
-            </div>
-        </div>
-
-        <!-- Pokemon Sprite Area -->
-        <div id="sprite-container" class="flex-1 flex items-center justify-center relative touch-area">
-            <div id="petting-zone" class="absolute inset-0 z-10 cursor-pointer"></div>
-            <div id="swirl-effect" class="absolute w-48 h-48 rounded-full border-4 border-pink-500 hidden opacity-0"></div>
-            <img id="hub-sprite" src="" class="w-64 h-64 object-contain filter drop-shadow-2xl transition-transform duration-300 transform scale-100 pixel-perfect">
-        </div>
-
-        <!-- XP Bar & Controls (With Level, 4 Move Chips & Numeric XP) -->
-        <div class="glass-panel p-4 pb-6 rounded-t-3xl mt-auto z-20 shadow-2xl">
-            <!-- Top Row: Level + 4 Move Preview Chips + XP Label -->
-            <div class="flex items-center justify-between gap-1 mb-2">
-                <!-- Left: Level Badge -->
-                <span class="text-xs font-black text-yellow-400 tracking-wider shrink-0 pl-1">LV. <span id="hub-bar-level">1</span></span>
-
-                <!-- Middle: 4 Move Preview Chips (Dynamically Styled by JS) -->
-                <div class="flex-1 flex items-center justify-center gap-1 mx-1 overflow-x-hidden" id="hub-move-chips">
-                    <span id="hub-chip-0" class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white truncate shadow-sm">Tackle</span>
-                    <span id="hub-chip-1" class="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white truncate shadow-sm">Growl</span>
-                    <span id="hub-chip-2" class="px-2 py-0.5 rounded text-[9px] font-bold bg-green-600 text-white truncate shadow-sm">Vine Whip</span>
-                    <span id="hub-chip-3" class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-700 text-white truncate shadow-sm">Leech Seed</span>
-                </div>
-
-                <!-- Right: XP Label -->
-                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0 pr-1">XP</span>
-            </div>
-
-            <!-- Glowing Numeric XP Bar Container -->
-            <div class="relative w-full h-5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-700/80 mb-3 shadow-inner flex items-center justify-center">
-                <!-- Background Gradient Fill -->
-                <div id="xp-bar" class="absolute left-0 top-0 h-full shiny-gradient w-0 transition-all duration-500"></div>
-                <!-- Centered Numeric Readout (e.g. 342 / 425) -->
-                <span id="xp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">0 / 50</span>
-            </div>
-
-            <!-- Action Buttons (Feed / Bag / Train / Defend / Battle) -->
-            <div class="grid grid-cols-5 gap-1">
-                <button onclick="feedBerry()" class="py-2.5 bg-pink-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px]">
-                    <span class="text-lg">🍓</span> Feed (<span id="berry-count">5</span>)
-                </button>
-                <button onclick="openInventory()" class="py-2.5 bg-yellow-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-yellow-100">
-                    <span class="text-lg">🎒</span> Bag
-                </button>
-                <button onclick="openJourneyModal()" class="py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-purple-100 border border-purple-400/30">
-                    <span class="text-lg">🏕️</span> Train
-                </button>
-                <button onclick="openDefenseMode()" class="py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px] text-blue-100 border border-blue-400/30">
-                    <span class="text-lg">🏰</span> Defend
-                </button>
-                <button onclick="openStageSelect()" class="py-2.5 bg-red-600 rounded-xl font-bold flex flex-col items-center shadow-lg active:scale-95 transition-transform text-[11px]">
-                    <span class="text-lg">⚔️</span> Battle
-                </button>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- 4.5 STAGE SCOUT / PRE-BATTLE SELECTION SCREEN -->
-    <div id="stage-select-screen" class="screen flex flex-col h-full bg-gradient-to-b from-gray-950 via-slate-900 to-gray-950 w-full absolute hidden p-4 justify-between select-none">
-        
-        <!-- Top Stage Navigator -->
-        <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border border-white/10 shadow-lg">
-            <button id="scout-btn-prev" onclick="changeStage(-1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
-            
-            <div class="text-center flex flex-col items-center">
-                <span id="scout-stage-title" class="text-sm font-black text-yellow-400 tracking-wider">STAGE 1</span>
-                <span id="scout-stage-subtitle" class="text-[10px] text-gray-400 font-semibold">(Max: 1)</span>
-            </div>
-
-            <button id="scout-btn-next" onclick="changeStage(1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
+    <!-- Plots / Parcels Owned Grid -->
+    <div class="info-section">
+      <div class="info-section-title">PLOTS OWNED:</div>
+      <div class="parcels-grid-wrap">
+        <div class="parcel-total-box">
+          <div class="parcel-icon">🏞️</div>
+          <span class="parcel-total-label">TOTAL</span>
+          <strong id="info-total-plots" class="parcel-total-num">0</strong>
         </div>
 
-        <!-- Center Enemy Preview Card (Swipe Enabled on Mobile) -->
-        <div id="scout-swipe-area" class="glass-panel p-5 rounded-3xl flex flex-col items-center text-center my-auto border border-white/10 shadow-2xl relative">
-            <div class="flex items-center gap-2 mb-2">
-                <span id="scout-enemy-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase bg-gray-700 text-white shadow">Normal ⭐</span>
-            </div>
-            
-            <h2 id="scout-enemy-name" class="text-xl font-black text-white mb-2 truncate max-w-[260px]">Wild Pokemon</h2>
-            
-            <div class="w-40 h-40 flex items-center justify-center relative my-2">
-                <img id="scout-enemy-sprite" src="" class="w-36 h-36 object-contain pixel-perfect drop-shadow-2xl animate-pulse">
-            </div>
-
-            <!-- CP Matchup Card -->
-            <div class="w-full bg-gray-900/80 p-3 rounded-2xl border border-gray-700 mt-2 space-y-1.5">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-400 font-bold">Your Power:</span>
-                    <span id="scout-player-cp" class="font-black text-yellow-400">⚡ 180 CP</span>
-                </div>
-                <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-400 font-bold">Enemy Power:</span>
-                    <span id="scout-enemy-cp" class="font-black text-red-400">⚡ 150 CP</span>
-                </div>
-                <div class="pt-1.5 border-t border-gray-800 flex justify-between items-center">
-                    <span class="text-[10px] text-gray-400 font-semibold">Forecast:</span>
-                    <span id="scout-matchup-status" class="text-xs font-black text-green-400">Great Matchup 🔥</span>
-                </div>
-            </div>
-
-            <!-- Potential Rewards Preview -->
-            <div class="w-full mt-3 pt-2 border-t border-gray-800 text-left">
-                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1.5">Potential Rewards:</span>
-                <div id="scout-rewards-row" class="flex items-center gap-1.5 flex-wrap">
-                    <!-- Reward Badges injected dynamically -->
-                </div>
-            </div>
+        <div class="rarity-badges-grid">
+          <div class="rarity-badge common">
+            <span id="info-count-common" class="badge-num">0</span>
+            <span class="badge-label">COMMON</span>
+          </div>
+          <div class="rarity-badge rare">
+            <span id="info-count-rare" class="badge-num">0</span>
+            <span class="badge-label">RARE</span>
+          </div>
+          <div class="rarity-badge epic">
+            <span id="info-count-epic" class="badge-num">0</span>
+            <span class="badge-label">EPIC</span>
+          </div>
+          <div class="rarity-badge legendary">
+            <span id="info-count-legendary" class="badge-num">0</span>
+            <span class="badge-label">LEGENDARY</span>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-        <!-- Sweep Button (Energy / Quick Farm) -->
-        <div class="w-full pt-2">
-            <button id="btn-scout-sweep" onclick="openSweepModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 active:scale-95 text-white font-black rounded-2xl text-sm tracking-wider shadow-xl transition-all flex items-center justify-center gap-2 border border-yellow-300/30">
-                <span class="text-lg">⚡</span>
-                <span id="scout-sweep-label">SWEEP REPLAY (Cost: 1 🍓)</span>
-            </button>
-        </div>
+<!-- ===================== CHARACTER WARDROBE MODAL ===================== -->
+<div id="wardrobe-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="wardrobe-modal">✕</button>
+    <h2>3D Wardrobe</h2>
+    <p class="modal-sub">Select your 3D explorer model.</p>
+    <div id="wardrobe-grid" class="wardrobe-grid"></div>
+  </div>
+</div>
 
-        <!-- Bottom Action Buttons: Leave vs Start Battle -->
-        <div class="grid grid-cols-2 gap-3 pt-1">
-            <button onclick="leaveStageSelect()" class="py-3 bg-gray-800 hover:bg-gray-700 active:scale-95 text-white font-bold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-1.5 border border-white/10">
-                <span>🏃 Leave</span>
-            </button>
-            <button onclick="startBattleFromSelect()" class="py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-black rounded-2xl text-sm shadow-xl transition-all flex items-center justify-center gap-1.5 border border-red-400/30">
-                <span>⚔️ Battle!</span>
-            </button>
-        </div>
+<!-- ===================== DIAMOND EXTRACTOR MODAL ===================== -->
+<div id="extractor-modal" class="modal hidden">
+  <div class="modal-card extractor-card">
+    <button class="close-btn" data-close="extractor-modal">✕</button>
+    <div class="extractor-glow-icon">
+      <svg viewBox="0 0 32 38" style="width:38px;height:46px;display:inline-block;filter:drop-shadow(0 0 10px #4fd6c4);">
+        <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+        <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+        <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+        <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+      </svg>
+    </div>
+    <h2>Diamond Extractor</h2>
+    <p class="modal-sub">Automated mining beacon for your home base.</p>
+
+    <!-- State: Not Built Yet -->
+    <div id="extractor-unbuilt-view" class="extractor-view hidden">
+      <div class="extractor-status-box">
+        <p>Construct an automated extractor on your territory to harvest free diamonds while offline.</p>
+        <div class="req-line">Requirements: <strong>5+ Connected Plots (Limit 1 Base)</strong></div>
+        <div class="req-line">Build Cost: <strong>50 EB</strong></div>
+      </div>
+      <button id="build-extractor-btn" class="btn btn-primary">Build Extractor (50 EB)</button>
     </div>
 
-    <!-- SWEEP COUNT SELECTOR MODAL -->
-    <div id="sweep-modal" onclick="if(event.target === this) closeSweepModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[105] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-2 border-orange-500 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default text-white" id="sweep-content">
-            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
-                <h3 class="text-lg font-black text-orange-400">⚡ QUICK SWEEP</h3>
-                <button onclick="closeSweepModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-
-            <p class="text-xs text-gray-300 mb-2">Simulate multiple instant battle replays using berries as stamina!</p>
-            
-            <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 my-3 flex items-center justify-between">
-                <span class="text-xs text-gray-400">Available Berries:</span>
-                <span id="sweep-avail-berries" class="text-sm font-black text-pink-400">🍓 25</span>
-            </div>
-
-            <!-- Sweep Counter -->
-            <div class="flex items-center justify-center gap-4 my-3">
-                <button onclick="changeSweepCount(-1)" class="w-10 h-10 bg-gray-800 hover:bg-gray-700 active:scale-90 rounded-xl text-lg font-black text-white shadow border border-gray-600">-</button>
-                <span id="sweep-count-display" class="text-2xl font-black text-yellow-400 min-w-[3rem]">1</span>
-                <button onclick="changeSweepCount(1)" class="w-10 h-10 bg-gray-800 hover:bg-gray-700 active:scale-90 rounded-xl text-lg font-black text-white shadow border border-gray-600">+</button>
-            </div>
-
-            <!-- Quick Presets -->
-            <div class="grid grid-cols-4 gap-2 my-3">
-                <button onclick="setSweepCount(1)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x1</button>
-                <button onclick="setSweepCount(5)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x5</button>
-                <button onclick="setSweepCount(10)" class="py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 rounded-lg text-xs font-bold text-gray-300">x10</button>
-                <button onclick="setSweepCount('max')" class="py-1.5 bg-orange-600 hover:bg-orange-500 active:scale-95 rounded-lg text-xs font-black text-white shadow">MAX</button>
-            </div>
-
-            <button onclick="executeStageSweep()" id="btn-confirm-sweep" class="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 active:scale-95 font-black text-white rounded-xl shadow-lg transition-all text-sm mt-2">
-                ⚡ Sweep Now (<span id="sweep-cost-label">1 🍓</span>)
-            </button>
+    <!-- State: Active & Mining -->
+    <div id="extractor-active-view" class="extractor-view hidden">
+      <div class="extractor-status-box">
+        <div class="stat-row">
+          <span>Status:</span>
+          <strong class="teal-text">⚡ Mining Active</strong>
         </div>
+        <div class="stat-row">
+          <span>Rate:</span>
+          <strong>1 <span class="hud-gem-icon"></span> / 2 Mins</strong>
+        </div>
+        <div class="stat-row">
+          <span>Next Diamond In:</span>
+          <strong id="extractor-next-timer" class="gold-text">00:02:00</strong>
+        </div>
+        <div class="stat-row">
+          <span>Ready to Collect:</span>
+          <strong id="extractor-stored-count" class="diamond-ready-val">0 / 50 <span class="hud-gem-icon"></span></strong>
+        </div>
+      </div>
+      <button id="collect-extractor-btn" class="btn btn-primary">Collect All (0 <span class="hud-gem-icon"></span>)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CONFIRM BUY MODAL ===================== -->
+<div id="buy-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="buy-modal">✕</button>
+    <h2>Claim Land</h2>
+    <p class="modal-sub">Expand your realm with a new 10x10 ft plot.</p>
+    <div class="buy-modal-cost">
+      <span>Cost</span>
+      <strong>100 EB</strong>
+    </div>
+    <div class="modal-actions">
+      <button id="buy-cancel-btn" class="btn btn-secondary">Cancel</button>
+      <button id="buy-confirm-btn" class="btn btn-primary">Claim Tile</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== HELP / MENU MODAL ===================== -->
+<div id="menu-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="menu-modal">✕</button>
+    <h2>How to Play</h2>
+    <ol class="howto">
+      <li>Diamonds ◆ spawn within a mile of you. Walk within 20 yards and tap one to collect it.</li>
+      <li>Spend diamonds on the Earn wheel for a chance at Elden Bucks (EB).</li>
+      <li>Zoom the map in close to reveal the 10ft tile grid. Tap an empty tile to buy it for 100 EB.</li>
+      <li>Every tile you own earns EB automatically, every second, forever.</li>
+    </ol>
+    <button id="reset-btn" class="btn btn-danger">Reset Game Data</button>
+  </div>
+</div>
+
+<!-- ===================== BOOSTER MODAL ===================== -->
+<div id="booster-modal" class="modal hidden">
+  <div class="modal-card booster-card">
+    <button class="close-btn" data-close="booster-modal">✕</button>
+    <div class="booster-icon-wrap">⚡</div>
+    <h2 id="booster-modal-title">Activate 30X Boost</h2>
+    <p class="modal-sub">Supercharge your realm's income for 1 hour!</p>
+    <div class="booster-info-box">
+      <div>Multiplier: <strong id="modal-mult-rate" class="gold-text">30X Income</strong></div>
+      <div>Duration: <strong>+1 Hour</strong></div>
+      <div>Max Bank: <strong>Up to 6 Hours</strong></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-close="booster-modal">Cancel</button>
+      <button id="activate-boost-btn" class="btn btn-primary">Activate Boost</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LEADERBOARD & MAYORS MODAL ===================== -->
+<div id="leaderboard-modal" class="modal hidden">
+  <div class="modal-card leaderboard-modal-card">
+    <button class="close-btn" data-close="leaderboard-modal">✕</button>
+    <div class="leaderboard-header">
+      <span class="lb-header-trophy">🏆</span>
+      <h2>Realm Rankings</h2>
+      <p class="modal-sub">Top Landlords, Earners & Reigning Mayors</p>
     </div>
 
-    <!-- 5. BATTLE SCREEN -->
-    <div id="battle-screen" class="screen flex flex-col h-full bg-gray-900 w-full absolute hidden">
-        
-        <!-- Stage / Route Navigator Bar (With Player & Enemy Combat Power) -->
-        <div class="glass-panel mx-4 mt-4 px-3 py-2 rounded-2xl flex items-center justify-between z-20 border border-white/10 shadow-lg">
-            <!-- Left: Prev Button + Player CP -->
-            <div class="flex items-center gap-2">
-                <button id="btn-prev-stage" onclick="changeStage(-1)" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Prev</button>
-                <span id="battle-player-cp" class="text-xs font-black text-yellow-400 tracking-wider drop-shadow">CP 0</span>
-            </div>
-
-            <!-- Center: Stage Indicator -->
-            <div class="text-center flex flex-col items-center px-1">
-                <span id="stage-indicator" class="text-xs font-black text-yellow-400 tracking-wider whitespace-nowrap">STAGE 3</span>
-                <span id="stage-max-indicator" class="text-[9px] text-gray-400 font-semibold">(Max: 3)</span>
-            </div>
-
-            <!-- Right: Enemy CP + Next Button -->
-            <div class="flex items-center gap-2">
-                <span id="battle-enemy-cp" class="text-xs font-black text-red-400 tracking-wider drop-shadow">CP 0</span>
-                <button id="btn-next-stage" onclick="changeStage(1)" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">Next ▶</button>
-            </div>
-        </div>
-
-        <!-- Enemy Area -->
-        <div class="flex-1 flex flex-col justify-center items-end p-8 relative">
-            <div class="glass-panel p-3 rounded-xl absolute top-10 left-6 min-w-[13rem]">
-                <div class="flex items-center justify-between gap-1">
-                    <h3 id="enemy-name" class="font-bold text-sm truncate">Wild Pidgey</h3>
-                    <span id="enemy-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-gray-700 text-white shadow-sm shrink-0">Normal ⭐</span>
-                </div>
-                <div class="relative w-full h-3.5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-600/80 mt-2 flex items-center justify-center shadow-inner">
-                    <div id="enemy-hp" class="absolute left-0 top-0 h-full bg-green-500 w-full transition-all duration-300"></div>
-                    <span id="enemy-hp-text" class="relative z-10 text-[9px] font-black text-white tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none">100 / 100 HP</span>
-                </div>
-            </div>
-            <div class="relative flex items-center justify-center" id="enemy-sprite-wrapper">
-                <div id="elemental-fx" class="elemental-slash-fx hidden"></div>
-                <img id="enemy-sprite" src="" class="w-40 h-40 object-contain translate-x-10 pixel-perfect">
-            </div>
-        </div>
-        
-        <!-- Player Area -->
-        <div class="flex-1 flex flex-col justify-center items-start p-8 relative">
-            <div class="glass-panel p-3 rounded-xl absolute top-0 right-6 min-w-[13rem]">
-                <div class="flex items-center justify-between gap-1">
-                    <h3 id="battle-player-name" class="font-bold text-sm truncate">Bulbasaur</h3>
-                    <span id="player-type-badge" class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase bg-green-600 text-white shadow-sm shrink-0">Grass 🌿</span>
-                </div>
-                <div class="relative w-full h-3.5 bg-gray-800/90 rounded-full overflow-hidden border border-gray-600/80 mt-2 flex items-center justify-center shadow-inner">
-                    <div id="player-hp" class="absolute left-0 top-0 h-full bg-green-500 w-full transition-all duration-300"></div>
-                    <span id="player-hp-text" class="relative z-10 text-[9px] font-black text-white tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none">40 / 40 HP</span>
-                </div>
-            </div>
-            <div class="relative flex items-center justify-center" id="player-sprite-wrapper">
-                <img id="battle-player-sprite" src="" class="w-48 h-48 object-contain -translate-x-10 pixel-perfect">
-            </div>
-        </div>
-
-        <!-- Battle Log & Moves UI (4 Moves + Catch Button) -->
-        <div class="glass-panel p-4 rounded-t-3xl h-auto min-h-[35%] flex flex-col justify-between">
-            <div class="flex items-center justify-between gap-2 mb-2">
-                <div id="battle-log" class="flex-1 text-xs font-bold text-center text-gray-200 min-h-[1.75rem] flex items-center justify-center bg-black/30 rounded-xl p-2 border border-white/10">What will you do?</div>
-                <button id="btn-catch" onclick="throwPokeBall()" class="px-3 py-2 bg-red-600 hover:bg-red-500 active:scale-95 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1 border border-red-400 shrink-0">
-                    <span>🔴 Catch</span>
-                    <span id="pokeball-count-badge" class="bg-black/40 px-1.5 py-0.5 rounded-full text-[10px]">3</span>
-                </button>
-            </div>
-
-            <!-- Combat Energy Charge Gauge (0% - 200%) -->
-            <div class="w-full bg-gray-900/90 p-2.5 rounded-xl border border-blue-500/40 mb-2 shadow-inner">
-                <div class="flex justify-between items-center text-[10px] font-black uppercase mb-1">
-                    <span class="text-blue-400">⚡ Combat Energy</span>
-                    <span id="battle-energy-text" class="text-yellow-400">0% (Ready for Special)</span>
-                </div>
-                <div class="relative w-full h-2.5 bg-gray-800 rounded-full overflow-hidden border border-gray-700 flex items-center">
-                    <div id="battle-energy-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-yellow-400 w-0 transition-all duration-300"></div>
-                </div>
-            </div>
-
-            <!-- Universal 4-Move Battle Grid -->
-            <div class="grid grid-cols-2 gap-2" id="move-grid">
-                <!-- Slot 0: Basic Attack (Lv. 1) -->
-                <button id="btn-move-0" onclick="playerAttack(0)" class="battle-btn bg-blue-600 rounded-xl font-bold text-sm active:bg-blue-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
-                    <span id="move-name-0">💥 Attack</span>
-                    <span id="move-type-0" class="text-[9px] text-blue-200 uppercase font-semibold">Physical</span>
-                </button>
-                
-                <!-- Slot 1: Status Move (Lv. 1) -->
-                <button id="btn-move-1" onclick="playerAttack(1)" class="battle-btn bg-indigo-600 rounded-xl font-bold text-sm active:bg-indigo-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform">
-                    <span id="move-name-1">🗣️ Debuff</span>
-                    <span id="move-type-1" class="text-[9px] text-indigo-200 uppercase font-semibold">Status</span>
-                </button>
-
-                <!-- Slot 2: Elemental Special (Unlocks Lv. 7) -->
-                <button id="btn-move-2" onclick="playerAttack(2)" class="battle-btn bg-green-600 rounded-xl font-bold text-sm active:bg-green-400 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
-                    <span id="move-name-2">🔒 Special</span>
-                    <span id="move-type-2" class="text-[9px] text-green-200 uppercase font-semibold">Lv. 7 (Sp. Atk)</span>
-                </button>
-
-                <!-- Slot 3: Ultimate Move (Unlocks Lv. 13) -->
-                <button id="btn-move-3" onclick="playerAttack(3)" class="battle-btn bg-emerald-700 rounded-xl font-bold text-sm active:bg-emerald-500 py-2.5 flex flex-col items-center shadow-lg active:scale-95 transition-transform disabled:opacity-30 disabled:bg-gray-800 disabled:scale-100" disabled>
-                    <span id="move-name-3">🔒 Ultimate</span>
-                    <span id="move-type-3" class="text-[9px] text-emerald-200 uppercase font-semibold">Lv. 13</span>
-                </button>
-            </div>
-        </div>
+    <!-- 3 Segmented Tabs -->
+    <div class="lb-tabs-row">
+      <button class="lb-tab-btn active" data-tab="plots">🏞️ Most Plots</button>
+      <button class="lb-tab-btn" data-tab="rent">💰 Top Rent</button>
+      <button class="lb-tab-btn" data-tab="mayors">👑 Mayors</button>
     </div>
 
-    <!-- 5.5 TOWER DEFENSE / SWARM HORDE SCREEN -->
-    <div id="defense-screen" class="screen flex flex-col h-full bg-slate-950 w-full absolute hidden select-none overflow-hidden">
-        
-        <!-- Top HUD Banner (With Total Roster Defense CP) -->
-        <div class="glass-panel mx-3 mt-3 px-3 py-2 rounded-2xl flex items-center justify-between z-20 border border-blue-500/30 shadow-lg">
-            <div class="flex items-center gap-2">
-                <button onclick="leaveDefenseMode()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 active:scale-90 text-white rounded-xl text-xs font-black shadow transition-all">◀ Exit</button>
-                <span id="defense-stage-label" class="text-xs font-black text-yellow-400 tracking-wider">STAGE 1</span>
-            </div>
-
-            <!-- Center: Total Roster CP -->
-            <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-xl border border-yellow-500/30 shadow-inner">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">CP:</span>
-                <span id="defense-total-cp" class="text-xs font-black text-yellow-400 tracking-wide">⚡ 0 CP</span>
-            </div>
-
-            <div class="flex items-center gap-2 text-xs">
-                <span id="defense-kills-label" class="font-bold text-green-400">0 Defeated</span>
-                <span class="text-gray-500">•</span>
-                <span id="defense-remaining-label" class="font-bold text-red-400">500 Left</span>
-            </div>
-        </div>
-
-        <!-- Defender Slot Assignment Bar -->
-        <div class="flex items-center justify-center gap-2 my-1 z-20">
-            <span class="text-[10px] text-gray-400 font-bold uppercase">Defenders:</span>
-            <div id="defender-chip-0" onclick="openAssignDefenderModal(0)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 1</div>
-            <div id="defender-chip-1" onclick="openAssignDefenderModal(1)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 2</div>
-            <div id="defender-chip-2" onclick="openAssignDefenderModal(2)" class="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-700 text-[10px] text-white font-bold cursor-pointer active:scale-95 shadow">Slot 3</div>
-        </div>
-
-        <!-- 60 FPS HTML5 Canvas Arena & Live Animated Defenders -->
-        <div class="flex-1 relative w-full overflow-hidden">
-            <canvas id="defense-canvas" class="w-full h-full block"></canvas>
-
-            <!-- Live 60 FPS Animated Defender Overlay (Proportional Aspect Ratio) -->
-            <div class="absolute inset-x-0 bottom-4 h-16 pointer-events-none flex items-center justify-around z-20 px-3">
-                <div class="w-16 h-16 flex items-center justify-center">
-                    <img id="defender-live-img-0" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
-                </div>
-                <div class="w-16 h-16 flex items-center justify-center">
-                    <img id="defender-live-img-1" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
-                </div>
-                <div class="w-16 h-16 flex items-center justify-center">
-                    <img id="defender-live-img-2" src="" class="max-w-full max-h-full object-contain pixel-perfect filter drop-shadow-lg hidden">
-                </div>
-            </div>
-        </div>
-
-        <!-- Dark Souls Full-Width Tower Health Bar -->
-        <div class="w-full bg-black/95 p-3 border-t-2 border-red-900/80 flex flex-col items-center justify-center z-30 shadow-2xl">
-            <div class="relative w-full h-5 bg-gray-900 rounded-full overflow-hidden border border-red-800/80 flex items-center justify-center shadow-inner">
-                <div id="defense-tower-hp-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 w-full transition-all duration-150"></div>
-                <span id="defense-tower-hp-text" class="relative z-10 text-[10px] font-black text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,1)] uppercase">CASTLE HEALTH: 1,000 / 1,000 HP</span>
-            </div>
-        </div>
+    <!-- Scrollable Leaderboard List -->
+    <div id="leaderboard-list" class="leaderboard-list">
+      <div class="feed-empty-msg">Loading realm rankings...</div>
     </div>
+  </div>
+</div>
 
-    <!-- ASSIGN DEFENDER MODAL -->
-    <div id="assign-defender-modal" onclick="if(event.target === this) closeAssignDefenderModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[115] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-2 border-blue-500 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default text-white flex flex-col max-h-[80vh]" id="assign-defender-content">
-            <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
-                <h3 class="text-base font-black text-blue-400 uppercase">🛡️ Choose Defender</h3>
-                <button onclick="closeAssignDefenderModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-            <p class="text-xs text-gray-400 mb-2">Select a Pokémon from your roster to man this defensive tower position:</p>
-            <div id="assign-roster-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2">
-                <!-- Roster slots injected here -->
-            </div>
-        </div>
+<!-- ===================== 30-DAY DAILY LOGIN CALENDAR MODAL ===================== -->
+<div id="calendar-modal" class="modal hidden">
+  <div class="modal-card calendar-modal-card">
+    <button class="close-btn" data-close="calendar-modal">✕</button>
+    <div class="calendar-modal-header">
+      <span class="cal-modal-icon">📅</span>
+      <h2>Daily Rewards</h2>
+      <p class="modal-sub">Log in daily to claim scaling Elden Bucks!</p>
     </div>
-
-    <!-- 6. EVOLUTION SCREEN -->
-    <div id="evo-screen" class="screen flex items-center justify-center h-full bg-white w-full absolute hidden z-50">
-        <div class="text-center">
-            <h1 class="text-black text-3xl font-black mb-10">What? <span id="evo-old-name">Bulbasaur</span> is evolving!</h1>
-            <img id="evo-sprite" src="" class="w-64 h-64 object-contain mx-auto mix-blend-multiply animate-pulse filter contrast-200 brightness-0">
-        </div>
+    <div id="calendar-days-list" class="calendar-days-list">
+      <!-- Generated dynamically in main.js -->
     </div>
+  </div>
+</div>
 
-    <!-- STATS MODAL -->
-    <div id="stats-modal" onclick="if(event.target === this) closeStats()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-2 border-blue-500 p-6 rounded-2xl w-10/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white" id="stats-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-black text-blue-400">UNIT STATS</h3>
-                <button onclick="closeStats()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3 text-sm bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-inner">
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">MAX HP</span><span id="stat-hp" class="font-black text-green-400 text-xl">0</span></div>
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">SPEED</span><span id="stat-spd" class="font-black text-yellow-400 text-xl">0</span></div>
-                
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">ATTACK</span><span id="stat-atk" class="font-black text-red-400 text-xl">0</span></div>
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">SP. ATK</span><span id="stat-spatk" class="font-black text-purple-400 text-xl">0</span></div>
-                
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">DEFENSE</span><span id="stat-def" class="font-black text-blue-400 text-xl">0</span></div>
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">SP. DEF</span><span id="stat-spdef" class="font-black text-indigo-400 text-xl">0</span></div>
-                
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">CRIT RATE</span><span id="stat-crit" class="font-black text-amber-400 text-xl">5.00%</span></div>
-                <div class="flex flex-col"><span class="text-gray-400 font-bold">MOOD</span><span id="stat-mood" class="font-black text-pink-400 text-xl">0/10</span></div>
+<div id="signout-wrap" style="display:none">
+  <button id="signout-btn">Sign out</button>
+</div>
 
-                <div class="col-span-2 flex items-center justify-between mt-2 pt-2 border-t border-gray-600">
-                    <span class="text-gray-400 font-bold">TOTAL POWER</span>
-                    <span id="stat-cp" class="font-black text-orange-400 text-xl drop-shadow-md">0</span>
-                </div>
-            </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
-            <!-- Passive Traits Container -->
-            <div class="mt-3 pt-2 border-t border-gray-700 text-left">
-                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">🧬 Passive Traits:</span>
-                <div id="stat-traits-container" class="flex flex-wrap gap-1.5">
-                    <!-- Injected dynamically -->
-                </div>
-            </div>
+<!-- Firebase SDKs (Global Compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
 
-            <div class="mt-3 text-center text-[10px] text-gray-500 italic">Stats scale dynamically with level-ups!</div>
-        </div>
-    </div>
+<script src="js/config.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/diamonds.js"></script>
+<script src="js/grid.js"></script>
+<script src="js/loading.js"></script>
+<script src="js/character.js"></script>
+<script src="js/wheel.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/leaderboard.js"></script>
+<script src="js/main.js"></script>
 
-    <!-- INVENTORY MODAL -->
-    <div id="inventory-modal" onclick="if(event.target === this) closeInventory()" class="fixed inset-0 bg-black bg-opacity-80 z-[90] flex items-end justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-t-2 border-yellow-500 p-6 rounded-t-3xl w-full max-w-md shadow-2xl transform translate-y-full transition-transform duration-300 text-white h-2/3 flex flex-col" id="inventory-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-black text-yellow-400">🎒 INVENTORY</h3>
-                <button onclick="closeInventory()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-            <div class="flex gap-2 mb-4 border-b border-gray-700 pb-4">
-                <button class="bg-yellow-600 text-black px-4 py-1 rounded-full text-xs font-bold shadow-md">Berries / Meds</button>
-                <button class="bg-gray-800 text-gray-500 px-4 py-1 rounded-full text-xs font-bold">Key Items</button>
-            </div>
-            <div id="inventory-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-3">
-                <!-- Items injected here by JS -->
-            </div>
-        </div>
-    </div>
+<!-- Service Worker Registration with Instant Auto-Update -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        // Check for updates every time page is opened
+        reg.update();
+        console.log('[SW] Registered & Checked for updates.');
+      })
+      .catch(err => console.warn('[SW] Registration error:', err));
+  });
 
-    <!-- PARTY / TEAM ROSTER MODAL -->
-    <div id="party-modal" onclick="if(event.target === this) closeParty()" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-2 border-indigo-500 p-6 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[80vh]" id="party-content">
-            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                <h3 class="text-xl font-black text-indigo-400">🐾 POKÉMON ROSTER</h3>
-                <button onclick="closeParty()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-            <p class="text-xs text-gray-400 mb-3">Tap any caught Pokémon to switch your active buddy!</p>
-            <div id="party-list" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
-                <!-- Caught Pokémon Injected Here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- TRAINING / EXPEDITIONS MODAL -->
-    <div id="journey-modal" onclick="if(event.target === this) closeJourneyModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[96] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-md cursor-pointer">
-        <div class="bg-gray-900 border-2 border-purple-500 p-5 rounded-2xl w-11/12 max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 text-white flex flex-col max-h-[85vh]" id="journey-content">
-            
-            <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">🏕️</span>
-                    <h3 class="text-lg font-black text-purple-400 uppercase">AFK Training</h3>
-                </div>
-                <button onclick="closeJourneyModal()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-
-            <!-- 1. Active In-Progress Journey Display -->
-            <div id="journey-active-box" class="hidden flex flex-col items-center text-center p-4 bg-gray-800/80 rounded-2xl border border-purple-500/50 shadow-inner">
-                <img id="journey-active-sprite" src="" class="w-20 h-20 object-contain pixel-perfect drop-shadow animate-bounce mb-2">
-                <h4 id="journey-active-name" class="font-bold text-sm text-white mb-1">Pikachu (Mountain Trek)</h4>
-                <div id="journey-active-timer" class="text-xs font-bold text-yellow-400 mb-3">Time Remaining: 00:00</div>
-                
-                <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-4 border border-gray-600">
-                    <div id="journey-active-progress" class="h-full bg-purple-500 transition-all duration-500 w-0"></div>
-                </div>
-                <button id="journey-active-btn" class="w-full py-3 bg-gray-700 text-gray-400 rounded-xl font-bold">In Training...</button>
-            </div>
-
-            <!-- 2. Select Tier List -->
-            <div id="journey-tiers-box" class="flex flex-col gap-2 overflow-y-auto no-scrollbar">
-                <p class="text-xs text-gray-400 mb-1">Send a Pokémon to train offline and earn massive XP!</p>
-                <div id="journey-tier-list" class="flex flex-col gap-2">
-                    <!-- Tiers injected dynamically -->
-                </div>
-            </div>
-
-            <!-- 3. Select Pokemon Roster Sub-View -->
-            <div id="journey-roster-box" class="hidden flex flex-col gap-2 flex-1 overflow-y-auto no-scrollbar">
-                <div class="flex items-center justify-between mb-1">
-                    <span id="journey-select-header" class="text-xs font-bold text-purple-300">Choose Trainee:</span>
-                    <button onclick="cancelTierSelect()" class="text-xs text-gray-400 underline active:scale-95">◀ Back</button>
-                </div>
-                <div id="journey-select-list" class="flex flex-col gap-2">
-                    <!-- Roster injected dynamically -->
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ARE YOU SURE? CONFIRMATION MODAL -->
-    <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="fixed inset-0 bg-black bg-opacity-80 z-[120] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
-        <div class="bg-gray-800 border-2 border-red-500 p-6 rounded-2xl w-10/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="confirm-content">
-            <h3 class="text-2xl font-black text-white mb-2">⚠️ Are You Sure?</h3>
-            <p class="text-gray-300 mb-6 text-sm leading-relaxed">Starting a new game will <strong class="text-red-400">permanently erase</strong> your existing save file and all caught Pokémon!</p>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="closeConfirmModal()" class="py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-white shadow active:scale-95 transition-all">Cancel</button>
-                <button onclick="executeNewGame()" class="py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all">Erase & Start</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CUSTOM ALERT MODAL (QUEUE COMPATIBLE) -->
-    <div id="custom-modal" onclick="if(event.target === this) closeModal()" class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm cursor-pointer">
-        <div class="bg-gray-800 border border-gray-600 p-5 rounded-2xl w-11/12 max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300 cursor-default" id="modal-content">
-            <h3 id="modal-title" class="text-2xl font-black text-white mb-2">Notification</h3>
-            <div id="modal-desc" class="text-gray-300 mb-4 text-sm leading-relaxed w-full">Message goes here</div>
-            <button id="modal-btn" onclick="closeModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all">Awesome!</button>
-        </div>
-    </div>
-
-    <!-- Battle Replay Modal -->
-    <div id="replay-modal" class="fixed inset-0 bg-black bg-opacity-70 z-[110] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
-        <div class="bg-gray-800 border border-gray-700 rounded-2xl w-11/12 max-w-2xl h-3/4 flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-gray-700">
-                <h3 class="text-xl font-bold text-white">Battle Replay</h3>
-                <button onclick="closeReplay()" class="text-red-400 font-bold text-2xl active:scale-90">✖</button>
-            </div>
-            <div id="replay-log" class="flex-1 overflow-y-auto p-4 space-y-2 text-sm text-gray-200">
-                <!-- Replay events will be injected here -->
-            </div>
-            <div class="p-4 border-t border-gray-700 flex justify-end">
-                <button onclick="closeReplay()" class="px-4 py-2 bg-blue-600 rounded-xl text-white font-semibold hover:bg-blue-500 active:scale-95 transition-transform">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="global.js"></script>
-    <script src="effects.js"></script>
-    <script src="game.js"></script>
-    <script src="inventory.js"></script>
-    <script src="journey.js"></script>
-    <script src="defense.js"></script>
-    <script src="battle.js"></script>
-    <script>
-        // Automatic Instant-Update Engine
-        if ('serviceWorker' in navigator) {
-            let refreshing = false;
-
-            // When new SW activates, auto-reload the page seamlessly
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) {
-                    refreshing = true;
-                    window.location.reload();
-                }
-            });
-
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then((reg) => {
-                        // Check for updates every time app is launched
-                        reg.update();
-                    })
-                    .catch(() => console.warn('Service Worker registration failed.'));
-            });
-        }
-    </script>
+  // Automatically refresh the page when a new service worker version activates
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
+</script>
 </body>
 </html>
