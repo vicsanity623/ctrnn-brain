@@ -356,6 +356,24 @@ const Grid = (() => {
       promptBuyTile(t.tx, t.ty);
     });
 
+    // Wire up Confirm & Cancel buttons for Claim Land modal
+    const confirmBtn = document.getElementById("buy-confirm-btn");
+    const cancelBtn = document.getElementById("buy-cancel-btn");
+    const buyModal = document.getElementById("buy-modal");
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => {
+        executeBuy();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        pendingTile = null;
+        if (buyModal) buyModal.classList.add("hidden");
+      });
+    }
+
     // Multiple render hooks to guarantee instantaneous plot display
     map.on("idle", render);
     map.on("moveend zoomend", render);
@@ -363,5 +381,5 @@ const Grid = (() => {
     render();
   }
 
-  return { init, render, promptBuyTile, getAllPlots, setBuyMode, setGlobalPlot };
+  return { init, render, promptBuyTile, executeBuy, getAllPlots, setBuyMode, setGlobalPlot };
 })();
