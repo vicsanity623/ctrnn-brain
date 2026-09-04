@@ -8,6 +8,17 @@ const CONFIG = {
   // Leave blank to only offer Guest (local storage) sign-in.
   GOOGLE_CLIENT_ID: "711924778312-k9fkaqr5fa95rl03m5i9mhr5agv4upeq.apps.googleusercontent.com",
 
+  // --- Firebase Cloud Save Config ---
+  FIREBASE_CONFIG: {
+    apiKey: "AIzaSyAf8u0qUQJaajJp4352-SrY7lIh8rNFPWY",
+    authDomain: "elden-earth.firebaseapp.com",
+    projectId: "elden-earth",
+    storageBucket: "elden-earth.firebasestorage.app",
+    messagingSenderId: "231253239262",
+    appId: "1:231253239262:web:3fa1ca28575fcade15e94f",
+    measurementId: "G-X24EB16156"
+  },
+  
   // --- Tile grid ---
   TILE_SIZE_METERS: 6.096,        // ~20 x 20 feet
   GRID_RENDER_MIN_ZOOM: 16,       // grid only draws once zoomed in this close
