@@ -28,6 +28,7 @@ const Store = (() => {
       diamonds: 0,
       plots: {},
       liveDiamonds: {},
+      lastDiamondSpawn: 0,
       boostExpiry: 0,
       boostMultiplier: 30,
       extractor: { built: false, level: 1, lastHarvest: Date.now(), stored: 0 },
