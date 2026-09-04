@@ -158,11 +158,15 @@
     el("info-count-legendary").textContent = counts.legendary;
   }
 
-  // ---------------- Sign-in ----------------
-  function onSignedIn() {
-    updateTopbar();
-    el("signin-screen").classList.add("hidden");
-    el("locate-screen").classList.remove("hidden");
+  // ---------------- Sign-in & Sequenced Boot ----------------
+  function onSignedIn(playerData) {
+    const player = playerData || Store.get()?.player || { name: "Traveler" };
+
+    // Execute the professional load pipeline
+    Bootloader.run(player, (coords) => {
+      launchGame(coords);
+      beginWatch();
+    });
   }
 
   // ---------------- Location ----------------
