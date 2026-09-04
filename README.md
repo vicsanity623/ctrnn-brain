@@ -1,4 +1,4 @@
-# 🌍 Elden Earth (2026 Edition)
+# 🌍 Elden Earth
 
 A real-world geo-location territory-claiming and idle income game. Walk the real world, collect diamonds, spin the fortune wheel for Elden Bucks (EB), claim real 10×10 ft tiles beneath your feet, and earn simulated passive rent ($USD) every fraction of a second.
 
@@ -12,6 +12,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
 * [x] **☁️ Firebase Cloud Saves & Recovery:** Permanent account backups stored in Google Cloud Firestore. Reinstalling the app or logging in on a new device instantly restores all EB, cash, diamonds, boost time, and territories.
 * [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that executes startup tasks in strict order with zero race conditions.
+* [x] **📱 Forced Portrait Guard:** Orientation guard overlay preventing unintended screen rotation on mobile devices.
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Isometric 3D faceted crystal with specular lighting, real-time ground shadows, organic randomized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
 * [x] **🏰 3D Raised Parcels & Orbital Extractor:** Elevation bevels and neon rarity glow edges on claimed plots, plus a 3D levitating Extractor Beacon with counter-rotating energy rings.
 * [x] **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded collection radius.
@@ -41,13 +42,17 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [ ] **Phase 4: Sound FX & Mobile Haptics**
   * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
   * Haptic vibration feedback on iOS & Android.
+* [ ] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Next Major Upgrade)*
+  * Mapbox GL JS WebGL map engine with camera pitch (0° flat to 60° isometric angle) and 360° bearing rotation.
+  * True 3D extruded building blocks on close zoom-in.
+  * 3D Mixamo GLTF/GLB skeletal character model integrated via Three.js with real-time GPS speed-based `Idle` $\leftrightarrow$ `Walk` animation blending.
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-├── index.html          # Main application structure, modals, and HUD
+├── index.html          # Main application structure, modals, HUD & portrait guard
 ├── manifest.json       # PWA app configuration & home screen icons
 ├── sw.js               # Service Worker for local asset caching & offline play
 ├── css/
@@ -111,22 +116,6 @@ All gameplay tuning parameters are centralized in **`js/config.js`**:
 
 ---
 
-## 🗺️ Gameplay Feature Roadmap
-
-* [ ] **1. 👑 Local Mayorship & Territory Dividends:** Player with the most plots in a city becomes Mayor, earns a commission on local tile sales, and displays their crown atop the city.
-* [ ] **2. 📅 300-Day Daily Login Calendar:** Scaling login streak rewards giving daily EB up to a Day 300 Jackpot (200 EB).
-* [ ] **3. ⚡ 50X "Blood Moon" Weekend Flash Events:** Time-limited global events where the multiplier jumps to 50X for 24 hours.
-* [ ] **4. 🎁 Mystery Map Chests:** Rare Bronze, Silver, and Golden chests appearing on the map requiring diamond keys to open.
-* [ ] **5. 🏰 3D Plot Landmarks & Upgrades:** Customizable visual monuments (Castles, Neon Shrines, Towers) providing local parcel income boosts.
-* [ ] **6. 🛂 Passport Stamps & Explorer Badges:** Collectible badges for traveling to new cities that award permanent account-wide +5% rent multipliers.
-* [ ] **7. 📜 Daily Quests & Weekly Bounties:** Engaging rotation of tasks (e.g., *Collect 3 diamonds*, *Spin 2 times*) for bonus EB.
-* [x] **8. 🔥 Multiplayer Firestore Sync:** Real-time WebSocket synchronization across players to see claimed lands live worldwide without refreshing. *(Completed)*
-* [ ] **9. 🛡️ Realm Guilds & Joint Kingdoms:** Alliance territories pooling diamonds into a communal Guild Vault to trigger kingdom-wide buffs.
-* [ ] **10. 🔊 Sensory Juice, SFX & Mobile Haptics:** Tactile vibrations and audio fanfares on diamond collection, wheel spins, and land claims.
-
----
-
 ## 📄 License & Disclaimer
 
 This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes.
-i'll
