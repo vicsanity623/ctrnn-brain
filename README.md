@@ -8,22 +8,23 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 
 ## ✨ Implemented Core Features & Mechanics
 
-* [x] **🗺️ 512px HD Mapbox Retina Graphics:** High-definition dark-themed vector tiles with crisp street grids and building footprints up to Zoom 22.
+* [x] **🎮 3D WebGL Engine & 60° Isometric Camera:** Full Mapbox GL JS 3D vector engine with 60° isometric camera tilt, free 360° gesture rotation, and true 3D extruded city buildings.
+* [x] **🧍 3D Animated Mixamo Characters (Three.js WebGL):** Integrated Three.js custom layer rendering upright, hero-scaled 3D character models (`.glb`) at real-time GPS coordinates with automatic `Idle` $\leftrightarrow$ `Walk` animation blending.
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
 * [x] **☁️ Firebase Cloud Saves & Recovery:** Permanent account backups stored in Google Cloud Firestore. Reinstalling the app or logging in on a new device instantly restores all EB, cash, diamonds, boost time, and territories.
-* [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that executes startup tasks in strict order with zero race conditions.
+* [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that pre-fetches world plots and coordinates with zero race conditions.
 * [x] **📱 Forced Portrait Guard:** Orientation guard overlay preventing unintended screen rotation on mobile devices.
-* [x] **💎 3D Hovering Gemstones & Particle FX:** Isometric 3D faceted crystal with specular lighting, real-time ground shadows, organic randomized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
-* [x] **🏰 3D Raised Parcels & Orbital Extractor:** Elevation bevels and neon rarity glow edges on claimed plots, plus a 3D levitating Extractor Beacon with counter-rotating energy rings.
-* [x] **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded collection radius.
+* [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
+* [x] **🖥️ HUD Micro-Interactions & Flying 3D Gems:** Floating `+1 ◆` and `+EB` combat-text popups rising from tap points, accompanied by physical flying 3D crystals traveling from the street into the top HUD counter with impact bumps.
+* [x] **🏰 3D Raised Parcels & Orbital Extractor:** Elevation bevels and neon rarity glow edges on claimed plots flush with the ground, plus a 3D levitating Extractor Beacon with counter-rotating orbital energy rings.
+* [x] **📡 Sonar Radar Collection Radius:** Real-time animated shockwaves continuously pulse outward from the player dot across an expanded collection radius that dynamically locks to real-world meters across all zoom levels.
 * [x] **💵 Dual-Currency Economy:**
   * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds with dual-scale typography and suppressed leading zeros under $1.00.
   * **Elden Bucks (EB):** Game currency used to claim new plots (100 EB) or construct base structures.
 * [x] **⚡ 30X / 50X Income Multiplier:** Stackable 1-hour booster (up to 6 hours max bank) that electrifies the UI with animated gold pulses and speeds up real-time rent generation. Alternate days feature a rare **0.05% chance for a 50X Super Multiplier**.
-* [x] **🖥️ HUD Micro-Interactions & Flying Coins:** Floating `+1 ◆` and `+EB` combat-text popups rising from tap points. Flying diamond particles traveling from the ground into your top HUD counter.
 * [x] **💎 Automated Diamond Extractor:** Unlockable beacon for players owning **5+ connected plots** (Limit 1 per player) that automatically mines 1 Diamond every 2 minutes (holds up to 50 gems). Upgradable with Cash Balance to expand capacity and reduce mining time.
 * [x] **🎡 Weighted Diamond Spin Wheel:** Realistic physics-based spin wheel with weighted odds, jackpot prizes (25 EB & 50 EB), 3D canvas gems, diamond refunds, and **`🚫` (Miss)** bust slices with background failsafe recovery.
-* [x] **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal (supports inspecting other players).
+* [x] **👤 Clustered Player Profile & Info Modal:** Google avatar sync that groups adjacent owned tiles into clean territories with centralized badges and an interactive Player Stats modal (supports inspecting other players' live cash earnings).
 * [x] **📱 Progressive Web App (PWA):** Installable directly to iOS & Android home screens with network-first offline asset caching via `sw.js`.
 
 ---
@@ -37,16 +38,16 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **Phase 2: 3D Isometric Plots & Territory Visuals** *(Completed)*
   * 3D raised elevation borders on claimed plots with rarity glow edges.
   * Extractor 3D crystal beacon with rotating energy rings.
-* [x] **Phase 3: HUD Micro-Interactions & Flying Coins**
+* [x] **Phase 3: HUD Micro-Interactions & Flying Coins** *(Completed)*
   * Floating `+1 ◆` and `+EB` combat-text popups rising from tap points.
   * Flying diamond particles traveling from the ground into your top HUD counter.
-* [ ] **Phase 4: Sound FX & Mobile Haptics**
+* [x] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Completed)*
+  * Mapbox GL JS WebGL map engine with camera pitch (60° isometric angle) and 360° bearing rotation.
+  * True 3D extruded building blocks on close zoom-in.
+  * 3D Mixamo GLTF/GLB skeletal character models integrated via Three.js with real-time GPS speed-based `Idle` $\leftrightarrow$ `Walk` animation blending.
+* [ ] **Phase 4: Sound FX & Mobile Haptics** *(Next Phase)*
   * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
   * Haptic vibration feedback on iOS & Android.
-* [ ] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Next Major Upgrade)*
-  * Mapbox GL JS WebGL map engine with camera pitch (0° flat to 60° isometric angle) and 360° bearing rotation.
-  * True 3D extruded building blocks on close zoom-in.
-  * 3D Mixamo GLTF/GLB skeletal character model integrated via Three.js with real-time GPS speed-based `Idle` $\leftrightarrow$ `Walk` animation blending.
 
 ---
 
@@ -58,12 +59,19 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ├── sw.js               # Service Worker for local asset caching & offline play
 ├── css/
 │   └── style.css       # Dark fantasy theme, animations, radar pulses & glowing borders
+├── models/             # 3D GLTF / GLB Skeletal Character Models
+│   ├── Soldier.glb     # Vanguard Soldier (Idle, Walk, Run)
+│   ├── Xbot.glb        # X-Operative Android (Mixamo Rig)
+│   ├── Fox.glb         # Low-Poly Spirit Fox (Survey, Walk)
+│   ├── CesiumMan.glb   # Cesium Tracksuit Walker
+│   └── character.glb   # Custom Champion
 └── js/
     ├── config.js       # Central tuning file (rates, drop weights, radiuses, Firebase keys)
     ├── geo.js          # Web Mercator math, tile bounds, and Haversine distance calculations
     ├── storage.js      # Save engine, Firestore cloud sync, offline progress & rate lookups
     ├── auth.js         # Google Identity Services OAuth & cloud save retrieval
     ├── loading.js      # Bootloader pipeline, progress bar & zero-race condition loader
+    ├── character.js    # Three.js WebGL custom layer & GPS animation controller
     ├── diamonds.js     # Spawn engine, expiration timer, and 3D crystal particle FX
     ├── grid.js         # 10x10ft tile rendering, flood-fill clustering & multiplayer sync
     ├── wheel.js        # Canvas-rendered 10-slice wheel with 3D gems & failsafe timer
@@ -119,4 +127,4 @@ All gameplay tuning parameters are centralized in **`js/config.js`**:
 
 ## 📄 License & Disclaimer
 
-This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes.
+This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes. For Shits and Giggles.
