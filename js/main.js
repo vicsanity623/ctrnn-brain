@@ -42,7 +42,7 @@
     // Elden Bucks game currency in sub-row
     if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
 
-    el("stat-diamonds").textContent = state.diamonds + " ◆";
+    el("stat-diamonds").innerHTML = `${state.diamonds} <span class="hud-gem-icon"></span>`;
     el("stat-rate").textContent = "$" + Store.totalRate().toFixed(11) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
 
