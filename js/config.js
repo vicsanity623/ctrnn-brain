@@ -61,11 +61,11 @@ const CONFIG = {
     { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f" }, // 5%
   ],
   
-  // --- 3D Character Roster ---
+  // --- 3D Character Roster (Heroic Scale) ---
   AVAILABLE_CHARACTERS: [
-    { id: "soldier",   name: "Vanguard Soldier", file: "models/Soldier.glb",   scale: 1.4, icon: "🛡️" },
-    { id: "xbot",      name: "X-Operative",      file: "models/Xbot.glb",      scale: 1.2, icon: "🦾" },
-    { id: "fox",       name: "Spirit Fox",       file: "models/Fox.glb",       scale: 0.025, icon: "🦊" },
-    { id: "cesium",    name: "Cesium Runner",    file: "models/CesiumMan.glb", scale: 1.5, icon: "🏃" },
+    { id: "soldier",   name: "Vanguard Soldier", file: "models/Soldier.glb",   scale: 4.8, icon: "🛡️" },
+    { id: "xbot",      name: "X-Operative",      file: "models/Xbot.glb",      scale: 4.2, icon: "🦾" },
+    { id: "fox",       name: "Spirit Fox",       file: "models/Fox.glb",       scale: 0.08, icon: "🦊" },
+    { id: "cesium",    name: "Cesium Runner",    file: "models/CesiumMan.glb", scale: 5.0, icon: "🏃" },
   ],
 };
