@@ -260,15 +260,30 @@
   // ---------------- UI wiring ----------------
   function wireUI() {
     window.addEventListener("openPlayerInfo", openPlayerInfo);
-    // --- Diamond Extractor Logic ---
+    // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
+    function getExtractorStats(level = 1) {
+      const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
+      const timeUpgrades = Math.floor((level - 1) / 2);
+      const storageUpgrades = Math.floor(level / 2);
+
+      // 0.0001% safe time reduction per time upgrade
+      const interval = baseInterval * Math.pow(1 - 0.000001, timeUpgrades);
+      const maxStored = (CONFIG.EXTRACTOR_MAX_STORED || 50) + storageUpgrades;
+      const nextCost = level * 1.0; // $1.00, $2.00, $3.00...
+      const nextIsCapacity = level % 2 === 1;
+
+      return { interval, maxStored, nextCost, nextIsCapacity };
+    }
+
     function checkExtractorTick() {
       const state = Store.get();
-      if (!state.extractor) state.extractor = { built: false, lastHarvest: Date.now(), stored: 0 };
+      if (!state.extractor) state.extractor = { built: false, level: 1, lastHarvest: Date.now(), stored: 0 };
       if (!state.extractor.built) return;
 
+      const lvl = state.extractor.level || 1;
+      const { interval, maxStored, nextCost, nextIsCapacity } = getExtractorStats(lvl);
+
       const now = Date.now();
-      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 28800000;
-      const maxStored = CONFIG.EXTRACTOR_MAX_STORED || 3;
       const timeSince = now - state.extractor.lastHarvest;
       const readyCount = Math.floor(timeSince / interval);
 
@@ -278,18 +293,17 @@
         Store.save();
       }
 
-      // Update timer if modal is open
+      // Live UI Updates
       const remainingMs = Math.max(0, interval - (now - state.extractor.lastHarvest));
       const hrs = Math.floor(remainingMs / 3600000);
       const mins = Math.floor((remainingMs % 3600000) / 60000);
       const secs = Math.floor((remainingMs % 60000) / 1000);
 
-      if (el("extractor-next-timer")) {
-        el("extractor-next-timer").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-      }
-      if (el("extractor-stored-count")) {
-        el("extractor-stored-count").textContent = `${state.extractor.stored} / ${maxStored} ◆`;
-      }
+      if (el("extractor-lvl-badge")) el("extractor-lvl-badge").textContent = `Level ${lvl}`;
+      if (el("extractor-next-timer")) el("extractor-next-timer").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+      if (el("extractor-stored-count")) el("extractor-stored-count").textContent = `${state.extractor.stored} / ${maxStored} ◆`;
+      if (el("extractor-next-perk")) el("extractor-next-perk").textContent = nextIsCapacity ? "Next: +1 Max Diamond Capacity" : "Next: -0.0001% Mining Time";
+      if (el("upgrade-extractor-btn")) el("upgrade-extractor-btn").textContent = `Upgrade ($${nextCost.toFixed(2)})`;
       if (el("collect-extractor-btn")) {
         el("collect-extractor-btn").textContent = `Collect All (${state.extractor.stored} ◆)`;
         el("collect-extractor-btn").disabled = state.extractor.stored === 0;
@@ -313,8 +327,26 @@
 
     window.addEventListener("openExtractorModal", openExtractorModal);
 
-    // Build Extractor Button
-    el("build-extractor-btn")?.addEventListener("click", () => {
+    // Upgrade Extractor Button (Spends Cash Balance)
+    el("upgrade-extractor-btn")?.addEventListener("click", () => {
+      const state = Store.get();
+      if (!state.extractor || !state.extractor.built) return;
+
+      const lvl = state.extractor.level || 1;
+      const { nextCost } = getExtractorStats(lvl);
+
+      if ((state.cash || 0) < nextCost) {
+        showToast(`You need $${nextCost.toFixed(2)} in Cash Balance to upgrade.`);
+        return;
+      }
+
+      state.cash -= nextCost;
+      state.extractor.level = lvl + 1;
+      Store.save();
+      updateTopbar();
+      showToast(`⚡ Extractor Upgraded to Level ${lvl + 1}!`);
+      checkExtractorTick();
+    });
       const state = Store.get();
       const cost = CONFIG.EXTRACTOR_BUILD_COST_EB || 50;
       if (state.eb < cost) {
