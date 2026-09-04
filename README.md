@@ -22,6 +22,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
 * [x] **🖥️ HUD Micro-Interactions & Flying 3D Gems:** Floating `+1 ◆` and `+EB` combat-text popups rising from tap points, accompanied by physical flying 3D crystals traveling from the street into the top HUD counter with impact bumps.
 * [x] **🏰 3D Raised Parcels & Orbital Extractor:** Elevation bevels and neon rarity glow edges on claimed plots flush with the ground, plus a 3D levitating Extractor Beacon with counter-rotating orbital energy rings.
+* [x] **👑 Local Mayorship & Regional Dividends:** The player owning the most plots in a town or city becomes **Mayor**, wears a golden crown, and collects a **1%–3% dividend** on every local land sale.
 * [x] **📡 Dynamic 100m Geodesic Sonar & GPU Shockwaves:** Full geodesic Web Mercator polygon circle generator (`createCirclePolygon`) producing an exact 100-meter outer dashed perimeter matching the Buy Land claim grid 1:1, driven by multi-stage, 60fps GPU-accelerated WebGL radar shockwaves that expand smoothly from the player to the boundary.
 * [x] **💵 Dual-Currency Economy:**
   * **Cash Balance ($USD):** High-precision simulated rent (15 decimal places) generated in real-time by your owned plots every 0.5 seconds with dual-scale typography and suppressed leading zeros under $1.00.
@@ -65,7 +66,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ---
 
 ### 👑 III. Social, Multiplayer & Prestige
-* [ ] **10. 👑 Local Mayorship & Regional Dividends:**
+* [x] **10. 👑 Local Mayorship & Regional Dividends:**
   * The player owning the most plots in a town or city becomes **Mayor**, wears a golden crown, and collects a **1%–3% dividend** on every local land sale.
 * [x] **11. 💬 Global Live Activity Feed:**
   * A subtle ticker at the bottom showing live accomplishments: *"Artistic just claimed a Legendary plot in Phoenix!"*, *"Player X hit the 50 EB Jackpot!"*
