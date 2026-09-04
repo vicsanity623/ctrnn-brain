@@ -161,6 +161,32 @@
     el("info-count-rare").textContent = counts.rare;
     el("info-count-epic").textContent = counts.epic;
     el("info-count-legendary").textContent = counts.legendary;
+
+    // --- Populate Mayorship & Dividends Card ---
+    const mayorStatusEl = el("info-mayor-status");
+    const dividendsEl = el("info-total-dividends");
+
+    let totalDiv = isOtherPlayer ? 0 : (state.totalDividends || 0);
+    if (dividendsEl) dividendsEl.textContent = `${totalDiv} EB`;
+
+    if (mayorStatusEl) {
+      mayorStatusEl.textContent = "Checking realm...";
+      if (typeof Leaderboard !== "undefined" && Leaderboard.fetchRankings) {
+        Leaderboard.fetchRankings().then((data) => {
+          const myMayorships = data.mayors.filter(m => m.ownerId === targetOwnerId);
+          if (myMayorships.length > 0) {
+            const cityNames = myMayorships.map(m => m.city).join(", ");
+            mayorStatusEl.innerHTML = `👑 Mayor of <strong>${cityNames}</strong>`;
+            mayorStatusEl.className = "mayor-crown-pill active-mayor";
+          } else {
+            mayorStatusEl.innerHTML = `🛡️ Citizen of the Realm`;
+            mayorStatusEl.className = "mayor-crown-pill";
+          }
+        });
+      } else {
+        mayorStatusEl.textContent = "🛡️ Citizen of the Realm";
+      }
+    }
   }
 
   // ---------------- Sign-in & Sequenced Boot ----------------
