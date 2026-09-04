@@ -37,7 +37,7 @@ const CONFIG = {
   EXTRACTOR_MAX_STORED: 50,             // Stores up to 50 diamonds max
   EXTRACTOR_BUILD_COST_EB: 50,          // 50 EB to construct
   
-  // --- Spin wheel --- (Includes 🚫 Miss Slices)
+  // --- Spin wheel --- (Includes 🚫 Miss Slices & 2 Diamond Cost)
   WHEEL_SLICES: [
     { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
     { type: "eb", amount: 1,  label: "1 EB",  color: "#4fd6c4", weight: 240 },
@@ -50,7 +50,7 @@ const CONFIG = {
     { type: "diamond", label: "+1 ◆", color: "#8fa3b8", weight: 110 },
     { type: "eb", amount: 50, label: "50 EB", color: "#d4af61", weight: 5   },
   ],
-  SPIN_COST_DIAMONDS: 1,
+  SPIN_COST_DIAMONDS: 2,
 
   // --- Land plots (Exact Rates & Odds) ---
   PLOT_COST_EB: 100,
