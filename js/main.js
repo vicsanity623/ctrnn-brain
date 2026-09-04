@@ -682,6 +682,7 @@
       setTimeout(() => {
         closeModal("calendar-modal");
       }, 650);
+    }
 
     el("calendar-btn")?.addEventListener("click", () => {
       renderCalendarModal();
