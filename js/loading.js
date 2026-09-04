@@ -65,8 +65,10 @@ const Bootloader = (() => {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Hide Loader & Launch Game
-      el("loading-screen")?.classList.add("hidden");
-      onComplete(coords);
+      setTimeout(() => {
+        el("loading-screen")?.classList.add("hidden");
+        onComplete(coords);
+      }, 200);
 
     } catch (err) {
       console.error("[Bootloader] Fatal boot failure:", err);
