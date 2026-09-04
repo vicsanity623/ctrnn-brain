@@ -90,5 +90,7 @@ const Store = (() => {
     return earned;
   }
 
-  return { load, save, get, reset, totalRate, applyOfflineProgress };
+  function getDb() { return db; }
+
+  return { load, save, get, reset, totalRate, applyOfflineProgress, syncFromCloud, getDb };
 })();
