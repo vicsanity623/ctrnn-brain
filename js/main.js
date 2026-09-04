@@ -294,22 +294,23 @@
       `;
 
       // Helper to calculate exact screen pixels for real-world meters
-      function updateSonarRadiusPixels() {
+      updateSonarRadiusPixels = function() {
         if (!currentPos || !map) return;
         const meters = Number(CONFIG.DIAMOND_COLLECT_RADIUS_METERS) || 100;
         const lat = currentPos.lat;
         const zoom = map.getZoom();
-        // Standard Web Mercator ground resolution at latitude
-        const metersPerPx = (40075016.686 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, zoom + 8);
+        // Web Mercator ground resolution at current latitude & zoom
+        const metersPerPx = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom + 8);
         const pixelRadius = meters / metersPerPx;
         const diameter = Math.round(pixelRadius * 2);
 
         sonarEl.style.width = `${diameter}px`;
         sonarEl.style.height = `${diameter}px`;
-      }
+      };
 
       sonarMarker = new mapboxgl.Marker({
         element: sonarEl,
+        anchor: "center",
         rotationAlignment: "map",
         pitchAlignment: "map",
       })
@@ -319,7 +320,6 @@
       updateSonarRadiusPixels();
       map.on("zoom", updateSonarRadiusPixels);
       map.on("pitch", updateSonarRadiusPixels);
-      map.on("resize", updateSonarRadiusPixels);
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
