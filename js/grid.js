@@ -260,12 +260,16 @@ const Grid = (() => {
           const current = queue.shift();
           cluster.push(current);
 
-          // Check 4 adjacent neighbors (N, S, E, W)
+          // Guarantee integer values to prevent string concatenation ("100" + 1 = "1001")
+          const cx = parseInt(current.tx, 10);
+          const cy = parseInt(current.ty, 10);
+
+          // Check 4 adjacent orthogonal neighbors (N, S, E, W)
           const neighbors = [
-            tileId(current.tx + 1, current.ty),
-            tileId(current.tx - 1, current.ty),
-            tileId(current.tx, current.ty + 1),
-            tileId(current.tx, current.ty - 1),
+            tileId(cx + 1, cy),
+            tileId(cx - 1, cy),
+            tileId(cx, cy + 1),
+            tileId(cx, cy - 1),
           ];
 
           for (const nId of neighbors) {
@@ -281,9 +285,11 @@ const Grid = (() => {
         let totalLon = 0;
 
         for (const p of cluster) {
+          const px = parseInt(p.tx, 10);
+          const py = parseInt(p.ty, 10);
           const centerMerc = Geo.fromMercator(
-            p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
-            p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+            px * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+            py * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
           );
           totalLat += centerMerc.lat;
           totalLon += centerMerc.lon;
