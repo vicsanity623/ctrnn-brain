@@ -26,6 +26,7 @@ const Store = (() => {
       cash: 0,
       eb: 150,
       diamonds: 0,
+      totalDividends: 0,
       plots: {},
       liveDiamonds: {},
       collectedDiamondIds: [],
