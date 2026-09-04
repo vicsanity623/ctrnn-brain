@@ -124,6 +124,7 @@ const Leaderboard = (() => {
     // If local player is the mayor, award directly!
     if (mayor.ownerId === state.player.id) {
       state.eb = (Number(state.eb) || 0) + dividendEB;
+      state.totalDividends = (Number(state.totalDividends) || 0) + dividendEB;
       Store.save();
       if (typeof showToast === "function") {
         showToast(`👑 Mayorship Dividend! +${dividendEB} EB collected from ${cityName}!`);
