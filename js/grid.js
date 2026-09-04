@@ -7,6 +7,8 @@ const Grid = (() => {
   let pendingTile = null;
   let globalPlots = {};
   let activeMarkers = [];
+  let isBuyMode = false;
+  let playerCoords = null;
 
   function tileId(tx, ty) { return tx + "_" + ty; }
 
@@ -67,7 +69,6 @@ const Grid = (() => {
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
 
-    // Floating Combat Text on Mapbox
     if (map) {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
       const centerLat = (corners[0][0] + corners[2][0]) / 2;
@@ -100,7 +101,6 @@ const Grid = (() => {
     onBuyAttempt(true, rarity);
     render();
 
-    // Broadcast live claim to Firebase
     const db = Store.getDb();
     if (db) {
       try {
@@ -123,7 +123,7 @@ const Grid = (() => {
   }
 
   function render() {
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !map.getStyle()) return;
 
     activeMarkers.forEach(m => m.remove());
     activeMarkers = [];
@@ -132,13 +132,13 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // 1. RENDER CLAIMED PLOTS (Flush on Ground Level)
+    // 1. RENDER CLAIMED PLOTS (Instantly)
     const claimedFeatures = [];
     for (const tid in allPlots) {
       const plot = allPlots[tid];
       const bounds = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
       const coords = bounds.map(pt => [pt[1], pt[0]]);
-      coords.push(coords[0]); // Close polygon ring
+      coords.push(coords[0]);
 
       claimedFeatures.push({
         type: "Feature",
@@ -158,18 +158,15 @@ const Grid = (() => {
     } else {
       map.addSource("plots-source", { type: "geojson", data: claimedGeoJSON });
 
-      // Insert under 3D buildings so buildings sit cleanly on top
-      const beforeId = map.getLayer("3d-buildings") ? "3d-buildings" : undefined;
-
       map.addLayer({
         id: "plots-fill",
         type: "fill",
         source: "plots-source",
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": 0.58,
+          "fill-opacity": 0.65,
         },
-      }, beforeId);
+      });
 
       map.addLayer({
         id: "plots-line",
@@ -179,22 +176,30 @@ const Grid = (() => {
           "line-color": ["get", "color"],
           "line-width": 2,
         },
-      }, beforeId);
+      });
     }
 
-    // 2. RENDER EMPTY PURCHASE GRID (Under 3D buildings when zoomed in)
+    // 2. RENDER EMPTY PURCHASE GRID ONLY IN "BUY LAND" MODE OR ZOOM 18+
     const emptyGridFeatures = [];
-    if (zoom >= (CONFIG.GRID_RENDER_MIN_ZOOM || 16.5)) {
-      const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
-      const count = (maxTx - minTx + 1) * (maxTy - minTy + 1);
+    if (isBuyMode && playerCoords) {
+      const ts = CONFIG.TILE_SIZE_METERS;
+      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 50;
+      const centerTile = Geo.tileForLatLon(playerCoords.lat, playerCoords.lon, ts);
+      const tileRadius = Math.ceil(radiusM / ts);
 
-      if (count <= (CONFIG.GRID_RENDER_MAX_TILES || 1200)) {
-        for (let tx = minTx; tx <= maxTx; tx++) {
-          for (let ty = minTy; ty <= maxTy; ty++) {
-            const tid = tileId(tx, ty);
-            if (allPlots[tid]) continue; // Skip claimed tiles
+      for (let dx = -tileRadius; dx <= tileRadius; dx++) {
+        for (let dy = -tileRadius; dy <= tileRadius; dy++) {
+          const tx = centerTile.tx + dx;
+          const ty = centerTile.ty + dy;
+          const tid = tileId(tx, ty);
+          if (allPlots[tid]) continue;
 
-            const bounds = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+          const bounds = Geo.tileBounds(tx, ty, ts);
+          const cLat = (bounds[0][0] + bounds[2][0]) / 2;
+          const cLon = (bounds[0][1] + bounds[2][1]) / 2;
+
+          // Only tiles inside player radius
+          if (Geo.haversine(playerCoords.lat, playerCoords.lon, cLat, cLon) <= radiusM) {
             const coords = bounds.map(pt => [pt[1], pt[0]]);
             coords.push(coords[0]);
 
@@ -215,27 +220,25 @@ const Grid = (() => {
     } else {
       map.addSource("empty-grid-source", { type: "geojson", data: emptyGeoJSON });
 
-      const beforeId = map.getLayer("3d-buildings") ? "3d-buildings" : undefined;
-
       map.addLayer({
         id: "empty-grid-fill",
         type: "fill",
         source: "empty-grid-source",
         paint: {
-          "fill-color": "#ffffff",
-          "fill-opacity": 0.02,
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.08,
         },
-      }, beforeId);
+      });
 
       map.addLayer({
         id: "empty-grid-line",
         type: "line",
         source: "empty-grid-source",
         paint: {
-          "line-color": "rgba(233, 223, 200, 0.28)",
-          "line-width": 1,
+          "line-color": "#4fd6c4",
+          "line-width": 1.5,
         },
-      }, beforeId);
+      });
     }
 
     // 3. RENDER AVATARS & EXTRACTOR BEACONS
@@ -274,7 +277,6 @@ const Grid = (() => {
 
         activeMarkers.push(m);
 
-        // 3D Extractor Beacon
         if (isSelf && Object.keys(state.plots || {}).length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
           playerExtractorRendered = true;
 
@@ -310,6 +312,17 @@ const Grid = (() => {
     }
   }
 
+  function setBuyMode(active, coords = null) {
+    isBuyMode = active;
+    if (coords) playerCoords = coords;
+    render();
+  }
+
+  function setGlobalPlot(tid, data) {
+    globalPlots[tid] = data;
+    render();
+  }
+
   function listenToGlobalPlots() {
     const db = Store.getDb();
     if (!db) return;
@@ -337,19 +350,18 @@ const Grid = (() => {
     onBuyAttempt = callbacks.onBuyAttempt || onBuyAttempt;
 
     map.on("click", (e) => {
+      if (!isBuyMode) return; // Only allow buying in Buy Land mode
       const { lng, lat } = e.lngLat;
       const t = Geo.tileForLatLon(lat, lng, CONFIG.TILE_SIZE_METERS);
       promptBuyTile(t.tx, t.ty);
     });
 
+    // Multiple render hooks to guarantee instantaneous plot display
+    map.on("idle", render);
     map.on("moveend zoomend", render);
     listenToGlobalPlots();
     render();
   }
 
-  function setGlobalPlot(tid, data) {
-    globalPlots[tid] = data;
-  }
-
-  return { init, render, promptBuyTile, getAllPlots, setGlobalPlot };
+  return { init, render, promptBuyTile, getAllPlots, setBuyMode, setGlobalPlot };
 })();
