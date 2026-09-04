@@ -44,10 +44,14 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Completed)*
   * Mapbox GL JS WebGL map engine with camera pitch (60° isometric angle) and 360° bearing rotation.
   * True 3D extruded building blocks on close zoom-in.
-  * 3D Mixamo GLTF/GLB skeletal character models integrated via Three.js with real-time GPS speed-based `Idle` $\leftrightarrow$ `Walk` animation blending.
+  * 3D Mixamo GLTF/GLB skeletal character models with `Idle` $\leftrightarrow$ `Walk` animation blending.
+  * Fixed third-person orbit camera locked dead-center onto the player with 1-mile zoom boundaries.
 * [ ] **Phase 4: Sound FX & Mobile Haptics** *(Next Phase)*
   * Subtle sound chimes for diamond collection, wheel clicks, and land claims.
   * Haptic vibration feedback on iOS & Android.
+* [ ] **Phase 6: 🌐 Community Globe Tab** *(Upcoming Feature)*
+  * Dedicated interactive 3D Earth Globe viewing mode.
+  * Free worldwide camera controls to spin the planet, inspect global territories, and zoom into international player empires without leaving your home base.
 
 ---
 
