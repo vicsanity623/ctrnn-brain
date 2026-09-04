@@ -100,28 +100,39 @@
     if (el("count-legendary")) el("count-legendary").textContent = counts.legendary;
   }
   
-  function updatePlayerInfoModal() {
+  function updatePlayerInfoModal(targetPlayerData = null) {
     const state = Store.get();
-    el("info-name").textContent = state.player.name || "Traveler";
+    const isOtherPlayer = targetPlayerData && targetPlayerData.ownerId !== state.player.id;
+    
+    const name = isOtherPlayer ? (targetPlayerData.ownerName || "Traveler") : (state.player.name || "Traveler");
+    const avatar = isOtherPlayer ? (targetPlayerData.avatar || "🙂") : (state.player.avatar || "🙂");
+
+    el("info-name").textContent = name;
     
     // Avatar
     const av = el("info-avatar");
-    if (state.player.avatar && state.player.avatar.startsWith("img:")) {
-      av.innerHTML = `<img src="${state.player.avatar.slice(4)}">`;
+    if (avatar && avatar.startsWith("img:")) {
+      av.innerHTML = `<img src="${avatar.slice(4)}">`;
     } else {
-      av.textContent = state.player.avatar || "🙂";
+      av.textContent = avatar || "🙂";
     }
 
-    // Total Rent
-    el("info-total-rent").textContent = "$" + (state.cash || 0).toFixed(15);
+    // Total Rent (Hidden for privacy if inspecting other players)
+    el("info-total-rent").textContent = isOtherPlayer ? "••••••••••••••••" : "$" + (state.cash || 0).toFixed(15);
 
-    // Counts
+    // Calculate Counts from global plots
+    const allPlots = (typeof Grid !== "undefined" && Grid.getAllPlots) ? Grid.getAllPlots() : state.plots;
+    const targetOwnerId = isOtherPlayer ? targetPlayerData.ownerId : state.player.id;
+
     const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
     let total = 0;
-    for (const id in state.plots) {
-      const r = state.plots[id].rarity?.key || state.plots[id].rarity;
-      if (counts[r] !== undefined) counts[r]++;
-      total++;
+
+    for (const id in allPlots) {
+      if (allPlots[id].ownerId === targetOwnerId) {
+        const r = allPlots[id].rarity?.key || allPlots[id].rarity;
+        if (counts[r] !== undefined) counts[r]++;
+        total++;
+      }
     }
 
     el("info-total-plots").textContent = total;
@@ -259,7 +270,7 @@
 
   // ---------------- UI wiring ----------------
   function wireUI() {
-    window.addEventListener("openPlayerInfo", openPlayerInfo);
+    window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
       const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
