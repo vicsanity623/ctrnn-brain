@@ -999,8 +999,8 @@
       });
     }
 
-    // Check extractor every 10 seconds
-    setInterval(checkExtractorTick, 10000);
+    // Check extractor every 2 seconds
+    setInterval(checkExtractorTick, 2000);
     // --- Multiplier Button Wiring ---
     const multBtn = el("multiplier-btn");
     const activateBoostBtn = el("activate-boost-btn");
