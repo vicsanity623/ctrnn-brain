@@ -33,7 +33,7 @@ const CONFIG = {
 
   // --- Diamond Extractor ---
   EXTRACTOR_MIN_TILES: 5,               // Requires 5+ connected plots
-  EXTRACTOR_INTERVAL_MS: 2 * 60 * 1000, // 1 diamond every 2 minutes (120000 ms)
+  EXTRACTOR_INTERVAL_MS: 10 * 60 * 1000, // 1 diamond every 10 minutes
   EXTRACTOR_MAX_STORED: 50,             // Stores up to 50 diamonds max
   EXTRACTOR_BUILD_COST_EB: 50,          // 50 EB to construct
   
