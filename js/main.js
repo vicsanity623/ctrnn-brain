@@ -21,24 +21,29 @@
   function openModal(id) { el(id).classList.remove("hidden"); }
   function closeModal(id) { el(id).classList.add("hidden"); }
 
-  function formatCashDisplay(cashVal) {
-    const val = Number(cashVal) || 0;
-    const fixedStr = val.toFixed(15);
-    const parts = fixedStr.split(".");
-    const whole = parseInt(parts[0], 10);
-    const decimals = parts[1] || "000000000000000";
+  let cachedCashWhole = null;
+  let cachedCashDecimal = null;
 
-    // Hide zero to the left of the decimal if balance is under $1.00
-    const wholeHTML = whole > 0 ? `<span class="cash-whole">${whole}</span>` : "";
-    return `<span class="cash-dollar">$</span>${wholeHTML}<span class="cash-point">.</span><span class="cash-decimal">${decimals}</span>`;
-  }
-  
   function updateTopbar() {
     const state = Store.get();
     if (state.cash === undefined) state.cash = 0;
 
-    // Hero simulated USD cash balance with dual typography & suppressed leading zero
-    if (el("stat-cash")) el("stat-cash").innerHTML = formatCashDisplay(state.cash);
+    // High-performance DOM node caching for cash display (skips innerHTML parsing)
+    const cashContainer = el("stat-cash");
+    if (cashContainer) {
+      const val = Number(state.cash) || 0;
+      const fixedStr = val.toFixed(15);
+      const parts = fixedStr.split(".");
+      const whole = parseInt(parts[0], 10);
+      const decimals = parts[1] || "000000000000000";
+
+      const wholeHTML = whole > 0 ? `<span class="cash-whole">${whole}</span>` : "";
+      const currentFullHTML = `<span class="cash-dollar">$</span>${wholeHTML}<span class="cash-point">.</span><span class="cash-decimal">${decimals}</span>`;
+
+      if (cashContainer.innerHTML !== currentFullHTML) {
+        cashContainer.innerHTML = currentFullHTML;
+      }
+    }
 
     // Elden Bucks game currency in sub-row
     if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
@@ -512,14 +517,21 @@
     }
     updateTopbar();
 
-    // Ticks every 0.5s (500ms), adding passive USD cash income per tick
+    // High-Performance Ticker: Calculates exact delta & saves locally without network thrashing
+    let lastTickTime = Date.now();
     setInterval(() => {
+      if (document.hidden) return; // Sleep income ticker calculations when app is minimized
+
+      const now = Date.now();
+      const deltaSec = (now - lastTickTime) / 1000;
+      lastTickTime = now;
+
       const state = Store.get();
       if (state.cash === undefined) state.cash = 0;
-      const ratePerHalfSec = Store.totalRate() * 0.5;
-      state.cash += ratePerHalfSec;
-      state.lastTick = Date.now();
-      Store.save();
+      state.cash += Store.totalRate() * deltaSec;
+      state.lastTick = now;
+      
+      Store.save(false); // Local save only (debounced cloud sync)
       updateTopbar();
     }, 500);
   }
