@@ -80,8 +80,8 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 ---
 
 ### 📅 IV. Retention & Daily Progression
-* [ ] **16. 📅 300-Day Daily Login Calendar:**
-  * Scaling daily check-in rewards: Day 10 = 25 EB, Day 20 = 50 EB, Day 30 = 75 EB, scaling up to a **200 EB Jackpot on Day 300**.
+* [ ] **16. 📅 30-Day Daily Login Calendar:**
+  * Scaling daily check-in rewards: Day 2 = 5 EB, Day 7 = 20 EB, Day 12 = 75 EB, scaling up to a **200 EB Jackpot on Day 30**.
 * [ ] **17. 📜 Daily Quests & Weekly Bounties:**
   * 3 daily missions (*Collect 3 diamonds*, *Spin twice*, *Keep 30X active for 2 hrs*) rewarding bonus EB.
 * [ ] **18. ⚡ "Blood Moon / Solar Flare" 50X Weekend Events:**
