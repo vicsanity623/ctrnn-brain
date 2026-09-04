@@ -241,42 +241,91 @@ const Grid = (() => {
       });
     }
 
-    // 3. RENDER AVATARS & EXTRACTOR BEACONS
+    // 3. RENDER CLUSTERED AVATARS & EXTRACTOR BEACONS (1 Avatar per Connected Territory)
     if (zoom >= 14) {
       const visited = new Set();
       let playerExtractorRendered = false;
 
-      for (const tid in allPlots) {
-        if (visited.has(tid)) continue;
-        visited.add(tid);
+      // Find all connected tile clusters using 4-directional flood fill
+      for (const startTid in allPlots) {
+        if (visited.has(startTid)) continue;
 
-        const p = allPlots[tid];
-        const centerMerc = Geo.fromMercator(
-          p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
-          p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
-        );
+        const startPlot = allPlots[startTid];
+        const clusterOwnerId = startPlot.ownerId;
+        const cluster = [];
+        const queue = [startPlot];
+        visited.add(startTid);
 
-        const isSelf = p.ownerId === state.player.id;
-        const avatar = isSelf ? (state.player.avatar || "🙂") : (p.avatar || "🙂");
+        while (queue.length > 0) {
+          const current = queue.shift();
+          cluster.push(current);
+
+          // Check 4 adjacent neighbors (N, S, E, W)
+          const neighbors = [
+            tileId(current.tx + 1, current.ty),
+            tileId(current.tx - 1, current.ty),
+            tileId(current.tx, current.ty + 1),
+            tileId(current.tx, current.ty - 1),
+          ];
+
+          for (const nId of neighbors) {
+            if (!visited.has(nId) && allPlots[nId] && allPlots[nId].ownerId === clusterOwnerId) {
+              visited.add(nId);
+              queue.push(allPlots[nId]);
+            }
+          }
+        }
+
+        // Calculate average centroid for the entire connected cluster
+        let totalLat = 0;
+        let totalLon = 0;
+
+        for (const p of cluster) {
+          const centerMerc = Geo.fromMercator(
+            p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+            p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+          );
+          totalLat += centerMerc.lat;
+          totalLon += centerMerc.lon;
+        }
+
+        const centroidLat = totalLat / cluster.length;
+        const centroidLon = totalLon / cluster.length;
+
+        const isSelf = clusterOwnerId === state.player.id;
+        const rep = cluster[0];
+        const avatar = isSelf ? (state.player.avatar || "🙂") : (rep.avatar || "🙂");
 
         const innerContent = avatar.startsWith("img:")
-          ? `<img src="${avatar.slice(4)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;display:block;">`
-          : `<span style="font-size:13px;line-height:1;">${avatar}</span>`;
+          ? `<img src="${avatar.slice(4)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;display:block;">`
+          : `<span style="font-size:15px;line-height:1;">${avatar}</span>`;
+
+        // Count badge if more than 1 tile connected
+        const countBadge = cluster.length > 1
+          ? `<span style="position:absolute;bottom:-4px;right:-4px;background:#d4af61;color:#0b1118;font-size:10px;font-weight:800;border-radius:10px;padding:1px 5px;box-shadow:0 0 4px rgba(0,0,0,0.9);line-height:1.2;">${cluster.length}</span>`
+          : "";
 
         const el = document.createElement("div");
         el.className = "custom-plot-icon";
-        el.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;border:2px solid #d4af61;background:#0d1420;box-shadow:0 0 10px rgba(0,0,0,0.9), 0 0 6px rgba(212,175,97,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;">${innerContent}</div>`;
+        el.innerHTML = `
+          <div style="position:relative;width:30px;height:30px;border-radius:50%;border:2px solid #d4af61;background:#0d1420;box-shadow:0 0 12px rgba(0,0,0,0.9), 0 0 8px rgba(212,175,97,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            ${innerContent}
+            ${countBadge}
+          </div>
+        `;
+
         el.addEventListener("click", () => {
-          const evt = new CustomEvent("openPlayerInfo", { detail: { cluster: [p], isSelf } });
+          const evt = new CustomEvent("openPlayerInfo", { detail: { cluster, isSelf } });
           window.dispatchEvent(evt);
         });
 
         const m = new mapboxgl.Marker({ element: el, pitchAlignment: "map", rotationAlignment: "map" })
-          .setLngLat([centerMerc.lon, centerMerc.lat])
+          .setLngLat([centroidLon, centroidLat])
           .addTo(map);
 
         activeMarkers.push(m);
 
+        // Mount Extractor at the centroid if criteria met
         if (isSelf && Object.keys(state.plots || {}).length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
           playerExtractorRendered = true;
 
@@ -303,7 +352,7 @@ const Grid = (() => {
           });
 
           const extMarker = new mapboxgl.Marker({ element: beaconEl, pitchAlignment: "map", rotationAlignment: "map" })
-            .setLngLat([centerMerc.lon + 0.0001, centerMerc.lat + 0.0001])
+            .setLngLat([centroidLon + 0.00008, centroidLat + 0.00008])
             .addTo(map);
 
           activeMarkers.push(extMarker);
