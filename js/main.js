@@ -346,46 +346,43 @@
         }
       }, labelLayerId);
 
-      // Expanding WebGL Radar Wave 1
+      // Dedicated GeoJSON Source for the Expanding Shockwave
+      map.addSource("player-wave-source", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: []
+        }
+      });
+
+      // Expanding Wave Fill (soft gradient)
       map.addLayer({
-        id: "player-sonar-wave-1",
-        type: "circle",
-        source: "player-sonar-source",
-        filter: ["==", ["get", "type"], "center"],
+        id: "player-wave-fill",
+        type: "fill",
+        source: "player-wave-source",
         paint: {
-          "circle-pitch-alignment": "map",
-          "circle-color": "#4fd6c4",
-          "circle-opacity": 0.15,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#4fd6c4",
-          "circle-stroke-opacity": 0.6,
-          "circle-radius": 10
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.12
         }
       }, labelLayerId);
 
-      // Expanding WebGL Radar Wave 2 (offset)
+      // Expanding Wave Crest (outer ripple ring)
       map.addLayer({
-        id: "player-sonar-wave-2",
-        type: "circle",
-        source: "player-sonar-source",
-        filter: ["==", ["get", "type"], "center"],
+        id: "player-wave-line",
+        type: "line",
+        source: "player-wave-source",
         paint: {
-          "circle-pitch-alignment": "map",
-          "circle-color": "#4fd6c4",
-          "circle-opacity": 0.15,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#4fd6c4",
-          "circle-stroke-opacity": 0.6,
-          "circle-radius": 10
+          "line-color": "#4fd6c4",
+          "line-width": 2,
+          "line-opacity": 0.6
         }
       }, labelLayerId);
 
-      // Exact 100m dashed boundary ring matching the Buy Land grid circumference
+      // Exact 100m Outer Dashed Boundary Ring
       map.addLayer({
         id: "player-sonar-line",
         type: "line",
         source: "player-sonar-source",
-        filter: ["==", ["get", "type"], "boundary"],
         paint: {
           "line-color": "#4fd6c4",
           "line-width": 2,
@@ -394,36 +391,43 @@
         }
       }, labelLayerId);
 
-      // Smooth GPU-driven Pulse Animation (Expands from center to 100m)
-      const pulseDuration = 3000; // 3 seconds per cycle
+      // Smooth Geodesic Pulse Animation (Reaches exact 100m edge, zero shader glitch)
+      const pulseDuration = 3200; // Smooth 3.2s expansion
       let pulseStart = performance.now();
 
       function animatePulse(timestamp) {
-        if (!map || !map.getLayer("player-sonar-wave-1")) return;
+        if (!map || !map.getSource("player-wave-source") || !currentPos) {
+          pulseAnimId = requestAnimationFrame(animatePulse);
+          return;
+        }
 
         const elapsed = (timestamp - pulseStart) % pulseDuration;
-        const p1 = elapsed / pulseDuration; // 0.0 -> 1.0
-        const p2 = ((elapsed + pulseDuration / 2) % pulseDuration) / pulseDuration; // 0.5 offset
+        const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
 
-        // Current ground pixel scale at character position
-        const lat = currentPos ? currentPos.lat : 33;
-        const zoom = map.getZoom();
-        const metersPerPx = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom + 8);
-        const maxPixelRadius = radiusM / metersPerPx;
+        // Ease-out cubic curve: ripples fast from character, slows down smoothly at boundary
+        const easeOut = 1 - Math.pow(1 - linearProgress, 2.5);
 
-        // Animate Wave 1
-        const r1 = Math.max(1, p1 * maxPixelRadius);
-        const op1 = Math.max(0, (1 - p1) * 0.45);
-        map.setPaintProperty("player-sonar-wave-1", "circle-radius", r1);
-        map.setPaintProperty("player-sonar-wave-1", "circle-opacity", op1 * 0.25);
-        map.setPaintProperty("player-sonar-wave-1", "circle-stroke-opacity", op1);
+        // Radius scales from 2m up to the EXACT 100m boundary
+        const currentRadius = Math.max(2, easeOut * radiusM);
 
-        // Animate Wave 2
-        const r2 = Math.max(1, p2 * maxPixelRadius);
-        const op2 = Math.max(0, (1 - p2) * 0.45);
-        map.setPaintProperty("player-sonar-wave-2", "circle-radius", r2);
-        map.setPaintProperty("player-sonar-wave-2", "circle-opacity", op2 * 0.25);
-        map.setPaintProperty("player-sonar-wave-2", "circle-stroke-opacity", op2);
+        // Opacity smoothly fades to 0 before resetting, eliminating any snap/glitch
+        const fadeProgress = Math.pow(1 - linearProgress, 1.8);
+        const fillOpacity = fadeProgress * 0.14;
+        const lineOpacity = fadeProgress * 0.75;
+
+        // Generate the exact polygon at current expansion
+        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 48);
+
+        map.getSource("player-wave-source").setData({
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [wavePoly] }
+          }]
+        });
+
+        map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
+        map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
 
         pulseAnimId = requestAnimationFrame(animatePulse);
       }
