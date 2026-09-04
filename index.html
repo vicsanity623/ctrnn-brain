@@ -327,13 +327,26 @@
 <script src="js/wheel.js"></script>
 <script src="js/main.js"></script>
 
-<!-- Service Worker Registration -->
+<!-- Service Worker Registration with Instant Auto-Update -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('[SW] Registered successfully:', reg.scope))
-      .catch(err => console.warn('[SW] Registration failed:', err));
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        // Check for updates every time page is opened
+        reg.update();
+        console.log('[SW] Registered & Checked for updates.');
+      })
+      .catch(err => console.warn('[SW] Registration error:', err));
+  });
+
+  // Automatically refresh the page when a new service worker version activates
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 </script>
