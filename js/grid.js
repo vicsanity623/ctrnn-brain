@@ -101,13 +101,14 @@ const Grid = (() => {
     onBuyAttempt(true, rarity);
     render();
 
-    // Award 2% Mayorship Dividend & Broadcast
+    // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
     if (typeof Feed !== "undefined") {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
       const cLat = (corners[0][0] + corners[2][0]) / 2;
       const cLon = (corners[0][1] + corners[2][1]) / 2;
       Feed.resolveCity(cLat, cLon).then((loc) => {
-        Feed.broadcast("land", { rarity: rarity.label, location: loc });
+        // Use exact tile ID to prevent duplicate callbacks
+        Feed.broadcast("land", { rarity: rarity.label, location: loc, tileId: tid });
         if (typeof Leaderboard !== "undefined") {
           Leaderboard.awardMayorshipDividend(loc, plotData.ownerId, CONFIG.PLOT_COST_EB);
         }
