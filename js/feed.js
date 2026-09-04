@@ -10,6 +10,16 @@ const Feed = (() => {
   // City lookup helper (cached simple reverse geocode or fallback)
   let cachedCityName = null;
 
+  // Converts ANY 2-letter country code ("us", "gb", "jp", "de", "ca", etc.) into its true country flag emoji
+  function getFlagEmoji(countryCode) {
+    if (!countryCode || countryCode.length !== 2) return "🌐";
+    const codePoints = countryCode
+      .toUpperCase()
+      .split("")
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  }
+
   async function resolveCity(lat, lon) {
     if (cachedCityName) return cachedCityName;
     if (!lat || !lon) return "the Realm";
@@ -17,13 +27,15 @@ const Feed = (() => {
       // Free open reverse geocoding
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
       const data = await res.json();
-      const city = data.address?.city || data.address?.town || data.address?.municipality || "the Realm";
+      
+      const city = data.address?.city || data.address?.town || data.address?.municipality || data.address?.village || "the Realm";
       const state = data.address?.state ? `, ${data.address.state.slice(0, 2).toUpperCase()}` : "";
-      const country = data.address?.country_code === "us" ? " 🇺🇸" : " 🌐";
-      cachedCityName = `${city}${state}${country}`;
+      const flag = getFlagEmoji(data.address?.country_code);
+
+      cachedCityName = `${city}${state} ${flag}`;
       return cachedCityName;
     } catch (e) {
-      return "the Realm";
+      return "the Realm 🌐";
     }
   }
 
