@@ -168,7 +168,7 @@ const Store = (() => {
 
     // Offline Diamond Extractor progress
     if (state.extractor && state.extractor.built) {
-      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000;
+      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 600000;
       const maxStored = CONFIG.EXTRACTOR_MAX_STORED || 50;
       const timeSince = now - state.extractor.lastHarvest;
       const newDiamonds = Math.floor(timeSince / interval);
