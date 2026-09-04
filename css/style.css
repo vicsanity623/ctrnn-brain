@@ -1398,3 +1398,48 @@ html,body{
     border-width: 1px;
   }
 }
+
+/* ---------- BUY LAND MODE CONTROLS ---------- */
+.btn-buy-land {
+  width: auto !important;
+  flex: 0 0 auto;
+  padding: 16px 28px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, #4fd6c4, #289b8d) !important;
+  color: #0d1420 !important;
+  font-family: var(--font-display) !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(79, 214, 196, 0.4) !important;
+}
+.btn-buy-land:active { transform: scale(0.94); }
+
+.buy-mode-banner {
+  position: absolute;
+  top: 105px;
+  left: 16px;
+  right: 16px;
+  z-index: 25;
+  background: rgba(13, 20, 32, 0.95);
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 14px rgba(212, 175, 97, 0.3);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--parchment);
+}
+
+.btn-exit-buy {
+  width: auto !important;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold)) !important;
+  color: #1a1204 !important;
+}
