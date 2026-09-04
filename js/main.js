@@ -196,14 +196,31 @@
     );
   }
 
+  function updatePlayerRadiusLayer() {
+    if (!map || !currentPos) return;
+    const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
+    const ringCoords = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
+
+    const data = {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [ringCoords] }
+      }]
+    };
+
+    if (map.getSource("player-sonar-source")) {
+      map.getSource("player-sonar-source").setData(data);
+    }
+  }
+
   function handlePosition(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     if (!map) return;
     
-    // Move 3D Character & Sonar Pulse
+    // Move 3D Character & Geographic Radius Layer
     Character3D.setPlayerPosition(currentPos.lon, currentPos.lat);
-    sonarMarker?.setLngLat([currentPos.lon, currentPos.lat]);
-    if (typeof updateSonarRadiusPixels === "function") updateSonarRadiusPixels();
+    updatePlayerRadiusLayer();
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
   
@@ -284,41 +301,44 @@
       // 3. Mount 3D Animated Character
       Character3D.init(map, currentPos.lon, currentPos.lat);
       
-      // 3.5. Mount 3D Isometric Sonar Pulse Radius (Locked to Real Meters)
-      const sonarEl = document.createElement("div");
-      sonarEl.className = "sonar-ground-anchor";
-      sonarEl.innerHTML = `
-        <div class="sonar-boundary-ring"></div>
-        <div class="sonar-wave-ring wave-1"></div>
-        <div class="sonar-wave-ring wave-2"></div>
-      `;
+      // 3.5. Mount 3D Ground Sonar Layer (Locked to exact real-world meters)
+      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
+      const initialRing = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
 
-      // Helper to calculate exact screen pixels for real-world meters
-      updateSonarRadiusPixels = function() {
-        if (!currentPos || !map) return;
-        const meters = Number(CONFIG.DIAMOND_COLLECT_RADIUS_METERS) || 100;
-        const lat = currentPos.lat;
-        const zoom = map.getZoom();
-        // Web Mercator ground resolution at current latitude & zoom
-        const metersPerPx = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom + 8);
-        const pixelRadius = meters / metersPerPx;
-        const diameter = Math.round(pixelRadius * 2);
+      map.addSource("player-sonar-source", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [initialRing] }
+          }]
+        }
+      });
 
-        sonarEl.style.width = `${diameter}px`;
-        sonarEl.style.height = `${diameter}px`;
-      };
+      // Subtle turquoise radar aura on the terrain
+      map.addLayer({
+        id: "player-sonar-fill",
+        type: "fill",
+        source: "player-sonar-source",
+        paint: {
+          "fill-color": "#4fd6c4",
+          "fill-opacity": 0.04
+        }
+      }, labelLayerId);
 
-      sonarMarker = new mapboxgl.Marker({
-        element: sonarEl,
-        anchor: "center",
-        rotationAlignment: "map",
-        pitchAlignment: "map",
-      })
-        .setLngLat([currentPos.lon, currentPos.lat])
-        .addTo(map);
-
-      updateSonarRadiusPixels();
-      map.on("zoom", updateSonarRadiusPixels);
+      // Exact 100m dashed boundary ring matching the Buy Land grid circumference
+      map.addLayer({
+        id: "player-sonar-line",
+        type: "line",
+        source: "player-sonar-source",
+        paint: {
+          "line-color": "#4fd6c4",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+          "line-opacity": 0.85
+        }
+      }, labelLayerId);
       map.on("pitch", updateSonarRadiusPixels);
       
       // 4. Initialize Core Game Subsystems
