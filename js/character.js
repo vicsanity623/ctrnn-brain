@@ -124,7 +124,13 @@ const Character3D = (() => {
 
         if (idleKey && animationsMap[idleKey]) {
           currentAction = animationsMap[idleKey];
+          currentAction.setEffectiveTimeScale(0.8); // Relaxed idle pace
           currentAction.play();
+        }
+
+        // Slow down walk animation so it's smooth and grounded (not running)
+        if (walkKey && animationsMap[walkKey]) {
+          animationsMap[walkKey].setEffectiveTimeScale(0.55); // 55% normal speed
         }
 
         currentModel.userData.idleKey = idleKey;
