@@ -6,6 +6,7 @@
   let map, watchId;
   let currentPos = null;
   let toastTimer = null;
+  let pulseAnimId = null;
 
   const el = (id) => document.getElementById(id);
 
@@ -202,10 +203,20 @@
 
     const data = {
       type: "FeatureCollection",
-      features: [{
-        type: "Feature",
-        geometry: { type: "Polygon", coordinates: [ringCoords] }
-      }]
+      features: [
+        // 100m boundary polygon
+        {
+          type: "Feature",
+          properties: { type: "boundary" },
+          geometry: { type: "Polygon", coordinates: [ringCoords] }
+        },
+        // Center point for the pulsing shockwave
+        {
+          type: "Feature",
+          properties: { type: "center" },
+          geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+        }
+      ]
     };
 
     if (map.getSource("player-sonar-source")) {
@@ -308,10 +319,18 @@
         type: "geojson",
         data: {
           type: "FeatureCollection",
-          features: [{
-            type: "Feature",
-            geometry: { type: "Polygon", coordinates: [initialRing] }
-          }]
+          features: [
+            {
+              type: "Feature",
+              properties: { type: "boundary" },
+              geometry: { type: "Polygon", coordinates: [initialRing] }
+            },
+            {
+              type: "Feature",
+              properties: { type: "center" },
+              geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+            }
+          ]
         }
       });
 
@@ -320,11 +339,95 @@
         id: "player-sonar-fill",
         type: "fill",
         source: "player-sonar-source",
+        filter: ["==", ["get", "type"], "boundary"],
         paint: {
           "fill-color": "#4fd6c4",
-          "fill-opacity": 0.04
+          "fill-opacity": 0.05
         }
       }, labelLayerId);
+
+      // Expanding WebGL Radar Wave 1
+      map.addLayer({
+        id: "player-sonar-wave-1",
+        type: "circle",
+        source: "player-sonar-source",
+        filter: ["==", ["get", "type"], "center"],
+        paint: {
+          "circle-pitch-alignment": "map",
+          "circle-color": "#4fd6c4",
+          "circle-opacity": 0.15,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#4fd6c4",
+          "circle-stroke-opacity": 0.6,
+          "circle-radius": 10
+        }
+      }, labelLayerId);
+
+      // Expanding WebGL Radar Wave 2 (offset)
+      map.addLayer({
+        id: "player-sonar-wave-2",
+        type: "circle",
+        source: "player-sonar-source",
+        filter: ["==", ["get", "type"], "center"],
+        paint: {
+          "circle-pitch-alignment": "map",
+          "circle-color": "#4fd6c4",
+          "circle-opacity": 0.15,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#4fd6c4",
+          "circle-stroke-opacity": 0.6,
+          "circle-radius": 10
+        }
+      }, labelLayerId);
+
+      // Exact 100m dashed boundary ring matching the Buy Land grid circumference
+      map.addLayer({
+        id: "player-sonar-line",
+        type: "line",
+        source: "player-sonar-source",
+        filter: ["==", ["get", "type"], "boundary"],
+        paint: {
+          "line-color": "#4fd6c4",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+          "line-opacity": 0.85
+        }
+      }, labelLayerId);
+
+      // Smooth GPU-driven Pulse Animation (Expands from center to 100m)
+      const pulseDuration = 3000; // 3 seconds per cycle
+      let pulseStart = performance.now();
+
+      function animatePulse(timestamp) {
+        if (!map || !map.getLayer("player-sonar-wave-1")) return;
+
+        const elapsed = (timestamp - pulseStart) % pulseDuration;
+        const p1 = elapsed / pulseDuration; // 0.0 -> 1.0
+        const p2 = ((elapsed + pulseDuration / 2) % pulseDuration) / pulseDuration; // 0.5 offset
+
+        // Current ground pixel scale at character position
+        const lat = currentPos ? currentPos.lat : 33;
+        const zoom = map.getZoom();
+        const metersPerPx = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom + 8);
+        const maxPixelRadius = radiusM / metersPerPx;
+
+        // Animate Wave 1
+        const r1 = Math.max(1, p1 * maxPixelRadius);
+        const op1 = Math.max(0, (1 - p1) * 0.45);
+        map.setPaintProperty("player-sonar-wave-1", "circle-radius", r1);
+        map.setPaintProperty("player-sonar-wave-1", "circle-opacity", op1 * 0.25);
+        map.setPaintProperty("player-sonar-wave-1", "circle-stroke-opacity", op1);
+
+        // Animate Wave 2
+        const r2 = Math.max(1, p2 * maxPixelRadius);
+        const op2 = Math.max(0, (1 - p2) * 0.45);
+        map.setPaintProperty("player-sonar-wave-2", "circle-radius", r2);
+        map.setPaintProperty("player-sonar-wave-2", "circle-opacity", op2 * 0.25);
+        map.setPaintProperty("player-sonar-wave-2", "circle-stroke-opacity", op2);
+
+        pulseAnimId = requestAnimationFrame(animatePulse);
+      }
+      pulseAnimId = requestAnimationFrame(animatePulse);
 
       // Exact 100m dashed boundary ring matching the Buy Land grid circumference
       map.addLayer({
