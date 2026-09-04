@@ -1780,3 +1780,186 @@ html,body{
   background: linear-gradient(180deg, var(--gold-hi), var(--gold)) !important;
   color: #1a1204 !important;
 }
+
+/* ================= DAILY LOGIN CALENDAR ================= */
+
+/* Floating Bottom-Left HUD Button */
+.calendar-btn {
+  position: absolute;
+  left: 18px;
+  bottom: 165px; /* Sits right above the 30X Multiplier button */
+  z-index: 15;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.7));
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.calendar-btn:active {
+  transform: scale(0.92);
+}
+
+/* Glowing Red Notification Dot */
+.calendar-red-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: #ff3b30;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ff3b30, 0 0 16px rgba(255, 59, 48, 0.8);
+  z-index: 2;
+  animation: redPulse 1.6s infinite alternate ease-in-out;
+}
+
+@keyframes redPulse {
+  0% { transform: scale(0.9); box-shadow: 0 0 6px #ff3b30; }
+  100% { transform: scale(1.15); box-shadow: 0 0 14px #ff3b30, 0 0 8px #ffffff; }
+}
+
+/* Calendar Card Aesthetic */
+.calendar-icon-card {
+  width: 48px;
+  height: 52px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid rgba(212, 175, 97, 0.6);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.cal-card-top {
+  background: #d1495b;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  padding: 2px 0;
+  letter-spacing: 0.5px;
+}
+
+.cal-card-body {
+  flex: 1;
+  color: #1a2230;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Calendar Modal Card */
+.calendar-modal-card {
+  max-width: 400px;
+}
+
+.calendar-modal-header {
+  margin-bottom: 12px;
+}
+
+.cal-modal-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Days List Container */
+.calendar-days-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin: 10px 0 14px;
+}
+
+.cal-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.cal-day-row.active {
+  border: 1.5px solid var(--gold-hi);
+  background: linear-gradient(135deg, rgba(34, 48, 68, 0.95), rgba(20, 28, 42, 0.98));
+  box-shadow: 0 0 14px rgba(212, 175, 97, 0.35);
+}
+
+.cal-day-row.claimed {
+  opacity: 0.55;
+  background: rgba(13, 20, 32, 0.6);
+}
+
+.cal-day-row.locked {
+  opacity: 0.7;
+}
+
+.cal-day-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cal-day-badge {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-hi);
+}
+
+.cal-reward-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--teal);
+}
+
+.cal-claim-btn {
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  color: #1a1204;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(212, 175, 97, 0.4);
+  animation: boostPulse 1.8s infinite ease-in-out;
+}
+
+.cal-status-claimed {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4fd6c4;
+}
+
+.cal-status-locked {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Flying +EB Particle Effect */
+.flying-eb-particle {
+  position: fixed;
+  z-index: 10002;
+  pointer-events: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--gold-hi);
+  text-shadow: 0 0 12px rgba(240, 211, 138, 0.9), 0 0 20px rgba(0, 0, 0, 0.9);
+  transition: transform 0.7s cubic-bezier(0.16, 0.85, 0.35, 1), opacity 0.7s ease-in;
+}
