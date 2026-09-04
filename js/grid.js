@@ -1,5 +1,5 @@
 // ============================================================
-// Elden Earth — land grid (Mapbox GL JS 3D Native Engine)
+// Elden Earth — land grid & real-time multiplayer sync (Mapbox 3D)
 // ============================================================
 const Grid = (() => {
   let map = null;
@@ -111,10 +111,20 @@ const Grid = (() => {
     }
   }
 
+  function visibleTileRange() {
+    const bounds = map.getBounds();
+    const ts = CONFIG.TILE_SIZE_METERS;
+    const sw = Geo.tileForLatLon(bounds.getSouth(), bounds.getWest(), ts);
+    const ne = Geo.tileForLatLon(bounds.getNorth(), bounds.getEast(), ts);
+    return {
+      minTx: Math.min(sw.tx, ne.tx), maxTx: Math.max(sw.tx, ne.tx),
+      minTy: Math.min(sw.ty, ne.ty), maxTy: Math.max(sw.ty, ne.ty),
+    };
+  }
+
   function render() {
     if (!map || !map.isStyleLoaded()) return;
 
-    // Clear old HTML markers
     activeMarkers.forEach(m => m.remove());
     activeMarkers = [];
 
@@ -122,35 +132,34 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // 1. Build GeoJSON for Claimed Plots in Mapbox
-    const features = [];
+    // 1. RENDER CLAIMED PLOTS (Flush on Ground Level)
+    const claimedFeatures = [];
     for (const tid in allPlots) {
       const plot = allPlots[tid];
       const bounds = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
       const coords = bounds.map(pt => [pt[1], pt[0]]);
-      coords.push(coords[0]); // Close ring
+      coords.push(coords[0]); // Close polygon ring
 
-      features.push({
+      claimedFeatures.push({
         type: "Feature",
         properties: {
           color: rarityInfo(plot.rarity).color,
           rarity: plot.rarity,
           ownerId: plot.ownerId,
         },
-        geometry: {
-          type: "Polygon",
-          coordinates: [coords],
-        },
+        geometry: { type: "Polygon", coordinates: [coords] },
       });
     }
 
-    const geojsonData = { type: "FeatureCollection", features };
+    const claimedGeoJSON = { type: "FeatureCollection", features: claimedFeatures };
 
-    // Update or create GeoJSON Source in Mapbox
     if (map.getSource("plots-source")) {
-      map.getSource("plots-source").setData(geojsonData);
+      map.getSource("plots-source").setData(claimedGeoJSON);
     } else {
-      map.addSource("plots-source", { type: "geojson", data: geojsonData });
+      map.addSource("plots-source", { type: "geojson", data: claimedGeoJSON });
+
+      // Insert under 3D buildings so buildings sit cleanly on top
+      const beforeId = map.getLayer("3d-buildings") ? "3d-buildings" : undefined;
 
       map.addLayer({
         id: "plots-fill",
@@ -160,7 +169,7 @@ const Grid = (() => {
           "fill-color": ["get", "color"],
           "fill-opacity": 0.58,
         },
-      });
+      }, beforeId);
 
       map.addLayer({
         id: "plots-line",
@@ -170,10 +179,66 @@ const Grid = (() => {
           "line-color": ["get", "color"],
           "line-width": 2,
         },
-      });
+      }, beforeId);
     }
 
-    // 2. Render Avatars and 3D Extractor Beacons
+    // 2. RENDER EMPTY PURCHASE GRID (Under 3D buildings when zoomed in)
+    const emptyGridFeatures = [];
+    if (zoom >= (CONFIG.GRID_RENDER_MIN_ZOOM || 16.5)) {
+      const { minTx, maxTx, minTy, maxTy } = visibleTileRange();
+      const count = (maxTx - minTx + 1) * (maxTy - minTy + 1);
+
+      if (count <= (CONFIG.GRID_RENDER_MAX_TILES || 1200)) {
+        for (let tx = minTx; tx <= maxTx; tx++) {
+          for (let ty = minTy; ty <= maxTy; ty++) {
+            const tid = tileId(tx, ty);
+            if (allPlots[tid]) continue; // Skip claimed tiles
+
+            const bounds = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+            const coords = bounds.map(pt => [pt[1], pt[0]]);
+            coords.push(coords[0]);
+
+            emptyGridFeatures.push({
+              type: "Feature",
+              properties: { tx, ty },
+              geometry: { type: "Polygon", coordinates: [coords] },
+            });
+          }
+        }
+      }
+    }
+
+    const emptyGeoJSON = { type: "FeatureCollection", features: emptyGridFeatures };
+
+    if (map.getSource("empty-grid-source")) {
+      map.getSource("empty-grid-source").setData(emptyGeoJSON);
+    } else {
+      map.addSource("empty-grid-source", { type: "geojson", data: emptyGeoJSON });
+
+      const beforeId = map.getLayer("3d-buildings") ? "3d-buildings" : undefined;
+
+      map.addLayer({
+        id: "empty-grid-fill",
+        type: "fill",
+        source: "empty-grid-source",
+        paint: {
+          "fill-color": "#ffffff",
+          "fill-opacity": 0.02,
+        },
+      }, beforeId);
+
+      map.addLayer({
+        id: "empty-grid-line",
+        type: "line",
+        source: "empty-grid-source",
+        paint: {
+          "line-color": "rgba(233, 223, 200, 0.28)",
+          "line-width": 1,
+        },
+      }, beforeId);
+    }
+
+    // 3. RENDER AVATARS & EXTRACTOR BEACONS
     if (zoom >= 14) {
       const visited = new Set();
       let playerExtractorRendered = false;
@@ -209,7 +274,7 @@ const Grid = (() => {
 
         activeMarkers.push(m);
 
-        // 3D Extractor Beacon (Only 1 per player)
+        // 3D Extractor Beacon
         if (isSelf && Object.keys(state.plots || {}).length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
           playerExtractorRendered = true;
 
@@ -271,14 +336,13 @@ const Grid = (() => {
     map = mapboxMap;
     onBuyAttempt = callbacks.onBuyAttempt || onBuyAttempt;
 
-    // Handle map click to claim tiles
     map.on("click", (e) => {
       const { lng, lat } = e.lngLat;
       const t = Geo.tileForLatLon(lat, lng, CONFIG.TILE_SIZE_METERS);
       promptBuyTile(t.tx, t.ty);
     });
 
-    map.on("moveend", render);
+    map.on("moveend zoomend", render);
     listenToGlobalPlots();
     render();
   }
