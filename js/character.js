@@ -65,10 +65,12 @@ const Character3D = (() => {
         const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
 
         const m = new THREE.Matrix4().fromArray(matrix);
+        // Stands character upright (90 deg X-rotation) and rotates with movement heading
         const l = new THREE.Matrix4()
           .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
           .scale(new THREE.Vector3(scale, -scale, scale))
-          .multiply(new THREE.Matrix4().makeRotationZ(modelHeading));
+          .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
+          .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
 
         camera.projectionMatrix = m.multiply(l);
         renderer.resetState();
