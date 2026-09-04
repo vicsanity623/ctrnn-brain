@@ -14,7 +14,7 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 * [x] **🧍 3D Animated Mixamo Characters (Three.js WebGL):** Integrated Three.js custom layer rendering upright, hero-scaled 3D character models (`.glb`) at real-time GPS coordinates with automatic `Idle` $\leftrightarrow$ `Walk` speed-based animation blending.
 * [x] **👗 3D Wardrobe & Character Selector:** In-game wardrobe modal accessible via a gold **✏️ Pencil** on the Player Info profile card, allowing players to hot-swap between multiple 3D models (`Soldier`, `Xbot`, `Fox`, `CesiumMan`, `Custom`).
 * [x] **🔥 Real-time Multiplayer Firestore Sync:** Live WebSocket streaming across all players worldwide to see newly claimed lands, plot rarities, and avatars in real time without refreshing.
-* [x] **☁️ Firebase Cloud Saves & Recovery:** Permanent account backups stored in Google Cloud Firestore. Reinstalling the app or logging in on a new device instantly restores all EB, cash, diamonds, boost time, and territories.
+* [x] **☁️ Firebase Cloud Saves & Anti-Exploit Security:** Permanent account backups stored in Google Cloud Firestore with strict document overwriting and a persistent collected-diamond blacklist (`collectedDiamondIds`) that eliminates force-close duplication glitches.
 * [x] **⏳ Sequential Boot Pipeline:** Dedicated `js/loading.js` bootloader with an animated gold/teal progress bar and terminal logs that pre-fetches world plots and coordinates with zero race conditions.
 * [x] **📱 Forced Portrait Guard:** Orientation guard overlay preventing unintended screen rotation on mobile devices.
 * [x] **💎 3D Hovering Gemstones & Particle FX:** Upright 3D faceted crystals with specular lighting, real-time ground shadows, organic desynchronized hover physics, ambient rising stardust, and a 10-point particle explosion on collection.
@@ -32,18 +32,77 @@ Built with **pure static HTML5 / CSS3 / Vanilla JS** — zero build step, no bac
 
 ---
 
-## 🎨 Visual & Sensory Roadmap
+## 🗺️ Master Development Roadmap
 
-* [x] **Phase 1: 3D Diamond Overhaul & Particle Burst FX** *(Completed)*
-* [x] **Phase 2: 3D Isometric Plots & Territory Visuals** *(Completed)*
-* [x] **Phase 3: HUD Micro-Interactions & Flying Coins** *(Completed)*
-* [x] **Phase 5: 3D WebGL Camera, Isometric Buildings & Mixamo 3D Character** *(Completed)*
-* [ ] **Phase 4: Sound FX & Mobile Haptics** *(Next Phase)*
-  * Synthesized Web Audio API sound chimes for diamond collection, wheel ratchet clicks, and land claims (zero external audio file dependencies).
-  * Native haptic vibration cadences (`navigator.vibrate`) on iOS & Android.
-* [ ] **Phase 6: 🌐 Community Globe Tab** *(Upcoming Feature)*
-  * Dedicated interactive 3D Earth Globe viewing mode (`map.setProjection('globe')`).
-  * Free worldwide camera controls to spin the planet, inspect global territories, and zoom into international player empires without leaving your home base.
+### 🔊 I. Sensory & Audiovisual Polish
+* [ ] **1. Phase 4: Web Audio SFX & Mobile Haptics:**
+  * Synthesized crystal chimes when picking up diamonds.
+  * Tactile phone vibration pulses when collecting gems or spinning the wheel.
+  * Ticking clicks on the wheel and a royal trumpet fanfare on claiming land.
+* [ ] **2. 🎉 Celebration Confetti & Screen Fireworks:**
+  * Golden particle cascade across the screen when winning 25 EB / 50 EB or rolling a Legendary plot.
+* [ ] **3. 🌙 Real-Time Day / Night & Weather Cycle:**
+  * Dynamic lighting based on local sunrise/sunset—streetlights glow at night, with subtle rain/fog particle overlays.
+* [ ] **4. 🧭 3D Dynamic Compass Rose:**
+  * A mini compass dial on the HUD that rotates smoothly with device orientation / camera bearing.
+
+---
+
+### 🗺️ II. Map Exploration & World Features
+* [ ] **5. Phase 6: 🌐 Community Globe Mode:**
+  * Dedicated interactive 3D Earth Globe viewing mode (`map.setProjection('globe')`). Spin the planet, inspect foreign continents, and view other players' international empires.
+* [ ] **6. 🎁 Tiered Mystery Chests on the Map:**
+  * Bronze, Silver, and Golden chests spawning randomly that require keys or diamonds to open for big EB payouts.
+* [ ] **7. 💎 Diamond Radar Compass Pointers:**
+  * Subtle glowing arrows around the edge of your screen pointing toward off-screen diamonds so you know which street to walk down.
+* [ ] **8. 🌈 Prismatic / Super Diamonds (1-in-50 Spawn):**
+  * Rare iridescent rainbow crystals that award **+3 Diamonds** or an instant 2-hour boost potion when tapped.
+* [ ] **9. 🧲 Diamond Magnet Boost Potion:**
+  * A 15-minute consumable buff that doubles your collection reach to vacuum up all neighborhood diamonds without moving.
+
+---
+
+### 👑 III. Social, Multiplayer & Prestige
+* [ ] **10. 👑 Local Mayorship & Regional Dividends:**
+  * The player owning the most plots in a town or city becomes **Mayor**, wears a golden crown, and collects a **1%–3% dividend** on every local land sale.
+* [ ] **11. 💬 Global Live Activity Feed:**
+  * A subtle ticker at the bottom showing live accomplishments: *"Artistic just claimed a Legendary plot in Phoenix!"*, *"Player X hit the 50 EB Jackpot!"*
+* [ ] **12. 🏆 Global & Local Leaderboards:**
+  * Top 100 rankings for Most Plots Owned, Total Rent Accrued, and Active Mayors.
+* [ ] **13. 🤝 Player-to-Player Parcel Marketplace:**
+  * Put owned plots up for sale on the open market for EB or trade tiles with friends.
+* [ ] **14. 🛡️ Realm Guilds & Joint Kingdoms:**
+  * Form alliances to connect plots into massive shared kingdoms with a communal Diamond Vault.
+* [ ] **15. 🎟️ Referral / Friend Invite Code System:**
+  * Share your code; when a friend claims their 5th plot, both of you get **+50 EB free**.
+
+---
+
+### 📅 IV. Retention & Daily Progression
+* [ ] **16. 📅 300-Day Daily Login Calendar:**
+  * Scaling daily check-in rewards: Day 10 = 25 EB, Day 20 = 50 EB, Day 30 = 75 EB, scaling up to a **200 EB Jackpot on Day 300**.
+* [ ] **17. 📜 Daily Quests & Weekly Bounties:**
+  * 3 daily missions (*Collect 3 diamonds*, *Spin twice*, *Keep 30X active for 2 hrs*) rewarding bonus EB.
+* [ ] **18. ⚡ "Blood Moon / Solar Flare" 50X Weekend Events:**
+  * 24-hour weekend flash events where the boost multiplier temporarily jumps to **50X**.
+* [ ] **19. 📈 Prestige Milestones & Player Leveling Track:**
+  * Title ranks (*Novice, Baron, Count, Duke, Monarch*) that unlock golden avatar borders and exclusive profile emblems.
+* [ ] **20. 🚶 Real-World Step Counter / Pedometer Sync:**
+  * Awards passive EB for physical steps taken throughout the day (e.g. 1,000 steps = +5 EB).
+
+---
+
+### 🏰 V. Customization & Base Building
+* [ ] **21. 🏰 3D Plot Landmarks & Monuments:**
+  * Place 3D structures on owned land (Castles, Golden Trees, Neon Shrines) that grant a **+15% permanent income boost** to surrounding tiles.
+* [ ] **22. 🎨 Parcel Ground Skins & Theme Customization:**
+  * Customize how your owned plots look: Cyberpunk Grid, Medieval Cobblestone, Molten Lava, or Glacial Ice.
+* [ ] **23. 🛂 Travel Passport & City Stamps:**
+  * Collect digital passport stamps when claiming land in new cities; each badge gives an account-wide **+5% rent multiplier**.
+* [ ] **24. 📦 Player Inventory & Item Bag:**
+  * A clean inventory screen to manage boost potions, keys, cosmetic badges, and collectible relics.
+* [ ] **25. ⚔️ Contested Landmark Duels (Friendly Mini-Game):**
+  * Stake diamonds in a mini-game to contest neutral high-yield landmarks like parks, museums, or city halls for temporary mega-dividends.
 
 ---
 
