@@ -152,8 +152,10 @@ const Grid = (() => {
         }).addTo(ownedPlotsLayer);
       }
 
-      // 2. RENDER SINGLE AVATAR PER CONNECTED CLUSTER
+      // 2. RENDER SINGLE AVATAR & AT MOST 1 EXTRACTOR BEACON PER PLAYER
       const clusters = getConnectedClusters(state.plots);
+      let playerExtractorRendered = false; // Strictly limits to 1 Extractor on the map
+
       for (const cluster of clusters) {
         // Calculate the centroid center of this connected cluster
         let sumLat = 0, sumLon = 0;
@@ -188,8 +190,10 @@ const Grid = (() => {
           window.dispatchEvent(evt);
         });
 
-        // If this cluster has 5+ plots and belongs to the player, show 3D Orbital Extractor Beacon!
-        if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5)) {
+        // Strictly spawn ONLY ONE Extractor on the player's qualifying territory
+        if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5) && !playerExtractorRendered) {
+          playerExtractorRendered = true; // Prevents any second extractor from ever spawning
+
           const extractorIcon = L.divIcon({
             className: "extractor-3d-wrap",
             html: `
