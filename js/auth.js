@@ -67,8 +67,14 @@ const Auth = (() => {
             Store.syncFromCloud(googleId).then(() => {
               const s = Store.get();
               s.player.id = googleId;
-              s.player.name = playerName;
-              s.player.avatar = playerAvatar;
+              // Only use Google name if the player has NOT chosen a custom name yet
+              if (!s.player.name || s.player.name === "Traveler") {
+                s.player.name = playerName;
+              }
+              // Only use Google avatar if none selected
+              if (!s.player.avatar || s.player.avatar === "🙂") {
+                s.player.avatar = playerAvatar;
+              }
               Store.save();
               // 2. Launch game with fully restored data
               onSignedIn(s.player);
