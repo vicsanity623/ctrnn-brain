@@ -16,6 +16,53 @@ const Wheel = (() => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Helper to render mini 3D faceted crystal onto canvas
+    function renderCanvas3DGem(x, y, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      const w = size / 2, h = size;
+
+      // Top facet
+      ctx.beginPath();
+      ctx.moveTo(0, -h * 0.45);
+      ctx.lineTo(w, -h * 0.15);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-w, -h * 0.15);
+      ctx.closePath();
+      ctx.fillStyle = "#a8f5ec";
+      ctx.fill();
+
+      // Left shadow facet
+      ctx.beginPath();
+      ctx.moveTo(-w, -h * 0.15);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(0, h * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = "#1d7a6e";
+      ctx.fill();
+
+      // Right bright facet
+      ctx.beginPath();
+      ctx.moveTo(w, -h * 0.15);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(0, h * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = "#4fd6c4";
+      ctx.fill();
+
+      // Specular glint
+      ctx.beginPath();
+      ctx.moveTo(0, -h * 0.45);
+      ctx.lineTo(w * 0.35, -h * 0.25);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-w * 0.35, -h * 0.25);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.fill();
+
+      ctx.restore();
+    }
+
     for (let i = 0; i < n; i++) {
       const start = -Math.PI / 2 + i * sliceAngle;
       const end = start + sliceAngle;
@@ -30,14 +77,21 @@ const Wheel = (() => {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // label
+      // Label & 3D Icon Rendering
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(start + sliceAngle / 2);
-      ctx.textAlign = "right";
       ctx.fillStyle = "#0d1420";
       ctx.font = "bold 15px Manrope, sans-serif";
-      ctx.fillText(slices[i].label, radius - 14, 5);
+
+      if (slices[i].type === "diamond") {
+        ctx.textAlign = "right";
+        ctx.fillText("+1", radius - 26, 5);
+        renderCanvas3DGem(radius - 14, 0, 18);
+      } else {
+        ctx.textAlign = "right";
+        ctx.fillText(slices[i].label, radius - 14, 5);
+      }
       ctx.restore();
     }
 

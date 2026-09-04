@@ -1,22 +1,36 @@
 // ============================================================
-// Elden Earth — save data
-// One flat JSON blob in localStorage. Simple, portable, and
-// easy to export/import by hand if a player wants to.
+// Elden Earth — save data (Local + Firebase Cloud Sync)
 // ============================================================
 const Store = (() => {
   const KEY = "eldenEarth.save.v1";
+  let db = null;
+
+  function getDb() {
+    if (db) return db;
+    try {
+      if (typeof firebase !== "undefined" && CONFIG.FIREBASE_CONFIG && CONFIG.FIREBASE_CONFIG.apiKey) {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
+        }
+        db = firebase.firestore();
+      }
+    } catch (e) {
+      console.warn("[Firebase] Init error:", e);
+    }
+    return db;
+  }
 
   function defaultState() {
     return {
       player: { name: "Traveler", id: null, avatar: "🙂" },
-      cash: 0,            // Simulated passive USD cash balance
-      eb: 150,            // Elden Bucks (game currency to buy plots/spins)
+      cash: 0,
+      eb: 150,
       diamonds: 0,
-      plots: {},          // tileId -> { tx, ty, rarity, rate }
-      liveDiamonds: {},   // diamondId -> { lat, lon, spawnedAt }
-      boostExpiry: 0,     // Timestamp when multiplier ends
-      boostMultiplier: 30,// 30 or 50
-      extractor: { built: false, lastHarvest: Date.now(), stored: 0 },
+      plots: {},
+      liveDiamonds: {},
+      boostExpiry: 0,
+      boostMultiplier: 30,
+      extractor: { built: false, level: 1, lastHarvest: Date.now(), stored: 0 },
       lastTick: Date.now(),
       createdAt: Date.now(),
     };
@@ -38,9 +52,54 @@ const Store = (() => {
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
+      syncToCloud();
     } catch (e) {
       console.warn("Could not save game.", e);
     }
+  }
+
+  // Cloud Save to Firestore
+  function syncToCloud() {
+    const firestore = getDb();
+    if (!firestore || !state || !state.player || !state.player.id) return;
+
+    try {
+      firestore.collection("saves").doc(state.player.id).set(state, { merge: true })
+        .catch(err => console.warn("[Cloud] Sync failed:", err));
+    } catch (err) {
+      console.warn("[Cloud] Error during sync:", err);
+    }
+  }
+
+  // Load from Cloud when logging into Google (Full Restore)
+  async function syncFromCloud(playerId) {
+    const firestore = getDb();
+    if (!firestore || !playerId) return null;
+
+    try {
+      // 1. Fetch player save document
+      const doc = await firestore.collection("saves").doc(playerId).get();
+      if (doc.exists) {
+        const cloudData = doc.data();
+        state = Object.assign(defaultState(), cloudData);
+      }
+
+      // 2. Query and restore all plots owned by this player from world map
+      const plotSnap = await firestore.collection("plots").where("ownerId", "==", playerId).get();
+      if (!plotSnap.empty) {
+        if (!state.plots) state.plots = {};
+        plotSnap.forEach((pDoc) => {
+          state.plots[pDoc.id] = pDoc.data();
+        });
+      }
+
+      localStorage.setItem(KEY, JSON.stringify(state));
+      console.log(`[Cloud] Restored account for ${playerId} with ${Object.keys(state.plots || {}).length} plots.`);
+      return state;
+    } catch (err) {
+      console.warn("[Cloud] Load error:", err);
+    }
+    return null;
   }
 
   function get() { return state; }
@@ -65,7 +124,7 @@ const Store = (() => {
     return isBoosted ? baseRate * (state.boostMultiplier || 30) : baseRate;
   }
 
-  // Apply whatever income accrued while the tab/app was closed
+  // Apply offline earnings & offline extractor progress
   function applyOfflineProgress() {
     const now = Date.now();
     const elapsedSec = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -90,5 +149,5 @@ const Store = (() => {
     return earned;
   }
 
-  return { load, save, get, reset, totalRate, applyOfflineProgress };
+  return { load, save, get, reset, totalRate, applyOfflineProgress, syncFromCloud, getDb };
 })();

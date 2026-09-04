@@ -1,5 +1,5 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'elden-earth-v0.2.61';
+const CACHE_NAME = 'elden-earth-v0.3.5';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -16,53 +16,55 @@ const ASSETS_TO_CACHE = [
     './js/config.js',
 ];
 
-// 1. Install & Cache All Assets
+// 1. Force Immediate Installation
 self.addEventListener('install', (e) => {
+    self.skipWaiting(); // Bypass waiting phase immediately
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS_TO_CACHE);
         })
     );
-    self.skipWaiting(); // Force new service worker to activate immediately
 });
 
-// 2. Activate, Purge Old Caches & Take Control
+// 2. Instant Cache Purge & Take Immediate Control
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((oldCache) => {
                     if (oldCache !== CACHE_NAME) {
-                        console.log(`[ServiceWorker] Purging outdated cache: ${oldCache}`);
+                        console.log(`[SW] Deleting stale cache: ${oldCache}`);
                         return caches.delete(oldCache);
                     }
                 })
             );
         }).then(() => {
-            return self.clients.claim(); // Take immediate control of all open windows
+            return self.clients.claim(); // Take control of all active tabs immediately
         })
     );
 });
 
-// 3. Stale-While-Revalidate Network Strategy (Fetches fresh files in background)
+// 3. Network-First Strategy (Always fetch fresh code first, cache fallback if offline)
 self.addEventListener('fetch', (e) => {
-    // Only cache GET requests (ignore API/external POSTs)
     if (e.request.method !== 'GET') return;
 
+    // Ignore third-party tiles/APIs (handled by browser)
+    if (!e.request.url.startsWith(self.location.origin)) return;
+
     e.respondWith(
-        caches.match(e.request).then((cachedResponse) => {
-            const fetchPromise = fetch(e.request).then((networkResponse) => {
-                // If valid network response, update the cache in background
-                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    const responseToCache = networkResponse.clone();
+        fetch(e.request)
+            .then((networkResponse) => {
+                if (networkResponse && networkResponse.status === 200) {
+                    const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(e.request, responseToCache);
+                        cache.put(e.request, responseClone);
                     });
                 }
                 return networkResponse;
-            }).catch(() => cachedResponse);
-
-            return cachedResponse || fetchPromise;
-        })
+            })
+            .catch(() => {
+                // If offline or network fails, load from local cache
+                return caches.match(e.request);
+            })
     );
 });

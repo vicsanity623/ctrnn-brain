@@ -42,7 +42,7 @@
     // Elden Bucks game currency in sub-row
     if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
 
-    el("stat-diamonds").textContent = state.diamonds + " ◆";
+    el("stat-diamonds").innerHTML = `${state.diamonds} <span class="hud-gem-icon"></span>`;
     el("stat-rate").textContent = "$" + Store.totalRate().toFixed(11) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
 
@@ -100,28 +100,55 @@
     if (el("count-legendary")) el("count-legendary").textContent = counts.legendary;
   }
   
-  function updatePlayerInfoModal() {
+  async function updatePlayerInfoModal(targetPlayerData = null) {
     const state = Store.get();
-    el("info-name").textContent = state.player.name || "Traveler";
+    const isOtherPlayer = targetPlayerData && targetPlayerData.ownerId !== state.player.id;
+    
+    const name = isOtherPlayer ? (targetPlayerData.ownerName || "Traveler") : (state.player.name || "Traveler");
+    const avatar = isOtherPlayer ? (targetPlayerData.avatar || "🙂") : (state.player.avatar || "🙂");
+
+    el("info-name").textContent = name;
     
     // Avatar
     const av = el("info-avatar");
-    if (state.player.avatar && state.player.avatar.startsWith("img:")) {
-      av.innerHTML = `<img src="${state.player.avatar.slice(4)}">`;
+    if (avatar && avatar.startsWith("img:")) {
+      av.innerHTML = `<img src="${avatar.slice(4)}">`;
     } else {
-      av.textContent = state.player.avatar || "🙂";
+      av.textContent = avatar || "🙂";
     }
 
-    // Total Rent
-    el("info-total-rent").textContent = "$" + (state.cash || 0).toFixed(15);
+    // Initial Rent Display
+    let rentVal = isOtherPlayer ? 0 : (state.cash || 0);
+    el("info-total-rent").textContent = "$" + Number(rentVal).toFixed(15);
 
-    // Counts
+    // Fetch and display the other player's live cloud earnings
+    if (isOtherPlayer && targetPlayerData.ownerId) {
+      const db = Store.getDb();
+      if (db) {
+        try {
+          const doc = await db.collection("saves").doc(targetPlayerData.ownerId).get();
+          if (doc.exists && doc.data().cash !== undefined) {
+            el("info-total-rent").textContent = "$" + Number(doc.data().cash).toFixed(15);
+          }
+        } catch (e) {
+          console.warn("[PlayerInfo] Error fetching player cash:", e);
+        }
+      }
+    }
+
+    // Calculate Counts from global plots
+    const allPlots = (typeof Grid !== "undefined" && Grid.getAllPlots) ? Grid.getAllPlots() : state.plots;
+    const targetOwnerId = isOtherPlayer ? targetPlayerData.ownerId : state.player.id;
+
     const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
     let total = 0;
-    for (const id in state.plots) {
-      const r = state.plots[id].rarity?.key || state.plots[id].rarity;
-      if (counts[r] !== undefined) counts[r]++;
-      total++;
+
+    for (const id in allPlots) {
+      if (allPlots[id].ownerId === targetOwnerId) {
+        const r = allPlots[id].rarity?.key || allPlots[id].rarity;
+        if (counts[r] !== undefined) counts[r]++;
+        total++;
+      }
     }
 
     el("info-total-plots").textContent = total;
@@ -131,11 +158,15 @@
     el("info-count-legendary").textContent = counts.legendary;
   }
 
-  // ---------------- Sign-in ----------------
-  function onSignedIn() {
-    updateTopbar();
-    el("signin-screen").classList.add("hidden");
-    el("locate-screen").classList.remove("hidden");
+  // ---------------- Sign-in & Sequenced Boot ----------------
+  function onSignedIn(playerData) {
+    const player = playerData || Store.get()?.player || { name: "Traveler" };
+
+    // Execute the professional load pipeline
+    Bootloader.run(player, (coords) => {
+      launchGame(coords);
+      beginWatch();
+    });
   }
 
   // ---------------- Location ----------------
@@ -173,8 +204,9 @@
   // ---------------- Map / game ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
-    el("locate-screen").classList.add("hidden");
-    el("game-screen").classList.remove("hidden");
+    el("locate-screen")?.classList.add("hidden");
+    el("loading-screen")?.classList.add("hidden");
+    el("game-screen")?.classList.remove("hidden");
 
     map = L.map("map", { zoomControl: false, attributionControl: true })
       .setView([currentPos.lat, currentPos.lon], 19);
@@ -259,7 +291,7 @@
 
   // ---------------- UI wiring ----------------
   function wireUI() {
-    window.addEventListener("openPlayerInfo", openPlayerInfo);
+    window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
       const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
@@ -301,11 +333,11 @@
 
       if (el("extractor-lvl-badge")) el("extractor-lvl-badge").textContent = `Level ${lvl}`;
       if (el("extractor-next-timer")) el("extractor-next-timer").textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-      if (el("extractor-stored-count")) el("extractor-stored-count").textContent = `${state.extractor.stored} / ${maxStored} ◆`;
+      if (el("extractor-stored-count")) el("extractor-stored-count").innerHTML = `${state.extractor.stored} / ${maxStored} <span class="hud-gem-icon"></span>`;
       if (el("extractor-next-perk")) el("extractor-next-perk").textContent = nextIsCapacity ? "Next: +1 Max Diamond Capacity" : "Next: -0.0001% Mining Time";
       if (el("upgrade-extractor-btn")) el("upgrade-extractor-btn").textContent = `Upgrade ($${nextCost.toFixed(2)})`;
       if (el("collect-extractor-btn")) {
-        el("collect-extractor-btn").textContent = `Collect All (${state.extractor.stored} ◆)`;
+        el("collect-extractor-btn").innerHTML = `Collect All (${state.extractor.stored} <span class="hud-gem-icon"></span>)`;
         el("collect-extractor-btn").disabled = state.extractor.stored === 0;
       }
     }
@@ -542,6 +574,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     Store.load();
     Auth.init(onSignedIn);
-    el("locate-btn").addEventListener("click", startLocating);
+    el("locate-btn")?.addEventListener("click", startLocating);
   });
 })();

@@ -58,12 +58,21 @@ const Auth = (() => {
           callback: (resp) => {
             const payload = decodeJwt(resp.credential);
             if (!payload) return;
-            const state = Store.get();
-            state.player.id = "google-" + payload.sub;
-            state.player.name = payload.given_name || payload.name || "Traveler";
-            state.player.avatar = payload.picture ? "img:" + payload.picture : "🙂";
-            Store.save();
-            onSignedIn(state.player);
+            
+            const googleId = "google-" + payload.sub;
+            const playerName = payload.given_name || payload.name || "Traveler";
+            const playerAvatar = payload.picture ? "img:" + payload.picture : "🙂";
+
+            // 1. Fetch entire cloud save & plots from Firestore first
+            Store.syncFromCloud(googleId).then(() => {
+              const s = Store.get();
+              s.player.id = googleId;
+              s.player.name = playerName;
+              s.player.avatar = playerAvatar;
+              Store.save();
+              // 2. Launch game with fully restored data
+              onSignedIn(s.player);
+            });
           },
         });
 

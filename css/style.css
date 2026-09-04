@@ -811,3 +811,375 @@ html,body{
 .extractor-status-box .gold-text { color: var(--gold-hi); }
 .diamond-ready-val { color: var(--teal); font-size: 16px; font-weight: 800; }
 .req-line { font-size: 13px; margin-top: 4px; }
+
+/* ================= 3D DIAMOND & PARTICLE FX ================= */
+.diamond-3d-wrapper {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: auto;
+}
+.diamond-3d-wrapper.far {
+  opacity: 0.55;
+  filter: grayscale(40%);
+}
+
+.gem-anchor {
+  position: relative;
+  width: 36px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cast Ground Shadow (breathes with individual diamond rate) */
+.gem-shadow {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.6) 0%, transparent 75%);
+  border-radius: 50%;
+  animation: shadowPulse var(--hover-dur, 3.2s) ease-in-out infinite;
+  animation-delay: var(--hover-delay, 0s);
+}
+
+/* 3D Gem Floating / Hovering Animation (Slower, softer, individual) */
+.gem-3d {
+  position: relative;
+  width: 30px;
+  height: 36px;
+  animation: gemHover var(--hover-dur, 3.2s) ease-in-out infinite;
+  animation-delay: var(--hover-delay, 0s);
+  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.75));
+}
+.gem-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Specular Star Sparkles */
+.gem-sparkle-1, .gem-sparkle-2 {
+  position: absolute;
+  color: #ffffff;
+  font-size: 10px;
+  opacity: 0;
+  text-shadow: 0 0 6px #fff;
+  pointer-events: none;
+}
+.gem-sparkle-1 { top: 2px; right: 4px; animation: sparkleTwinkle 2.8s infinite 0.4s; }
+.gem-sparkle-2 { bottom: 8px; left: 2px; animation: sparkleTwinkle 2.8s infinite 1.6s; font-size: 8px; }
+
+/* Rising Ambient Stardust Particles */
+.dust-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #a8f5ec;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #4fd6c4;
+  opacity: 0;
+  pointer-events: none;
+}
+.dust-particle.p1 { left: 6px; bottom: 4px; animation: riseDust 2.2s infinite ease-out; }
+.dust-particle.p2 { right: 8px; bottom: 6px; animation: riseDust 2.6s infinite 0.8s ease-out; }
+.dust-particle.p3 { left: 16px; bottom: 2px; animation: riseDust 2.4s infinite 1.4s ease-out; }
+
+@keyframes gemHover {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-3.5px) rotate(1deg); } /* Subtle 3.5px hover */
+}
+
+@keyframes shadowPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+  50% { transform: translateX(-50%) scale(0.8); opacity: 0.35; }
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+}
+
+@keyframes riseDust {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-22px) scale(1.4); }
+}
+
+/* ================= TAP EXPLOSION VFX ================= */
+.gem-explosion-container {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+}
+
+.burst-spark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #4fd6c4 60%, #1d7a6e 100%);
+  box-shadow: 0 0 10px #4fd6c4, 0 0 16px #a8f5ec;
+  animation: sparkBurst 0.6s cubic-bezier(0.12, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes sparkBurst {
+  0% {
+    transform: translate(0, 0) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* ---------- Mini 3D Crystal for HUD ---------- */
+.hud-gem-icon {
+  display: inline-block;
+  width: 13px;
+  height: 16px;
+  vertical-align: -2px;
+  margin-left: 2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 38'%3E%3Cpolygon points='16,2 29,12 16,16 3,12' fill='%23a8f5ec'/%3E%3Cpolygon points='3,12 16,16 16,36' fill='%231d7a6e'/%3E%3Cpolygon points='29,12 16,16 16,36' fill='%234fd6c4'/%3E%3Cpolygon points='16,2 20,8 16,16 12,8' fill='rgba(255,255,255,0.85)'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(79, 214, 196, 0.8));
+}
+
+/* ================= PHASE 2: 3D PLOTS & ORBITAL EXTRACTOR ================= */
+
+/* 3D Raised Elevation Borders & Rarity Glows */
+.owned-plot-3d {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: fill-opacity 0.3s ease;
+}
+
+.owned-plot-3d.rarity-common {
+  filter: drop-shadow(0 0 3px rgba(143, 163, 184, 0.5));
+}
+.owned-plot-3d.rarity-rare {
+  filter: drop-shadow(0 0 6px rgba(79, 157, 214, 0.75));
+}
+.owned-plot-3d.rarity-epic {
+  filter: drop-shadow(0 0 8px rgba(168, 110, 224, 0.85));
+  animation: epicPulse 3s infinite alternate ease-in-out;
+}
+.owned-plot-3d.rarity-legendary {
+  filter: drop-shadow(0 0 10px rgba(224, 168, 79, 0.95)) drop-shadow(0 0 3px #ffffff);
+  animation: legendaryGleam 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes epicPulse {
+  0% { stroke-opacity: 0.8; fill-opacity: 0.52; }
+  100% { stroke-opacity: 1; fill-opacity: 0.65; }
+}
+
+@keyframes legendaryGleam {
+  0% { stroke-opacity: 0.85; filter: drop-shadow(0 0 6px rgba(224, 168, 79, 0.8)); }
+  100% { stroke-opacity: 1; filter: drop-shadow(0 0 14px rgba(224, 168, 79, 1)) drop-shadow(0 0 5px #fff); }
+}
+
+/* ---------- 3D Extractor Beacon with Orbital Energy Rings ---------- */
+.extractor-3d-wrap {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: auto;
+}
+
+.beacon-root {
+  position: relative;
+  width: 44px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+}
+
+/* Pulsing Ground Rune */
+.beacon-ground-aura {
+  position: absolute;
+  bottom: 6px;
+  width: 24px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(79, 214, 196, 0.8) 0%, transparent 75%);
+  box-shadow: 0 0 12px rgba(79, 214, 196, 0.9);
+  animation: groundRunePulse 2s infinite alternate ease-in-out;
+}
+
+/* 3D Floating Central Extractor Gem */
+.beacon-core-gem {
+  position: relative;
+  width: 22px;
+  height: 28px;
+  z-index: 2;
+  animation: beaconGemFloat 2.2s infinite alternate ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(79, 214, 196, 0.9));
+}
+.beacon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Orbital Energy Rings */
+.orbit-ring {
+  position: absolute;
+  top: 14px;
+  left: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(79, 214, 196, 0.85);
+  box-shadow: 0 0 8px rgba(79, 214, 196, 0.6);
+  pointer-events: none;
+}
+
+.orbit-ring.ring-1 {
+  transform: rotateX(65deg) rotateZ(0deg);
+  animation: orbitSpin1 3.5s linear infinite;
+  border-color: #4fd6c4;
+}
+
+.orbit-ring.ring-2 {
+  transform: rotateX(65deg) rotateY(40deg) rotateZ(0deg);
+  animation: orbitSpin2 4.5s linear infinite reverse;
+  border-color: #f0d38a;
+  box-shadow: 0 0 8px rgba(240, 211, 138, 0.7);
+  width: 28px;
+  height: 28px;
+  left: 8px;
+  top: 16px;
+}
+
+@keyframes orbitSpin1 {
+  0% { transform: rotateX(65deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateZ(360deg); }
+}
+
+@keyframes orbitSpin2 {
+  0% { transform: rotateX(65deg) rotateY(40deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateY(40deg) rotateZ(360deg); }
+}
+
+@keyframes beaconGemFloat {
+  0% { transform: translateY(0px) scale(0.95); }
+  100% { transform: translateY(-6px) scale(1.05); }
+}
+
+@keyframes groundRunePulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+/* ================= LOADING SCREEN & PROGRESS BAR ================= */
+.loader-card {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loader-gem-wrap {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.loader-gem {
+  font-size: 34px;
+  color: var(--teal);
+  text-shadow: 0 0 20px rgba(79, 214, 196, 0.9);
+  animation: boostPulse 2s infinite ease-in-out;
+}
+
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--gold);
+  border-right-color: var(--teal);
+  animation: loaderRingSpin 1.8s linear infinite;
+}
+
+@keyframes loaderRingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--gold-hi);
+  margin: 0 0 2px;
+}
+
+.loader-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin: 0 0 24px;
+}
+
+/* Progress Bar Container */
+.loader-bar-outer {
+  width: 100%;
+  height: 10px;
+  background: rgba(13, 20, 32, 0.9);
+  border: 1px solid rgba(212, 175, 97, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.8), inset 0 0 6px rgba(0, 0, 0, 0.9);
+  margin-bottom: 8px;
+}
+
+.loader-bar-inner {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4fd6c4 0%, #d4af61 50%, #f0d38a 100%);
+  box-shadow: 0 0 14px rgba(240, 211, 138, 0.9);
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+/* Console-like Status Text */
+.loader-meta-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.loader-status {
+  color: #a8f5ec;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+  text-align: left;
+}
+
+.loader-percent {
+  color: var(--gold-hi);
+  font-weight: 700;
+}

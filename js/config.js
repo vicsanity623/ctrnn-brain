@@ -8,6 +8,17 @@ const CONFIG = {
   // Leave blank to only offer Guest (local storage) sign-in.
   GOOGLE_CLIENT_ID: "711924778312-k9fkaqr5fa95rl03m5i9mhr5agv4upeq.apps.googleusercontent.com",
 
+  // --- Firebase Cloud Save Config ---
+  FIREBASE_CONFIG: {
+    apiKey: "AIzaSyAf8u0qUQJaajJp4352-SrY7lIh8rNFPWY",
+    authDomain: "elden-earth.firebaseapp.com",
+    projectId: "elden-earth",
+    storageBucket: "elden-earth.firebasestorage.app",
+    messagingSenderId: "231253239262",
+    appId: "1:231253239262:web:3fa1ca28575fcade15e94f",
+    measurementId: "G-X24EB16156"
+  },
+  
   // --- Tile grid ---
   TILE_SIZE_METERS: 6.096,        // ~20 x 20 feet
   GRID_RENDER_MIN_ZOOM: 16,       // grid only draws once zoomed in this close
@@ -15,8 +26,8 @@ const CONFIG = {
 
   // --- Diamonds ---
   DIAMOND_SPAWN_RADIUS_METERS: 200,   // ~220 yards (Spreads them across neighborhood)
-  DIAMOND_COLLECT_RADIUS_METERS: 130,  // ~55 yards (Reachable reach)
-  DIAMOND_MAX_ACTIVE: 25,
+  DIAMOND_COLLECT_RADIUS_METERS: 70,  // ~55 yards (Reachable reach)
+  DIAMOND_MAX_ACTIVE: 3,
   DIAMOND_SPAWN_CHECK_MS: 15000,      // Checks for 1 new diamond every 30 seconds
   DIAMOND_LIFETIME_MS: 540 * 1000,     // 540 seconds or 5 min
 
