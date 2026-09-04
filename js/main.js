@@ -456,6 +456,7 @@
 
     Wheel.init();
     if (typeof Feed !== "undefined") Feed.init();
+    if (typeof Leaderboard !== "undefined") Leaderboard.init();
     startIncomeLoop();
     wireUI();
   }
