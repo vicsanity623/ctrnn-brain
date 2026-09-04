@@ -28,6 +28,7 @@ const Store = (() => {
       diamonds: 0,
       plots: {},
       liveDiamonds: {},
+      collectedDiamondIds: [],
       lastDiamondSpawn: 0,
       boostExpiry: 0,
       boostMultiplier: 30,
@@ -59,13 +60,15 @@ const Store = (() => {
     }
   }
 
-  // Cloud Save to Firestore
+  // Cloud Save to Firestore (Full Document Overwrite so deleted diamonds actually delete)
   function syncToCloud() {
     const firestore = getDb();
     if (!firestore || !state || !state.player || !state.player.id) return;
 
     try {
-      firestore.collection("saves").doc(state.player.id).set(state, { merge: true })
+      // Must NOT use { merge: true } for the whole state object,
+      // because Firestore merge will NOT remove deleted keys from liveDiamonds!
+      firestore.collection("saves").doc(state.player.id).set(state)
         .catch(err => console.warn("[Cloud] Sync failed:", err));
     } catch (err) {
       console.warn("[Cloud] Error during sync:", err);
@@ -82,7 +85,13 @@ const Store = (() => {
       const doc = await firestore.collection("saves").doc(playerId).get();
       if (doc.exists) {
         const cloudData = doc.data();
+        // Preserve local liveDiamonds if local is newer to prevent resurrecting collected gems
+        const localDiamonds = (state && state.liveDiamonds) ? state.liveDiamonds : {};
         state = Object.assign(defaultState(), cloudData);
+        // Only keep diamonds that exist in BOTH or let local deletion take precedence
+        if (Object.keys(localDiamonds).length < Object.keys(state.liveDiamonds || {}).length) {
+          state.liveDiamonds = localDiamonds;
+        }
       }
 
       // 2. Query and restore all plots owned by this player from world map
