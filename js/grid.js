@@ -347,5 +347,9 @@ const Grid = (() => {
     render();
   }
 
-  return { init, render, promptBuyTile, getAllPlots };
+  function setGlobalPlot(tid, data) {
+    globalPlots[tid] = data;
+  }
+
+  return { init, render, promptBuyTile, getAllPlots, setGlobalPlot };
 })();
