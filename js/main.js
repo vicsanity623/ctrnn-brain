@@ -482,6 +482,159 @@
   // ---------------- UI wiring ----------------
   function wireUI() {
     window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
+
+    // --- Flying +EB Particle to Topbar HUD ---
+    function spawnFlyingEBToHUD(startX, startY, amount) {
+      const targetEl = el("stat-eb");
+      if (!targetEl) return;
+
+      const targetBounds = targetEl.getBoundingClientRect();
+      const endX = targetBounds.left + targetBounds.width / 2;
+      const endY = targetBounds.top + targetBounds.height / 2;
+
+      const ebParticle = document.createElement("div");
+      ebParticle.className = "flying-eb-particle";
+      ebParticle.style.left = `${startX}px`;
+      ebParticle.style.top = `${startY}px`;
+      ebParticle.innerHTML = `+${amount} EB`;
+      document.body.appendChild(ebParticle);
+
+      requestAnimationFrame(() => {
+        ebParticle.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.6)`;
+        ebParticle.style.opacity = "0.2";
+      });
+
+      setTimeout(() => {
+        ebParticle.remove();
+        targetEl.classList.remove("hud-impact-bump");
+        void targetEl.offsetWidth;
+        targetEl.classList.add("hud-impact-bump");
+      }, 700);
+    }
+
+    // --- 30-Day Daily Login Calendar System ---
+    function getCalendarState() {
+      const state = Store.get();
+      if (!state.calendar) {
+        state.calendar = {
+          currentDay: 1,
+          lastClaimDate: null, // "YYYY-MM-DD"
+          totalClaimed: 0
+        };
+      }
+      return state.calendar;
+    }
+
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateCalendarHUD() {
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+      const isClaimedToday = cal.lastClaimDate === todayKey;
+
+      // Update HUD Calendar Card numbers
+      const now = new Date();
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      if (el("cal-hud-month")) el("cal-hud-month").textContent = months[now.getMonth()];
+      if (el("cal-hud-day")) el("cal-hud-day").textContent = now.getDate();
+
+      // Show / hide glowing red dot
+      const unreadDot = el("calendar-unread-dot");
+      if (unreadDot) {
+        if (!isClaimedToday) {
+          unreadDot.classList.remove("hidden");
+        } else {
+          unreadDot.classList.add("hidden");
+        }
+      }
+    }
+
+    function renderCalendarModal() {
+      const list = el("calendar-days-list");
+      if (!list) return;
+      list.innerHTML = "";
+
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+      const isClaimedToday = cal.lastClaimDate === todayKey;
+      const rewards = CONFIG.DAILY_CALENDAR_REWARDS || [];
+
+      rewards.forEach((r) => {
+        const dayNum = r.day;
+        const isPast = dayNum < cal.currentDay || (dayNum === cal.currentDay && isClaimedToday);
+        const isTodayActive = dayNum === cal.currentDay && !isClaimedToday;
+        const isFuture = dayNum > cal.currentDay;
+
+        const row = document.createElement("div");
+        row.className = "cal-day-row" + (isTodayActive ? " active" : "") + (isPast ? " claimed" : "") + (isFuture ? " locked" : "");
+
+        let actionHtml = "";
+        if (isPast) {
+          actionHtml = `<span class="cal-status-claimed">✓ Claimed</span>`;
+        } else if (isTodayActive) {
+          actionHtml = `<button class="cal-claim-btn" id="claim-day-${dayNum}">Claim +${r.eb} EB</button>`;
+        } else {
+          actionHtml = `<span class="cal-status-locked">🔒 Day ${dayNum}</span>`;
+        }
+
+        row.innerHTML = `
+          <div class="cal-day-left">
+            <span class="cal-day-badge">Day ${dayNum}</span>
+            <span class="cal-reward-amount">+${r.eb} EB</span>
+          </div>
+          <div class="cal-day-right">
+            ${actionHtml}
+          </div>
+        `;
+
+        list.appendChild(row);
+
+        if (isTodayActive) {
+          const claimBtn = row.querySelector(".cal-claim-btn");
+          claimBtn?.addEventListener("click", (e) => {
+            const rect = claimBtn.getBoundingClientRect();
+            claimDailyReward(r.eb, rect.left + rect.width / 2, rect.top + rect.height / 2);
+          });
+        }
+      });
+    }
+
+    function claimDailyReward(amount, clickX, clickY) {
+      const state = Store.get();
+      const cal = getCalendarState();
+      const todayKey = getTodayKey();
+
+      if (cal.lastClaimDate === todayKey) return;
+
+      cal.lastClaimDate = todayKey;
+      cal.totalClaimed = (cal.totalClaimed || 0) + 1;
+      cal.currentDay = Math.min(30, cal.currentDay + 1);
+
+      state.eb = (Number(state.eb) || 0) + amount;
+      Store.save();
+      updateTopbar();
+      updateCalendarHUD();
+
+      // Trigger flying +EB particle to HUD
+      spawnFlyingEBToHUD(clickX, clickY, amount);
+      showToast(`🎉 Claimed +${amount} Elden Bucks Daily Reward!`);
+
+      // Auto-close calendar after claiming
+      setTimeout(() => {
+        closeModal("calendar-modal");
+      }, 650);
+    }
+
+    el("calendar-btn")?.addEventListener("click", () => {
+      renderCalendarModal();
+      openModal("calendar-modal");
+    });
+
+    updateCalendarHUD();
+
     // --- 3D Character Wardrobe Selector ---
     function renderWardrobe() {
       const grid = el("wardrobe-grid");
