@@ -850,6 +850,25 @@
         el("collect-extractor-btn").innerHTML = `Collect All (${state.extractor.stored} <span class="hud-gem-icon"></span>)`;
         el("collect-extractor-btn").disabled = state.extractor.stored === 0;
       }
+
+      // Live Update Extractor Side HUD Button & Red Notification Dot
+      const extractorHudBtn = el("extractor-hud-btn");
+      const extractorRedDot = el("extractor-unread-dot");
+
+      if (extractorHudBtn) {
+        if (state.extractor.built) {
+          extractorHudBtn.classList.remove("hidden");
+          if (extractorRedDot) {
+            if (state.extractor.stored > 0) {
+              extractorRedDot.classList.remove("hidden");
+            } else {
+              extractorRedDot.classList.add("hidden");
+            }
+          }
+        } else {
+          extractorHudBtn.classList.add("hidden");
+        }
+      }
     }
 
     function openExtractorModal() {
@@ -868,6 +887,9 @@
     }
 
     window.addEventListener("openExtractorModal", openExtractorModal);
+
+    // Tap Quick Extractor Button to Open Modal
+    el("extractor-hud-btn")?.addEventListener("click", openExtractorModal);
 
     // Upgrade Extractor Button (Spends Cash Balance)
     el("upgrade-extractor-btn")?.addEventListener("click", () => {
