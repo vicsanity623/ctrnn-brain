@@ -955,6 +955,82 @@ html,body{
   text-overflow: ellipsis;
 }
 
+/* ================= PLAYER INFO MAYORSHIP & DIVIDENDS ================= */
+.info-mayor-card {
+  background: var(--panel-2);
+  border: 1px solid rgba(212, 175, 97, 0.45);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.mayor-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mayor-crown-pill {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--parchment);
+  background: rgba(13, 20, 32, 0.85);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mayor-crown-pill.active-mayor {
+  border-color: var(--gold-hi);
+  background: linear-gradient(135deg, rgba(34, 48, 68, 0.95), rgba(20, 28, 42, 0.98));
+  color: var(--gold-hi);
+  box-shadow: 0 0 10px rgba(212, 175, 97, 0.35);
+}
+
+.mayor-crown-pill strong {
+  color: #fff9e6;
+}
+
+.dividend-rate-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  background: rgba(79, 214, 196, 0.15);
+  border: 1px solid var(--teal);
+  color: var(--teal);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.mayor-dividend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+}
+
+.dividend-val {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--gold-hi);
+  text-shadow: 0 0 6px rgba(240, 211, 138, 0.3);
+}
+
 /* Parcels Grid */
 .parcels-grid-wrap {
   display: flex;
