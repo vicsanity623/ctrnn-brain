@@ -347,6 +347,9 @@
       showToast(`⚡ Extractor Upgraded to Level ${lvl + 1}!`);
       checkExtractorTick();
     });
+
+    // Build Extractor Button
+    el("build-extractor-btn")?.addEventListener("click", () => {
       const state = Store.get();
       const cost = CONFIG.EXTRACTOR_BUILD_COST_EB || 50;
       if (state.eb < cost) {
