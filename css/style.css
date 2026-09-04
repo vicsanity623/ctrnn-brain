@@ -1993,3 +1993,189 @@ html,body{
   border-color: #4fd6c4;
   box-shadow: 0 0 18px rgba(240, 211, 138, 1), 0 0 10px rgba(79, 214, 196, 0.8);
 }
+
+/* ================= LEADERBOARD HUD & MODAL ================= */
+
+/* Floating Trophy Button (Directly above Calendar) */
+.leaderboard-btn {
+  position: absolute;
+  left: 18px;
+  bottom: 228px; /* Sits cleanly above the Calendar button */
+  z-index: 15;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.leaderboard-btn:active {
+  transform: scale(0.92);
+}
+
+.trophy-icon-wrap {
+  font-size: 38px;
+  filter: drop-shadow(0 0 10px rgba(212, 175, 97, 0.7));
+  animation: boostPulse 2.5s infinite ease-in-out;
+}
+
+.leaderboard-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--parchment);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* Leaderboard Modal Card */
+.leaderboard-modal-card {
+  max-width: 420px;
+}
+
+.lb-header-trophy {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Tabs */
+.lb-tabs-row {
+  display: flex;
+  gap: 6px;
+  background: rgba(13, 20, 32, 0.7);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.lb-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lb-tab-btn.active {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  color: var(--gold-hi);
+  border: 1px solid rgba(212, 175, 97, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollable Leaderboard List */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.lb-row.self-row {
+  border: 1.5px solid var(--gold-hi);
+  background: linear-gradient(135deg, rgba(34, 48, 68, 0.95), rgba(20, 28, 42, 0.98));
+  box-shadow: 0 0 14px rgba(212, 175, 97, 0.3);
+}
+
+.lb-rank {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  min-width: 26px;
+  text-align: center;
+  color: var(--gold-hi);
+}
+
+.lb-avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.mayor-crown-wrap {
+  overflow: visible;
+}
+
+.crown-icon {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  font-size: 13px;
+  filter: drop-shadow(0 0 4px #ffd700);
+}
+
+.lb-info {
+  flex: 1;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lb-name {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--parchment);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-name em {
+  color: var(--gold-hi);
+  font-style: normal;
+  font-size: 10px;
+}
+
+.lb-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.lb-metric {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--teal);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.lb-metric.gold { color: var(--gold-hi); }
+.lb-metric.teal { color: var(--teal); }
+.lb-unit { font-size: 9px; font-weight: 600; opacity: 0.8; }
