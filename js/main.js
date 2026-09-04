@@ -211,45 +211,47 @@
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
     mapboxgl.accessToken = mbToken;
 
-    // 1. Initialize Mapbox 3D Camera (Locked to Player + Zoom Limits)
+    // 1. Initialize Mapbox 3D Camera (Smooth Gestures + Locked to Player)
     map = new mapboxgl.Map({
       container: "map",
       style: "mapbox://styles/mapbox/dark-v11",
       center: [currentPos.lon, currentPos.lat],
       zoom: 18.5,
-      minZoom: 15.2,   // Maximum zoom out (approx. 1 mile radius)
-      maxZoom: 19.6,   // Comfortably balanced max zoom in
+      minZoom: 15.2,   // 1 mile max zoom-out
+      maxZoom: 19.6,   // Street-level max zoom-in
       pitch: 60,
       bearing: 0,
       antialias: true,
-      dragPan: false,  // Prevents scrolling away from player
+      dragPan: false,  // Map stays locked to player (cannot scroll away)
+      dragRotate: true,
+      touchZoomRotate: true,
     });
 
-    // Orbit Camera: 1-finger swipe rotates camera around your character
-    let isTouchOrbiting = false;
-    let touchStartX = 0;
+    // Smooth 1-finger camera orbit around player
+    let isOrbiting = false;
+    let lastTouchX = 0;
     const canvas = map.getCanvas();
 
     canvas.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
-        isTouchOrbiting = true;
-        touchStartX = e.touches[0].clientX;
+        isOrbiting = true;
+        lastTouchX = e.touches[0].clientX;
       }
     }, { passive: true });
 
     canvas.addEventListener("touchmove", (e) => {
-      if (isTouchOrbiting && e.touches.length === 1 && currentPos) {
-        const deltaX = e.touches[0].clientX - touchStartX;
-        touchStartX = e.touches[0].clientX;
-        map.setBearing(map.getBearing() + deltaX * 0.45);
-        map.setCenter([currentPos.lon, currentPos.lat]); // Keeps player dead-center
+      // Only orbit if 1 finger is down (leaves 2-finger pinch-zoom totally smooth)
+      if (isOrbiting && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - lastTouchX;
+        lastTouchX = e.touches[0].clientX;
+        map.setBearing(map.getBearing() + deltaX * 0.4);
       }
     }, { passive: true });
 
-    canvas.addEventListener("touchend", () => { isTouchOrbiting = false; });
+    canvas.addEventListener("touchend", () => { isOrbiting = false; });
 
-    // Always keep player locked at dead-center whenever zooming
-    map.on("zoom", () => {
+    // Re-lock center strictly when gestures finish (never interrupts animations mid-flight)
+    map.on("zoomend", () => {
       if (currentPos) map.setCenter([currentPos.lon, currentPos.lat]);
     });
 
@@ -567,13 +569,14 @@
       buyBanner?.classList.remove("hidden");
       Grid.setBuyMode(true, currentPos);
 
-      // Smoothly fly camera to Top-Down 2D view (pitch: 0) directly above player
+      // Smooth cinematic swoosh to top-down 2D
       map.flyTo({
         center: [currentPos.lon, currentPos.lat],
-        pitch: 0,      // Perfect Flat 2D Top-Down View
-        bearing: 0,
-        zoom: 19.5,
-        duration: 1200,
+        pitch: 0,       // Flat 2D top-down view
+        bearing: 0,     // Aligns to North
+        zoom: 19.2,
+        duration: 1000,
+        essential: true,
       });
     }
 
@@ -582,12 +585,13 @@
       buyBanner?.classList.add("hidden");
       Grid.setBuyMode(false);
 
-      // Smoothly restore 3D Isometric View (pitch: 60)
+      // Smooth return to 60° 3D Isometric View
       map.flyTo({
         center: [currentPos.lon, currentPos.lat],
-        pitch: 60,     // Restore 60° Isometric 3D View
+        pitch: 60,      // 60° 3D Isometric View
         zoom: 18.5,
-        duration: 1200,
+        duration: 1000,
+        essential: true,
       });
     }
 
