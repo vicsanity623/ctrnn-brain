@@ -119,6 +119,9 @@ const Feed = (() => {
     } else if (type === "jackpot") {
       const amount = details.amount || 25;
       message = `🎉 <strong>${playerName}</strong> hit the <strong>${amount} EB</strong> Jackpot on the Wheel!`;
+    } else if (type === "daily") {
+      const day = details.day || 1;
+      message = `📅 <strong>${playerName}</strong> has logged in for <strong>${day} day${day > 1 ? "s" : ""} in a row!</strong> Welcome back! 🔥`;
     }
 
     const localEv = {
