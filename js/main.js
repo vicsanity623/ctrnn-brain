@@ -3,10 +3,9 @@
 // Wires sign-in -> location permission -> map -> game loop.
 // ============================================================
 (() => {
-  let map, sonarMarker, watchId;
+  let map, watchId;
   let currentPos = null;
   let toastTimer = null;
-  let updateSonarRadiusPixels = null;
 
   const el = (id) => document.getElementById(id);
 
@@ -339,7 +338,6 @@
           "line-opacity": 0.85
         }
       }, labelLayerId);
-      map.on("pitch", updateSonarRadiusPixels);
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
