@@ -40,7 +40,7 @@ const Auth = (() => {
       return;
     }
 
-    //let attempts = 0;
+    let attempts = 0;
     const tryInit = () => {
       attempts++;
       if (!window.google || !google.accounts || !google.accounts.id) {
