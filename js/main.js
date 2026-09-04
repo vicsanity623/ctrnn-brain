@@ -194,76 +194,77 @@
   function handlePosition(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     if (!map) return;
-    playerMarker.setLatLng([currentPos.lat, currentPos.lon]);
-    collectionCircle.setLatLng([currentPos.lat, currentPos.lon]);
-    pulseWave1?.setLatLng([currentPos.lat, currentPos.lon]);
-    pulseWave2?.setLatLng([currentPos.lat, currentPos.lon]);
+    
+    // Move 3D Character & Sonar Pulse
+    Character3D.setPlayerPosition(currentPos.lon, currentPos.lat);
+    sonarMarker?.setLngLat([currentPos.lon, currentPos.lat]);
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
-
-  // ---------------- Map / game ----------------
+  
+  // ---------------- 3D Map / Game Launch ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     el("locate-screen")?.classList.add("hidden");
     el("loading-screen")?.classList.add("hidden");
     el("game-screen")?.classList.remove("hidden");
 
-    map = L.map("map", { zoomControl: false, attributionControl: true })
-      .setView([currentPos.lat, currentPos.lon], 19);
-
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
+    mapboxgl.accessToken = mbToken;
 
-    L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${mbToken}`, {
-      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
-      tileSize: 512,
-      zoomOffset: -1,
-      maxZoom: 22,
-      maxNativeZoom: 22,
-    }).addTo(map);
-
-    playerMarker = L.marker([currentPos.lat, currentPos.lon], {
-      icon: L.divIcon({ className: "", html: '<div class="player-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
-      zIndexOffset: 1000,
-    }).addTo(map);
-
-    // Outer Static Boundary Circle
-    collectionCircle = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 1.5, fillColor: "#4fd6c4", fillOpacity: 0.04, dashArray: "4 6",
-    }).addTo(map);
-
-    // Continuous Expanding Radar Wave 1
-    pulseWave1 = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
-      className: "radar-wave wave-1",
-    }).addTo(map);
-
-    // Continuous Expanding Radar Wave 2 (Staggered offset)
-    pulseWave2 = L.circle([currentPos.lat, currentPos.lon], {
-      radius: CONFIG.DIAMOND_COLLECT_RADIUS_METERS,
-      color: "#4fd6c4", weight: 2, fillColor: "#4fd6c4",
-      className: "radar-wave wave-2",
-    }).addTo(map);
-
-    Diamonds.init(map, {
-      onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
-      onDenied: () => showToast("Too far — walk closer to collect it."),
+    // 1. Initialize Mapbox 3D Camera (60° Isometric Pitch + 360° Free Rotation)
+    map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [currentPos.lon, currentPos.lat],
+      zoom: 18.5,
+      pitch: 60,      // 60° Isometric Tilt Angle
+      bearing: 0,     // Free 360° Rotation
+      antialias: true,
     });
-    Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
 
-    Grid.init(map, {
-      onBuyAttempt: (success, rarity) => {
-        if (success) {
-          showToast(`Claimed a ${rarity.label} plot!`);
-          updateTopbar();
-          updateLandModal();
-        } else {
-          showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
-        }
-      },
+    map.on("load", () => {
+      // 2. Add True 3D Extruded Buildings
+      const layers = map.getStyle().layers;
+      const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#182232",
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "min_height"],
+          "fill-extrusion-opacity": 0.85,
+        },
+      }, labelLayerId);
+
+      // 3. Mount 3D Animated Character
+      Character3D.init(map, currentPos.lon, currentPos.lat);
+
+      // 4. Initialize Core Game Subsystems
+      Grid.init(map, {
+        onBuyAttempt: (success, rarity) => {
+          if (success) {
+            showToast(`Claimed a ${rarity.label} plot!`);
+            updateTopbar();
+            updateLandModal();
+          } else {
+            showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
+          }
+        },
+      });
+      Grid.render();
+
+      Diamonds.init(map, {
+        onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
+        onDenied: () => showToast("Too far — walk closer to collect it."),
+      });
+      Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
     });
-    Grid.render();
 
     Wheel.init();
     startIncomeLoop();
