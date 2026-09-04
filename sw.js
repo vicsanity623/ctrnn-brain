@@ -1,11 +1,15 @@
 // Bump this version string whenever you deploy an update!
-const CACHE_NAME = 'elden-earth-v0.3.8';
+const CACHE_NAME = 'elden-earth-v0.4.0';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './css/style.css',
     './manifest.json',
+    './models/CesiumMan.glb',
+    './models/Fox.glb',
+    './models/Soldier.glb',
+    './models/Xbot.glb',
     './js/main.js',
     './js/loading.js',
     './js/wheel.js',
