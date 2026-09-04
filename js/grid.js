@@ -142,11 +142,13 @@ const Grid = (() => {
         const corners = Geo.tileBounds(plot.tx, plot.ty, CONFIG.TILE_SIZE_METERS);
         const color = rarityInfo(plot.rarity).color;
 
+        const rKey = plot.rarity?.key || plot.rarity || "common";
         L.polygon(corners, {
           color: color,
-          weight: zoom >= 18 ? 1 : 0.5,
+          weight: zoom >= 18 ? 2 : 1,
           fillColor: color,
-          fillOpacity: 0.55,
+          fillOpacity: 0.58,
+          className: `owned-plot-3d rarity-${rKey}`,
         }).addTo(ownedPlotsLayer);
       }
 
@@ -186,13 +188,27 @@ const Grid = (() => {
           window.dispatchEvent(evt);
         });
 
-        // If this cluster has 5+ plots and belongs to the player, show Extractor Beacon!
+        // If this cluster has 5+ plots and belongs to the player, show 3D Orbital Extractor Beacon!
         if (isSelf && cluster.length >= (CONFIG.EXTRACTOR_MIN_TILES || 5)) {
           const extractorIcon = L.divIcon({
-            className: "custom-extractor-icon",
-            html: `<div class="extractor-beacon">💎</div>`,
-            iconSize: [28, 28],
-            iconAnchor: [-8, 20], // Offsets beacon slightly to top-right of avatar
+            className: "extractor-3d-wrap",
+            html: `
+              <div class="beacon-root">
+                <div class="beacon-ground-aura"></div>
+                <div class="orbit-ring ring-1"></div>
+                <div class="orbit-ring ring-2"></div>
+                <div class="beacon-core-gem">
+                  <svg viewBox="0 0 32 38" class="beacon-svg">
+                    <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+                    <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+                    <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+                    <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+                  </svg>
+                </div>
+              </div>
+            `,
+            iconSize: [44, 52],
+            iconAnchor: [-10, 26],
           });
 
           const extractorMarker = L.marker([centerLat, centerLon], { icon: extractorIcon, interactive: true }).addTo(avatarMarkersLayer);
