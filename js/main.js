@@ -272,7 +272,7 @@
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
     mapboxgl.accessToken = mbToken;
 
-    // 1. Initialize Mapbox 3D Camera (Smooth Gestures + Locked to Player)
+    // 1. Initialize Mapbox 3D Camera (Power-Optimized & Locked to Player)
     map = new mapboxgl.Map({
       container: "map",
       style: "mapbox://styles/mapbox/dark-v11",
@@ -283,9 +283,11 @@
       pitch: 60,
       bearing: 0,
       antialias: true,
+      fadeDuration: 0, // Eliminates label fade CPU thrashing
       dragPan: false,  // Map stays locked to player (cannot scroll away)
       dragRotate: true,
       touchZoomRotate: true,
+      maxTileCacheSize: 30, // Prevents RAM inflation on mobile
     });
 
     // Smooth 1-finger camera orbit around player
@@ -419,32 +421,39 @@
         }
       }, labelLayerId);
 
-      // Smooth Geodesic Pulse Animation (Reaches exact 100m edge, zero shader glitch)
-      const pulseDuration = 3200; // Smooth 3.2s expansion
+      // Power-Optimized Geodesic Pulse Animation (Throttled & Background-Aware)
+      const pulseDuration = 3400;
       let pulseStart = performance.now();
+      let lastPulseUpdate = 0;
 
       function animatePulse(timestamp) {
-        if (!map || !map.getSource("player-wave-source") || !currentPos) {
-          pulseAnimId = requestAnimationFrame(animatePulse);
-          return;
+        if (document.hidden) {
+          pulseAnimId = null;
+          return; // Sleep completely while phone is locked or app is in background
         }
+
+        pulseAnimId = requestAnimationFrame(animatePulse);
+
+        // Throttle coordinate re-generation to 20fps (~50ms) to reduce CPU/GPU heat by 66%
+        if (timestamp - lastPulseUpdate < 50) return;
+        lastPulseUpdate = timestamp;
+
+        if (!map || !map.getSource("player-wave-source") || !currentPos) return;
 
         const elapsed = (timestamp - pulseStart) % pulseDuration;
         const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
 
-        // Ease-out cubic curve: ripples fast from character, slows down smoothly at boundary
-        const easeOut = 1 - Math.pow(1 - linearProgress, 2.5);
-
-        // Radius scales from 2m up to the EXACT 100m boundary
+        // Ease-out curve: ripples outward, slows gracefully at border
+        const easeOut = 1 - Math.pow(1 - linearProgress, 2.4);
         const currentRadius = Math.max(2, easeOut * radiusM);
 
-        // Opacity smoothly fades to 0 before resetting, eliminating any snap/glitch
-        const fadeProgress = Math.pow(1 - linearProgress, 1.8);
-        const fillOpacity = fadeProgress * 0.14;
-        const lineOpacity = fadeProgress * 0.75;
+        // Soft fade before resetting
+        const fadeProgress = Math.pow(1 - linearProgress, 1.6);
+        const fillOpacity = fadeProgress * 0.12;
+        const lineOpacity = fadeProgress * 0.7;
 
-        // Generate the exact polygon at current expansion
-        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 48);
+        // 36 points is visually smooth on mobile while saving polygon compute
+        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 36);
 
         map.getSource("player-wave-source").setData({
           type: "FeatureCollection",
@@ -456,10 +465,17 @@
 
         map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
         map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
-
-        pulseAnimId = requestAnimationFrame(animatePulse);
       }
       pulseAnimId = requestAnimationFrame(animatePulse);
+
+      // Auto-resume pulse animation when returning to app
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && !pulseAnimId) {
+          pulseStart = performance.now();
+          lastPulseUpdate = 0;
+          pulseAnimId = requestAnimationFrame(animatePulse);
+        }
+      });
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
