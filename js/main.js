@@ -211,15 +211,46 @@
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
     mapboxgl.accessToken = mbToken;
 
-    // 1. Initialize Mapbox 3D Camera (60° Isometric Pitch + 360° Free Rotation)
+    // 1. Initialize Mapbox 3D Camera (Locked to Player + Zoom Limits)
     map = new mapboxgl.Map({
       container: "map",
       style: "mapbox://styles/mapbox/dark-v11",
       center: [currentPos.lon, currentPos.lat],
       zoom: 18.5,
-      pitch: 60,      // 60° Isometric Tilt Angle
-      bearing: 0,     // Free 360° Rotation
+      minZoom: 15.2,   // Maximum zoom out (approx. 1 mile radius)
+      maxZoom: 19.6,   // Comfortably balanced max zoom in
+      pitch: 60,
+      bearing: 0,
       antialias: true,
+      dragPan: false,  // Prevents scrolling away from player
+    });
+
+    // Orbit Camera: 1-finger swipe rotates camera around your character
+    let isTouchOrbiting = false;
+    let touchStartX = 0;
+    const canvas = map.getCanvas();
+
+    canvas.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        isTouchOrbiting = true;
+        touchStartX = e.touches[0].clientX;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener("touchmove", (e) => {
+      if (isTouchOrbiting && e.touches.length === 1 && currentPos) {
+        const deltaX = e.touches[0].clientX - touchStartX;
+        touchStartX = e.touches[0].clientX;
+        map.setBearing(map.getBearing() + deltaX * 0.45);
+        map.setCenter([currentPos.lon, currentPos.lat]); // Keeps player dead-center
+      }
+    }, { passive: true });
+
+    canvas.addEventListener("touchend", () => { isTouchOrbiting = false; });
+
+    // Always keep player locked at dead-center whenever zooming
+    map.on("zoom", () => {
+      if (currentPos) map.setCenter([currentPos.lon, currentPos.lat]);
     });
 
     map.on("load", () => {
