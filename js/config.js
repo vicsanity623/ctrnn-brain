@@ -68,4 +68,39 @@ const CONFIG = {
     { id: "fox",       name: "Spirit Fox",       file: "models/Fox.glb",       scale: 0.08, icon: "🦊" },
     { id: "cesium",    name: "Cesium Runner",    file: "models/CesiumMan.glb", scale: 5.0, icon: "🏃" },
   ],
+
+  // --- 30-Day Daily Login Calendar ---
+  // Base 3 EB daily, scaling on Day 2 & every 5th day up to Day 30 (200 EB Jackpot)
+  DAILY_CALENDAR_REWARDS: [
+    { day: 1,  eb: 3   },
+    { day: 2,  eb: 5   }, // Scaling boost
+    { day: 3,  eb: 3   },
+    { day: 4,  eb: 3   },
+    { day: 5,  eb: 10  }, // Milestone 5
+    { day: 6,  eb: 3   },
+    { day: 7,  eb: 3   },
+    { day: 8,  eb: 3   },
+    { day: 9,  eb: 3   },
+    { day: 10, eb: 20  }, // Milestone 10
+    { day: 11, eb: 3   },
+    { day: 12, eb: 3   },
+    { day: 13, eb: 3   },
+    { day: 14, eb: 3   },
+    { day: 15, eb: 35  }, // Milestone 15
+    { day: 16, eb: 3   },
+    { day: 17, eb: 3   },
+    { day: 18, eb: 3   },
+    { day: 19, eb: 3   },
+    { day: 20, eb: 50  }, // Milestone 20
+    { day: 21, eb: 3   },
+    { day: 22, eb: 3   },
+    { day: 23, eb: 3   },
+    { day: 24, eb: 3   },
+    { day: 25, eb: 75  }, // Milestone 25
+    { day: 26, eb: 3   },
+    { day: 27, eb: 3   },
+    { day: 28, eb: 3   },
+    { day: 29, eb: 3   },
+    { day: 30, eb: 200 }, // Milestone 30 (Grand Jackpot)
+  ],
 };
