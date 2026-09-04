@@ -204,8 +204,9 @@
   // ---------------- Map / game ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
-    el("locate-screen").classList.add("hidden");
-    el("game-screen").classList.remove("hidden");
+    el("locate-screen")?.classList.add("hidden");
+    el("loading-screen")?.classList.add("hidden");
+    el("game-screen")?.classList.remove("hidden");
 
     map = L.map("map", { zoomControl: false, attributionControl: true })
       .setView([currentPos.lat, currentPos.lon], 19);
@@ -573,6 +574,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     Store.load();
     Auth.init(onSignedIn);
-    el("locate-btn").addEventListener("click", startLocating);
+    el("locate-btn")?.addEventListener("click", startLocating);
   });
 })();
