@@ -820,7 +820,7 @@
     });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
-      const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
+      const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 600000; // 10 mins (600,000ms)
       const timeUpgrades = Math.floor((level - 1) / 2);
       const storageUpgrades = Math.floor(level / 2);
 
@@ -979,12 +979,12 @@
         // Auto-close Extractor modal after short celebration delay
         setTimeout(() => {
           closeModal("extractor-modal");
-        }, 650);
+        }, 250);
       });
     }
 
-    // Check extractor every 2 seconds
-    setInterval(checkExtractorTick, 2000);
+    // Check extractor every 10 seconds
+    setInterval(checkExtractorTick, 10000);
     // --- Multiplier Button Wiring ---
     const multBtn = el("multiplier-btn");
     const activateBoostBtn = el("activate-boost-btn");
