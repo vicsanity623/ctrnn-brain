@@ -133,6 +133,12 @@
     <span class="mult-sub">BOOST</span>
   </button>
 
+  <!-- Leaderboard HUD Button -->
+  <button id="leaderboard-btn" class="leaderboard-btn" aria-label="Leaderboards">
+    <div class="trophy-icon-wrap">🏆</div>
+    <span class="leaderboard-label">Leaderboard</span>
+  </button>
+
   <!-- Daily Login Calendar HUD Button with Red Notification Dot -->
   <button id="calendar-btn" class="calendar-btn" aria-label="Daily Calendar">
     <div id="calendar-unread-dot" class="calendar-red-dot hidden"></div>
@@ -370,6 +376,30 @@
   </div>
 </div>
 
+<!-- ===================== LEADERBOARD & MAYORS MODAL ===================== -->
+<div id="leaderboard-modal" class="modal hidden">
+  <div class="modal-card leaderboard-modal-card">
+    <button class="close-btn" data-close="leaderboard-modal">✕</button>
+    <div class="leaderboard-header">
+      <span class="lb-header-trophy">🏆</span>
+      <h2>Realm Rankings</h2>
+      <p class="modal-sub">Top Landlords, Earners & Reigning Mayors</p>
+    </div>
+
+    <!-- 3 Segmented Tabs -->
+    <div class="lb-tabs-row">
+      <button class="lb-tab-btn active" data-tab="plots">🏞️ Most Plots</button>
+      <button class="lb-tab-btn" data-tab="rent">💰 Top Rent</button>
+      <button class="lb-tab-btn" data-tab="mayors">👑 Mayors</button>
+    </div>
+
+    <!-- Scrollable Leaderboard List -->
+    <div id="leaderboard-list" class="leaderboard-list">
+      <div class="feed-empty-msg">Loading realm rankings...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== 30-DAY DAILY LOGIN CALENDAR MODAL ===================== -->
 <div id="calendar-modal" class="modal hidden">
   <div class="modal-card calendar-modal-card">
@@ -406,6 +436,7 @@
 <script src="js/character.js"></script>
 <script src="js/wheel.js"></script>
 <script src="js/feed.js"></script>
+<script src="js/leaderboard.js"></script>
 <script src="js/main.js"></script>
 
 <!-- Service Worker Registration with Instant Auto-Update -->
