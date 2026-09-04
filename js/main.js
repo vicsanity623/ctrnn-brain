@@ -117,6 +117,10 @@
       av.textContent = avatar || "🙂";
     }
 
+    // Only show the edit pencil on your own profile
+    const editBtn = el("edit-avatar-btn");
+    if (editBtn) editBtn.style.display = isOtherPlayer ? "none" : "flex";
+
     // Initial Rent Display
     let rentVal = isOtherPlayer ? 0 : (state.cash || 0);
     el("info-total-rent").textContent = "$" + Number(rentVal).toFixed(15);
@@ -358,6 +362,44 @@
   // ---------------- UI wiring ----------------
   function wireUI() {
     window.addEventListener("openPlayerInfo", (e) => {       const cluster = e.detail?.cluster;       updatePlayerInfoModal(cluster ? cluster[0] : null);       openModal("player-info-modal");     });
+    // --- 3D Character Wardrobe Selector ---
+    function renderWardrobe() {
+      const grid = el("wardrobe-grid");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      const state = Store.get();
+      const currentModelId = state?.player?.model3d || "soldier";
+      const characters = CONFIG.AVAILABLE_CHARACTERS || [];
+
+      characters.forEach((char) => {
+        const isSelected = char.id === currentModelId;
+        const card = document.createElement("div");
+        card.className = "wardrobe-card" + (isSelected ? " selected" : "");
+        card.innerHTML = `
+          <span class="char-icon">${char.icon || "👤"}</span>
+          <span class="char-name">${char.name}</span>
+          <span class="char-status">${isSelected ? "EQUIPPED" : "Equip"}</span>
+        `;
+
+        card.addEventListener("click", () => {
+          if (typeof Character3D !== "undefined" && Character3D.changeCharacter) {
+            Character3D.changeCharacter(char.id);
+            showToast(`Equipped ${char.name}!`);
+          }
+          closeModal("wardrobe-modal");
+          updatePlayerInfoModal();
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Open Wardrobe on Pencil Tap
+    el("edit-avatar-btn")?.addEventListener("click", () => {
+      renderWardrobe();
+      openModal("wardrobe-modal");
+    });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
       const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
