@@ -118,18 +118,19 @@ const Leaderboard = (() => {
     return cachedData;
   }
 
-  // Check and award 2% dividend if a mayor exists for the purchased plot's city
-  async function awardMayorshipDividend(cityName, buyerId, plotCostEB) {
+  // Check and award 2% dividend directly into the Mayor's Firestore account
+  async function awardMayorshipDividend(cityName, buyerId, plotCostEB = 100) {
     if (!cityName) return;
     const db = Store.getDb();
     const state = Store.get();
-    const { mayors } = await fetchRankings();
-    const mayor = mayors.find(m => m.city === cityName);
+    const data = await fetchRankings();
+    const mayor = data.mayors.find(m => m.city === cityName);
 
-    if (!mayor || mayor.ownerId === buyerId) return;
+    if (!mayor || mayor.ownerId === buyerId) return; // No dividend on self-purchases
 
-    const dividendEB = Math.max(1, Math.round(plotCostEB * 0.02)); // 2% dividend = 2 EB
+    const dividendEB = Math.max(1, Math.round(plotCostEB * 0.02)); // 2% of 100 EB = 2 EB
 
+    // 1. If buyer IS on the Mayor's device, update locally immediately
     if (mayor.ownerId === state.player.id) {
       state.eb = (Number(state.eb) || 0) + dividendEB;
       state.totalDividends = (Number(state.totalDividends) || 0) + dividendEB;
@@ -137,8 +138,20 @@ const Leaderboard = (() => {
       if (typeof showToast === "function") {
         showToast(`👑 Mayorship Dividend! +${dividendEB} EB collected from ${cityName}!`);
       }
+    } else if (db) {
+      // 2. If buyer is ANOTHER player, atomically deposit +2 EB into the Mayor's cloud save!
+      try {
+        await db.collection("saves").doc(mayor.ownerId).set({
+          eb: firebase.firestore.FieldValue.increment(dividendEB),
+          totalDividends: firebase.firestore.FieldValue.increment(dividendEB),
+        }, { merge: true });
+        console.log(`[Mayorship] Successfully deposited +${dividendEB} EB dividend to Mayor ${mayor.name} (${mayor.ownerId})`);
+      } catch (err) {
+        console.warn("[Mayorship] Cloud dividend deposit failed:", err);
+      }
     }
 
+    // 3. Broadcast worldwide to the Live Feed
     if (typeof Feed !== "undefined") {
       Feed.broadcast("dividend", {
         mayorName: mayor.name,
