@@ -353,16 +353,6 @@
     function setupGameLayers() {
       if (!map || !map.getStyle()) return;
 
-      // Smooth atmospheric horizon blend (eliminates dark void at 60 deg pitch)
-      if (map.setFog) {
-        map.setFog({
-          color: "#0d1420",
-          "horizon-blend": 0.08,
-          "high-color": "#080c14",
-          "space-color": "#060910"
-        });
-      }
-
       // 2. Add True 3D Extruded Buildings (if source exists)
       try {
         const layers = map.getStyle().layers || [];
