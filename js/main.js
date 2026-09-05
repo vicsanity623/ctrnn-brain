@@ -286,18 +286,12 @@
     el("loading-screen")?.classList.add("hidden");
     el("game-screen")?.classList.remove("hidden");
 
-    const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
-    mapboxgl.accessToken = mbToken;
+    const mapStyle = "https://tiles.openfreemap.org/styles/dark";
 
-    // Initial style: Mapbox Dark (or OpenFreeMap if configured directly)
-    const initialStyle = CONFIG.USE_OPENFREEMAP_DIRECTLY
-      ? (CONFIG.FALLBACK_STYLE_URL || "https://tiles.openfreemap.org/styles/dark")
-      : (CONFIG.MAPBOX_STYLE_URL || "mapbox://styles/mapbox/dark-v11");
-
-    // 1. Initialize Mapbox 3D Camera (Full Perspective Tile Cache)
+    // 1. Initialize 3D Camera with Unlimited Vector Basemap
     map = new mapboxgl.Map({
       container: "map",
-      style: initialStyle,
+      style: mapStyle,
       center: [currentPos.lon, currentPos.lat],
       zoom: 18.5,
       minZoom: 15.2,   // 1 mile max zoom-out
@@ -327,28 +321,6 @@
         setupGameLayers();
       });
     }
-
-    // Catch fatal errors AND silent tile HTTP 403/429 failures
-    map.on("error", (e) => {
-      const status = e?.error?.status;
-      const msg = (e?.error?.message || "").toLowerCase();
-      if (
-        status === 429 || status === 401 || status === 403 ||
-        msg.includes("429") || msg.includes("forbidden") || msg.includes("unauthorized") || msg.includes("quota")
-      ) {
-        triggerMapFallback();
-      }
-    });
-
-    // Tile-Level Watcher: Detects if base tiles fail silently and triggers instant recovery
-    map.on("dataloading", (e) => {
-      if (e.dataType === "source" && e.error) {
-        const status = e.error.status;
-        if (status === 401 || status === 403 || status === 429) {
-          triggerMapFallback();
-        }
-      }
-    });
 
     // Smooth 1-finger camera orbit around player
     let isOrbiting = false;
