@@ -97,17 +97,18 @@ const Grid = (() => {
 
     state.plots[tid] = plotData;
     globalPlots[tid] = plotData;
-    Store.save();
+    Store.save(true); // Force immediate cloud sync on land purchase
     onBuyAttempt(true, rarity);
     render();
 
-    // Award 2% Mayorship Dividend & Broadcast
+    // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
     if (typeof Feed !== "undefined") {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
       const cLat = (corners[0][0] + corners[2][0]) / 2;
       const cLon = (corners[0][1] + corners[2][1]) / 2;
       Feed.resolveCity(cLat, cLon).then((loc) => {
-        Feed.broadcast("land", { rarity: rarity.label, location: loc });
+        // Use exact tile ID to prevent duplicate callbacks
+        Feed.broadcast("land", { rarity: rarity.label, location: loc, tileId: tid });
         if (typeof Leaderboard !== "undefined") {
           Leaderboard.awardMayorshipDividend(loc, plotData.ownerId, CONFIG.PLOT_COST_EB);
         }
@@ -367,7 +368,7 @@ const Grid = (() => {
           playerExtractorRendered = true;
 
           const beaconEl = document.createElement("div");
-          beaconEl.className = "extractor-3d-wrap";
+          beaconEl.className = "extractor-3d-wrap standing-extractor-wrap";
           beaconEl.innerHTML = `
             <div class="beacon-root">
               <div class="beacon-ground-aura"></div>
@@ -388,7 +389,13 @@ const Grid = (() => {
             window.dispatchEvent(evt);
           });
 
-          const extMarker = new mapboxgl.Marker({ element: beaconEl, pitchAlignment: "map", rotationAlignment: "map" })
+          // Upright 2.5D billboard that faces the player's camera smoothly
+          const extMarker = new mapboxgl.Marker({
+            element: beaconEl,
+            anchor: "bottom",              // Grounded at the bottom
+            pitchAlignment: "viewport",    // Stands vertically upright in 3D
+            rotationAlignment: "viewport", // Always rotates to face the player
+          })
             .setLngLat([centroidLon + 0.00008, centroidLat + 0.00008])
             .addTo(map);
 

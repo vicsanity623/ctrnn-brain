@@ -30,14 +30,14 @@ const Character3D = (() => {
         scene = new THREE.Scene();
 
         // Balanced Lighting for Dark Map
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xf0d38a, 1.8);
+        const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.0);
         dirLight.position.set(20, 50, 20);
         scene.add(dirLight);
 
-        const dirLight2 = new THREE.DirectionalLight(0x4fd6c4, 1.0);
+        const dirLight2 = new THREE.DirectionalLight(0x4fd6c4, 1.2);
         dirLight2.position.set(-20, -50, 10);
         scene.add(dirLight2);
 
@@ -61,7 +61,7 @@ const Character3D = (() => {
           0
         );
 
-        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
+        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
 
         const m = new THREE.Matrix4().fromArray(matrix);
         const l = new THREE.Matrix4()
@@ -77,7 +77,6 @@ const Character3D = (() => {
 
         renderer.resetState();
         renderer.render(scene, camera);
-        mapInstance.triggerRepaint();
       },
     };
 
@@ -86,16 +85,30 @@ const Character3D = (() => {
     }
     mapInstance.addLayer(customLayer);
 
-    // Animation Ticker Loop
+    // Power-Efficient Animation Loop
     let clock = new THREE.Clock();
+    let animFrameId = null;
+
     function animate() {
-      requestAnimationFrame(animate);
+      if (document.hidden) {
+        animFrameId = null;
+        return;
+      }
+      animFrameId = requestAnimationFrame(animate);
       if (mixer) {
         const delta = clock.getDelta();
         mixer.update(delta);
+        if (mapInstance) mapInstance.triggerRepaint();
       }
     }
     animate();
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !animFrameId) {
+        clock.getDelta();
+        animate();
+      }
+    });
   }
 
   function loadModel(characterId) {
@@ -128,9 +141,9 @@ const Character3D = (() => {
           currentAction.play();
         }
 
-        // Slow down walk animation so it's smooth and grounded (not running)
+        // Slow down walk animation so it's smooth and grounded
         if (walkKey && animationsMap[walkKey]) {
-          animationsMap[walkKey].setEffectiveTimeScale(0.55); // 55% normal speed
+          animationsMap[walkKey].setEffectiveTimeScale(0.55);
         }
 
         currentModel.userData.idleKey = idleKey;
@@ -149,17 +162,14 @@ const Character3D = (() => {
     playerCoords = { lng, lat };
 
     if (lastCoords) {
-      // Calculate speed in meters/second
       const dist = Geo.haversine(lastCoords.lat, lastCoords.lng, lat, lng);
       const elapsed = (now - lastPosTime) / 1000;
       const speed = elapsed > 0 ? dist / elapsed : 0;
 
-      // Update heading angle towards movement direction
       if (dist > 0.5) {
         modelHeading = Math.atan2(lng - lastCoords.lng, lat - lastCoords.lat);
       }
 
-      // Switch between Idle and Walk
       const walkingNow = speed > 0.45;
       if (walkingNow !== isWalking && currentModel) {
         isWalking = walkingNow;

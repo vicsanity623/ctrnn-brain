@@ -80,7 +80,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v0.7.8</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v0.9.1</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -133,8 +133,22 @@
     <span class="mult-sub">BOOST</span>
   </button>
 
-  <!-- Unified Side HUD Stack (Leaderboard + Calendar) -->
+  <!-- Unified Side HUD Stack (Extractor + Leaderboard + Calendar) -->
   <div class="side-hud-stack">
+    <!-- Diamond Extractor Quick Button -->
+    <button id="extractor-hud-btn" class="side-hud-btn extractor-btn hidden" aria-label="Diamond Extractor">
+      <div id="extractor-unread-dot" class="calendar-red-dot hidden"></div>
+      <div class="side-hud-card extractor-hud-card">
+        <svg viewBox="0 0 32 38" class="extractor-hud-svg">
+          <polygon points="16,2 29,12 16,16 3,12" fill="#d4fbf6"/>
+          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+        </svg>
+      </div>
+      <span class="side-hud-subtext">Mine</span>
+    </button>
+
     <!-- Leaderboard Button -->
     <button id="leaderboard-btn" class="side-hud-btn leaderboard-btn" aria-label="Leaderboards">
       <div class="side-hud-card trophy-card">
@@ -188,12 +202,12 @@
   <div class="modal-card wheel-card">
     <button class="close-btn" data-close="wheel-modal">✕</button>
     <h2>Diamond Wheel</h2>
-    <p class="modal-sub">1 <span class="hud-gem-icon"></span> per spin</p>
+    <p class="modal-sub">2 <span class="hud-gem-icon"></span> per spin</p>
     <div class="wheel-wrap">
       <div class="wheel-pointer">▼</div>
       <canvas id="wheel-canvas" width="320" height="320"></canvas>
     </div>
-    <button id="spin-btn" class="btn btn-primary">Spin (1 <span class="hud-gem-icon"></span>)</button>
+    <button id="spin-btn" class="btn btn-primary">Spin (2 <span class="hud-gem-icon"></span>)</button>
     <p id="wheel-result" class="wheel-result"></p>
   </div>
 </div>
@@ -336,11 +350,11 @@
         </div>
         <div class="stat-row">
           <span>Rate:</span>
-          <strong>1 <span class="hud-gem-icon"></span> / 2 Mins</strong>
+          <strong>1 <span class="hud-gem-icon"></span> / 10 Mins</strong>
         </div>
         <div class="stat-row">
           <span>Next Diamond In:</span>
-          <strong id="extractor-next-timer" class="gold-text">00:02:00</strong>
+          <strong id="extractor-next-timer" class="gold-text">00:10:00</strong>
         </div>
         <div class="stat-row">
           <span>Ready to Collect:</span>

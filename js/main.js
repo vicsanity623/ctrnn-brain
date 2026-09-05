@@ -21,24 +21,29 @@
   function openModal(id) { el(id).classList.remove("hidden"); }
   function closeModal(id) { el(id).classList.add("hidden"); }
 
-  function formatCashDisplay(cashVal) {
-    const val = Number(cashVal) || 0;
-    const fixedStr = val.toFixed(15);
-    const parts = fixedStr.split(".");
-    const whole = parseInt(parts[0], 10);
-    const decimals = parts[1] || "000000000000000";
+  let cachedCashWhole = null;
+  let cachedCashDecimal = null;
 
-    // Hide zero to the left of the decimal if balance is under $1.00
-    const wholeHTML = whole > 0 ? `<span class="cash-whole">${whole}</span>` : "";
-    return `<span class="cash-dollar">$</span>${wholeHTML}<span class="cash-point">.</span><span class="cash-decimal">${decimals}</span>`;
-  }
-  
   function updateTopbar() {
     const state = Store.get();
     if (state.cash === undefined) state.cash = 0;
 
-    // Hero simulated USD cash balance with dual typography & suppressed leading zero
-    if (el("stat-cash")) el("stat-cash").innerHTML = formatCashDisplay(state.cash);
+    // High-performance DOM node caching for cash display (skips innerHTML parsing)
+    const cashContainer = el("stat-cash");
+    if (cashContainer) {
+      const val = Number(state.cash) || 0;
+      const fixedStr = val.toFixed(15);
+      const parts = fixedStr.split(".");
+      const whole = parseInt(parts[0], 10);
+      const decimals = parts[1] || "000000000000000";
+
+      const wholeHTML = whole > 0 ? `<span class="cash-whole">${whole}</span>` : "";
+      const currentFullHTML = `<span class="cash-dollar">$</span>${wholeHTML}<span class="cash-point">.</span><span class="cash-decimal">${decimals}</span>`;
+
+      if (cashContainer.innerHTML !== currentFullHTML) {
+        cashContainer.innerHTML = currentFullHTML;
+      }
+    }
 
     // Elden Bucks game currency in sub-row
     if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
@@ -272,7 +277,7 @@
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
     mapboxgl.accessToken = mbToken;
 
-    // 1. Initialize Mapbox 3D Camera (Smooth Gestures + Locked to Player)
+    // 1. Initialize Mapbox 3D Camera (Power-Optimized & Locked to Player)
     map = new mapboxgl.Map({
       container: "map",
       style: "mapbox://styles/mapbox/dark-v11",
@@ -283,9 +288,11 @@
       pitch: 60,
       bearing: 0,
       antialias: true,
+      fadeDuration: 0, // Eliminates label fade CPU thrashing
       dragPan: false,  // Map stays locked to player (cannot scroll away)
       dragRotate: true,
       touchZoomRotate: true,
+      maxTileCacheSize: 30, // Prevents RAM inflation on mobile
     });
 
     // Smooth 1-finger camera orbit around player
@@ -419,32 +426,39 @@
         }
       }, labelLayerId);
 
-      // Smooth Geodesic Pulse Animation (Reaches exact 100m edge, zero shader glitch)
-      const pulseDuration = 3200; // Smooth 3.2s expansion
+      // Power-Optimized Geodesic Pulse Animation (Throttled & Background-Aware)
+      const pulseDuration = 3400;
       let pulseStart = performance.now();
+      let lastPulseUpdate = 0;
 
       function animatePulse(timestamp) {
-        if (!map || !map.getSource("player-wave-source") || !currentPos) {
-          pulseAnimId = requestAnimationFrame(animatePulse);
-          return;
+        if (document.hidden) {
+          pulseAnimId = null;
+          return; // Sleep completely while phone is locked or app is in background
         }
+
+        pulseAnimId = requestAnimationFrame(animatePulse);
+
+        // Throttle coordinate re-generation to 20fps (~50ms) to reduce CPU/GPU heat by 66%
+        if (timestamp - lastPulseUpdate < 50) return;
+        lastPulseUpdate = timestamp;
+
+        if (!map || !map.getSource("player-wave-source") || !currentPos) return;
 
         const elapsed = (timestamp - pulseStart) % pulseDuration;
         const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
 
-        // Ease-out cubic curve: ripples fast from character, slows down smoothly at boundary
-        const easeOut = 1 - Math.pow(1 - linearProgress, 2.5);
-
-        // Radius scales from 2m up to the EXACT 100m boundary
+        // Ease-out curve: ripples outward, slows gracefully at border
+        const easeOut = 1 - Math.pow(1 - linearProgress, 2.4);
         const currentRadius = Math.max(2, easeOut * radiusM);
 
-        // Opacity smoothly fades to 0 before resetting, eliminating any snap/glitch
-        const fadeProgress = Math.pow(1 - linearProgress, 1.8);
-        const fillOpacity = fadeProgress * 0.14;
-        const lineOpacity = fadeProgress * 0.75;
+        // Soft fade before resetting
+        const fadeProgress = Math.pow(1 - linearProgress, 1.6);
+        const fillOpacity = fadeProgress * 0.12;
+        const lineOpacity = fadeProgress * 0.7;
 
-        // Generate the exact polygon at current expansion
-        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 48);
+        // 36 points is visually smooth on mobile while saving polygon compute
+        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 36);
 
         map.getSource("player-wave-source").setData({
           type: "FeatureCollection",
@@ -456,10 +470,17 @@
 
         map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
         map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
-
-        pulseAnimId = requestAnimationFrame(animatePulse);
       }
       pulseAnimId = requestAnimationFrame(animatePulse);
+
+      // Auto-resume pulse animation when returning to app
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && !pulseAnimId) {
+          pulseStart = performance.now();
+          lastPulseUpdate = 0;
+          pulseAnimId = requestAnimationFrame(animatePulse);
+        }
+      });
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
@@ -496,14 +517,21 @@
     }
     updateTopbar();
 
-    // Ticks every 0.5s (500ms), adding passive USD cash income per tick
+    // High-Performance Ticker: Calculates exact delta & saves locally without network thrashing
+    let lastTickTime = Date.now();
     setInterval(() => {
+      if (document.hidden) return; // Sleep income ticker calculations when app is minimized
+
+      const now = Date.now();
+      const deltaSec = (now - lastTickTime) / 1000;
+      lastTickTime = now;
+
       const state = Store.get();
       if (state.cash === undefined) state.cash = 0;
-      const ratePerHalfSec = Store.totalRate() * 0.5;
-      state.cash += ratePerHalfSec;
-      state.lastTick = Date.now();
-      Store.save();
+      state.cash += Store.totalRate() * deltaSec;
+      state.lastTick = now;
+      
+      Store.save(false); // Local save only (debounced cloud sync)
       updateTopbar();
     }, 500);
   }
@@ -514,6 +542,11 @@
 
     // --- Flying 3D Gem Arc Particle to HUD ---
     function spawnFlyingGemToHUD(startX, startY) {
+      launchFlyingGemStream(startX, startY, 1);
+    }
+
+    // --- Multi-Gem Flying Diamond Stream Launcher ---
+    function launchFlyingGemStream(startX, startY, count) {
       const targetEl = el("stat-diamonds");
       if (!targetEl) return;
 
@@ -521,31 +554,42 @@
       const endX = targetBounds.left + targetBounds.width / 2;
       const endY = targetBounds.top + targetBounds.height / 2;
 
-      const gem = document.createElement("div");
-      gem.className = "flying-3d-gem";
-      gem.style.left = `${startX}px`;
-      gem.style.top = `${startY}px`;
-      gem.innerHTML = `
-        <svg viewBox="0 0 32 38">
-          <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
-          <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
-          <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
-          <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
-        </svg>
-      `;
-      document.body.appendChild(gem);
+      const particleCount = Math.min(25, Math.max(1, count));
 
-      requestAnimationFrame(() => {
-        gem.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.4) rotate(360deg)`;
-        gem.style.opacity = "0.2";
-      });
+      for (let i = 0; i < particleCount; i++) {
+        setTimeout(() => {
+          const spreadX = (Math.random() - 0.5) * 80;
+          const spreadY = (Math.random() - 0.5) * 50;
 
-      setTimeout(() => {
-        gem.remove();
-        targetEl.classList.remove("hud-impact-bump");
-        void targetEl.offsetWidth;
-        targetEl.classList.add("hud-impact-bump");
-      }, 750);
+          const gem = document.createElement("div");
+          gem.className = "flying-3d-gem";
+          gem.style.left = `${startX + spreadX}px`;
+          gem.style.top = `${startY + spreadY}px`;
+          gem.innerHTML = `
+            <svg viewBox="0 0 32 38">
+              <polygon points="16,2 29,12 16,16 3,12" fill="#a8f5ec"/>
+              <polygon points="3,12 16,16 16,36" fill="#1d7a6e"/>
+              <polygon points="29,12 16,16 16,36" fill="#4fd6c4"/>
+              <polygon points="16,2 20,8 16,16 12,8" fill="#ffffff"/>
+            </svg>
+          `;
+          document.body.appendChild(gem);
+
+          requestAnimationFrame(() => {
+            const dx = endX - (startX + spreadX);
+            const dy = endY - (startY + spreadY);
+            gem.style.transform = `translate(${dx}px, ${dy}px) scale(0.4) rotate(${Math.random() * 360}deg)`;
+            gem.style.opacity = "0.2";
+          });
+
+          setTimeout(() => {
+            gem.remove();
+            targetEl.classList.remove("hud-impact-bump");
+            void targetEl.offsetWidth;
+            targetEl.classList.add("hud-impact-bump");
+          }, 750);
+        }, i * (count > 5 ? 40 : 80));
+      }
     }
 
     // --- Multi-Particle Flying EB Stream Launcher ---
@@ -804,7 +848,7 @@
     });
     // --- Diamond Extractor Dynamic Level Math (2-min base, up to 50 gems) ---
     function getExtractorStats(level = 1) {
-      const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000; // 2 mins (120,000ms)
+      const baseInterval = CONFIG.EXTRACTOR_INTERVAL_MS || 600000; // 10 mins (600,000ms)
       const timeUpgrades = Math.floor((level - 1) / 2);
       const storageUpgrades = Math.floor(level / 2);
 
@@ -850,6 +894,25 @@
         el("collect-extractor-btn").innerHTML = `Collect All (${state.extractor.stored} <span class="hud-gem-icon"></span>)`;
         el("collect-extractor-btn").disabled = state.extractor.stored === 0;
       }
+
+      // Live Update Extractor Side HUD Button & Red Notification Dot
+      const extractorHudBtn = el("extractor-hud-btn");
+      const extractorRedDot = el("extractor-unread-dot");
+
+      if (extractorHudBtn) {
+        if (state.extractor.built) {
+          extractorHudBtn.classList.remove("hidden");
+          if (extractorRedDot) {
+            if (state.extractor.stored > 0) {
+              extractorRedDot.classList.remove("hidden");
+            } else {
+              extractorRedDot.classList.add("hidden");
+            }
+          }
+        } else {
+          extractorHudBtn.classList.add("hidden");
+        }
+      }
     }
 
     function openExtractorModal() {
@@ -868,6 +931,9 @@
     }
 
     window.addEventListener("openExtractorModal", openExtractorModal);
+
+    // Tap Quick Extractor Button to Open Modal
+    el("extractor-hud-btn")?.addEventListener("click", openExtractorModal);
 
     // Upgrade Extractor Button (Spends Cash Balance)
     el("upgrade-extractor-btn")?.addEventListener("click", () => {
@@ -899,27 +965,51 @@
         return;
       }
       state.eb -= cost;
+      if (!state.extractor) state.extractor = { level: 1 };
       state.extractor.built = true;
+      state.extractor.level = 1;
       state.extractor.lastHarvest = Date.now();
       state.extractor.stored = 0;
       Store.save();
       updateTopbar();
+
+      // Immediately render 3D Extractor Beacon on map
+      if (typeof Grid !== "undefined" && Grid.render) {
+        Grid.render();
+      }
+
       showToast("💎 Diamond Extractor Constructed!");
       openExtractorModal();
     });
 
-    // Collect Diamonds Button
-    el("collect-extractor-btn")?.addEventListener("click", () => {
-      const state = Store.get();
-      if (!state.extractor || state.extractor.stored <= 0) return;
-      const count = state.extractor.stored;
-      state.diamonds += count;
-      state.extractor.stored = 0;
-      Store.save();
-      updateTopbar();
-      showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
-      checkExtractorTick();
-    });
+    // Collect Diamonds Button with Multi-Gem Particle Shower & Auto-Close
+    const collectExtBtn = el("collect-extractor-btn");
+    if (collectExtBtn) {
+      collectExtBtn.addEventListener("click", (e) => {
+        const state = Store.get();
+        if (!state.extractor || state.extractor.stored <= 0) return;
+
+        const count = state.extractor.stored;
+        const rect = collectExtBtn.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+
+        state.diamonds = (Number(state.diamonds) || 0) + count;
+        state.extractor.stored = 0;
+        Store.save();
+        updateTopbar();
+        showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
+        checkExtractorTick();
+
+        // Launch flying diamonds straight into top HUD Diamonds counter!
+        launchFlyingGemStream(originX, originY, count);
+
+        // Auto-close Extractor modal after short celebration delay
+        setTimeout(() => {
+          closeModal("extractor-modal");
+        }, 250);
+      });
+    }
 
     // Check extractor every 2 seconds
     setInterval(checkExtractorTick, 2000);

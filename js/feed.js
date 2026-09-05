@@ -68,8 +68,12 @@ const Feed = (() => {
   }
 
   function addEventLocally(ev) {
-    // Avoid duplicate event additions
-    if (events.some(e => e.id === ev.id)) return;
+    // Robust deduplication: prevent matching ID or exact same message within 8 seconds
+    const isDuplicate = events.some(e => 
+      e.id === ev.id || 
+      (e.message === ev.message && Math.abs(e.timestamp - ev.timestamp) < 8000)
+    );
+    if (isDuplicate) return;
 
     events.unshift(ev);
     if (events.length > MAX_EVENTS) events.pop();
@@ -129,13 +133,15 @@ const Feed = (() => {
       message = `👑 <strong>${mayor}</strong> collected a <strong>${amount} EB</strong> Mayorship dividend from a land sale in <em>${city}</em>!`;
     }
 
+    const now = Date.now();
     const localEv = {
-      id: "ev_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      id: "ev_" + now + "_" + Math.random().toString(36).slice(2, 6),
       message,
       type,
-      timestamp: Date.now(),
+      timestamp: now,
     };
 
+    // Instant local preview
     addEventLocally(localEv);
 
     if (!db) return;
@@ -144,7 +150,7 @@ const Feed = (() => {
       await db.collection("feed").add({
         message,
         type,
-        timestamp: Date.now(),
+        timestamp: now,
       });
     } catch (err) {
       console.warn("[Feed] Broadcast error:", err);

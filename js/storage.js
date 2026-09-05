@@ -44,7 +44,16 @@ const Store = (() => {
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      state = raw ? Object.assign(defaultState(), JSON.parse(raw)) : defaultState();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state = Object.assign(defaultState(), parsed);
+        // Deep merge extractor object so nested properties are never lost
+        if (parsed.extractor) {
+          state.extractor = Object.assign(defaultState().extractor, parsed.extractor);
+        }
+      } else {
+        state = defaultState();
+      }
     } catch (e) {
       console.warn("Save data unreadable, starting fresh.", e);
       state = defaultState();
@@ -52,13 +61,36 @@ const Store = (() => {
     return state;
   }
 
-  function save() {
+  let cloudSyncTimer = null;
+
+  function save(immediateCloud = false) {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
-      syncToCloud();
+      
+      if (immediateCloud) {
+        clearTimeout(cloudSyncTimer);
+        syncToCloud();
+      } else {
+        // Debounce cloud sync to once every 25 seconds during passive idle ticking
+        if (!cloudSyncTimer) {
+          cloudSyncTimer = setTimeout(() => {
+            syncToCloud();
+            cloudSyncTimer = null;
+          }, 25000);
+        }
+      }
     } catch (e) {
       console.warn("Could not save game.", e);
     }
+  }
+
+  // Force cloud sync before closing/unloading the page
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeunload", () => {
+      if (state && state.player && state.player.id) {
+        syncToCloud();
+      }
+    });
   }
 
   // Cloud Save to Firestore (Full Document Overwrite so deleted diamonds actually delete)
@@ -86,12 +118,26 @@ const Store = (() => {
       const doc = await firestore.collection("saves").doc(playerId).get();
       if (doc.exists) {
         const cloudData = doc.data();
-        // Preserve local liveDiamonds if local is newer to prevent resurrecting collected gems
+        // Preserve local liveDiamonds & local built extractor state
         const localDiamonds = (state && state.liveDiamonds) ? state.liveDiamonds : {};
+        const localExtractor = (state && state.extractor) ? state.extractor : null;
+
         state = Object.assign(defaultState(), cloudData);
+
         // Only keep diamonds that exist in BOTH or let local deletion take precedence
         if (Object.keys(localDiamonds).length < Object.keys(state.liveDiamonds || {}).length) {
           state.liveDiamonds = localDiamonds;
+        }
+
+        // Never allow cloud sync to un-build an already built extractor
+        if (localExtractor && localExtractor.built) {
+          if (!state.extractor || !state.extractor.built) {
+            state.extractor = localExtractor;
+          } else {
+            // Keep the higher level / newer harvest
+            state.extractor.level = Math.max(state.extractor.level || 1, localExtractor.level || 1);
+            state.extractor.stored = Math.max(state.extractor.stored || 0, localExtractor.stored || 0);
+          }
         }
       }
 
@@ -145,7 +191,7 @@ const Store = (() => {
 
     // Offline Diamond Extractor progress
     if (state.extractor && state.extractor.built) {
-      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 120000;
+      const interval = CONFIG.EXTRACTOR_INTERVAL_MS || 600000;
       const maxStored = CONFIG.EXTRACTOR_MAX_STORED || 50;
       const timeSince = now - state.extractor.lastHarvest;
       const newDiamonds = Math.floor(timeSince / interval);
