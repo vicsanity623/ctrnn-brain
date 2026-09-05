@@ -187,13 +187,25 @@ const Grid = (() => {
     } else {
       map.addSource("plots-source", { type: "geojson", data: claimedGeoJSON });
 
+      // 1. Subtle Lush Green Grass Base Underlay (All Claimed Parcels)
+      map.addLayer({
+        id: "plots-grass-base",
+        type: "fill",
+        source: "plots-source",
+        paint: {
+          "fill-color": "#27ae60",
+          "fill-opacity": 0.28, // Soft meadow green tint
+        },
+      });
+
+      // 2. Rarity Tint Layer (Common, Rare, Epic, Legendary overlay)
       map.addLayer({
         id: "plots-fill",
         type: "fill",
         source: "plots-source",
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": 0.65,
+          "fill-opacity": 0.45,
         },
       });
 
