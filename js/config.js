@@ -52,14 +52,14 @@ const CONFIG = {
   ],
   SPIN_COST_DIAMONDS: 2,
 
-  // --- Land plots (Exact Rates, Odds & 3D GLB Props) ---
+  // --- Land plots (Exact Rates, Odds & Micro-Scale 3D GLB Props) ---
   PLOT_COST_EB: 100,
-  BASE_GRASS_MODEL: { file: "models/grass_tile.glb", scale: 0.85 },
+  BASE_GRASS_MODEL: { file: "models/grass_tile.glb", scale: 0.08 },
   PLOT_RARITIES: [
-    { key: "common",    label: "Common",    rate: 0.0000000011, weight: 50, color: "#8fa3b8", model: "models/prop_common.glb",    scale: 0.9 },
-    { key: "rare",      label: "Rare",      rate: 0.000000016,  weight: 30, color: "#4f9dd6", model: "models/prop_rare.glb",      scale: 1.0 },
-    { key: "epic",      label: "Epic",      rate: 0.000000022,  weight: 15, color: "#a86ee0", model: "models/prop_epic.glb",      scale: 1.15 },
-    { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f", model: "models/prop_legendary.glb", scale: 1.35 },
+    { key: "common",    label: "Common",    rate: 0.0000000011, weight: 50, color: "#8fa3b8", model: "models/prop_common.glb",    scale: 0.08 },
+    { key: "rare",      label: "Rare",      rate: 0.000000016,  weight: 30, color: "#4f9dd6", model: "models/prop_rare.glb",      scale: 0.10 },
+    { key: "epic",      label: "Epic",      rate: 0.000000022,  weight: 15, color: "#a86ee0", model: "models/prop_epic.glb",      scale: 0.12 },
+    { key: "legendary", label: "Legendary", rate: 0.000000044,  weight: 5,  color: "#e0a84f", model: "models/prop_legendary.glb", scale: 0.15 },
   ],
   
   // --- 3D Character Roster (Heroic Scale) ---
