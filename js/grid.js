@@ -156,6 +156,11 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
+    // Update 3D GLTF Grass & Rarity Props in Three.js WebGL layer
+    if (typeof Character3D !== "undefined" && Character3D.updatePlots) {
+      Character3D.updatePlots(allPlots);
+    }
+
     // 1. RENDER CLAIMED PLOTS (Instantly)
     const claimedFeatures = [];
     for (const tid in allPlots) {
