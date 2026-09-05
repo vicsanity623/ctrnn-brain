@@ -97,9 +97,14 @@ const Grid = (() => {
 
     state.plots[tid] = plotData;
     globalPlots[tid] = plotData;
-    Store.save(true); // Force immediate cloud sync on land purchase
+    Store.save();
     onBuyAttempt(true, rarity);
     render();
+
+    // Trigger Mayorship 2% Dividend Payout to current city Mayor!
+    if (typeof Leaderboard !== "undefined" && Leaderboard.awardMayorshipDividend) {
+      Leaderboard.awardMayorshipDividend("Phoenix, AZ", state.player.id, CONFIG.PLOT_COST_EB);
+    }
 
     // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
     if (typeof Feed !== "undefined") {
