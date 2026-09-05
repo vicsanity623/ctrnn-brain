@@ -1,6 +1,5 @@
 // ============================================================
-// Elden Earth — 3D Character Model (Three.js WebGL Custom Layer)
-// Renders animated .GLB models at player GPS with Idle <-> Walk blending.
+// Elden Earth — 3D WebGL Engine (Character + 3D Land Props)
 // ============================================================
 const Character3D = (() => {
   let mapInstance = null;
@@ -16,7 +15,7 @@ const Character3D = (() => {
   let isWalking = false;
   let modelHeading = 0;
 
-  // 3D Parcel Props & Grass System
+  // 3D Parcel Props System
   let plotsGroup = null;
   const propTemplates = {}; // key -> THREE.Group template
   let pendingPlotsData = null;
@@ -34,16 +33,16 @@ const Character3D = (() => {
         camera = new THREE.Camera();
         scene = new THREE.Scene();
 
-        // Balanced Lighting for Dark Map
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        // Balanced Lighting for Dark Fantasy Map
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xf0d38a, 1.8);
-        dirLight.position.set(20, 50, 20);
+        const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.0);
+        dirLight.position.set(30, 70, 40);
         scene.add(dirLight);
 
-        const dirLight2 = new THREE.DirectionalLight(0x4fd6c4, 1.0);
-        dirLight2.position.set(-20, -50, 10);
+        const dirLight2 = new THREE.DirectionalLight(0x4fd6c4, 1.2);
+        dirLight2.position.set(-30, -50, 20);
         scene.add(dirLight2);
 
         renderer = new THREE.WebGLRenderer({
@@ -53,11 +52,11 @@ const Character3D = (() => {
         });
         renderer.autoClear = false;
 
-        // 3D World Parcels Container
+        // Container for all 3D Land Parcels
         plotsGroup = new THREE.Group();
         scene.add(plotsGroup);
 
-        // Pre-load all 3D prop templates
+        // Preload 3D Prop Templates
         preloadPropTemplates();
 
         // Load saved character model
@@ -71,25 +70,28 @@ const Character3D = (() => {
         }
       },
       render: function (gl, matrix) {
-        // Build base Mapbox Projection Matrix
+        // Base Camera Projection Matrix from Mapbox
         const m = new THREE.Matrix4().fromArray(matrix);
         camera.projectionMatrix = m;
 
-        // Update 3D Character Transform
+        // Position & Orient 3D Player Character
         if (currentModel) {
           const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
             [playerCoords.lng, playerCoords.lat],
             0
           );
-          const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
+          const meterScale = modelCoord.meterInMercatorCoordinateUnits();
+          const pScale = meterScale * (currentModel.userData.scale || 4.8);
 
           currentModel.position.set(modelCoord.x, modelCoord.y, modelCoord.z);
-          currentModel.scale.set(scale, -scale, scale);
+          currentModel.scale.set(pScale, -pScale, pScale);
+          // Correct Upright Rotation: X: 90 deg, Y: Heading, Z: 0
           currentModel.rotation.set(Math.PI / 2, modelHeading, 0);
         }
 
-        // Render entire 3D WebGL scene (Character + 3D Grass + 3D Trees/Props)
+        // CLEAR DEPTH BUFFER: Ensures character and 3D props render crisply on top of map terrain
         gl.clear(gl.DEPTH_BUFFER_BIT);
+
         renderer.resetState();
         renderer.render(scene, camera);
       },
@@ -100,7 +102,7 @@ const Character3D = (() => {
     }
     mapInstance.addLayer(customLayer);
 
-    // Power-Efficient Animation Loop (Pauses when app is in background)
+    // Power-Efficient Animation Loop
     let clock = new THREE.Clock();
     let animFrameId = null;
 
@@ -113,19 +115,113 @@ const Character3D = (() => {
       if (mixer) {
         const delta = clock.getDelta();
         mixer.update(delta);
-        // Only repaint when animations advance
         if (mapInstance) mapInstance.triggerRepaint();
       }
     }
     animate();
 
-    // Auto-pause when switching tabs or locking phone to save battery
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !animFrameId) {
-        clock.getDelta(); // Reset clock delta so animation doesn't jump
+        clock.getDelta();
         animate();
       }
     });
+  }
+
+  // Pre-load all GLB templates once
+  function preloadPropTemplates() {
+    const loader = new THREE.GLTFLoader();
+
+    // 1. Base Grass Tile
+    if (CONFIG.BASE_GRASS_MODEL) {
+      loader.load(
+        CONFIG.BASE_GRASS_MODEL.file,
+        (gltf) => {
+          propTemplates["grass"] = { scene: gltf.scene, scale: CONFIG.BASE_GRASS_MODEL.scale };
+          console.log("[Character3D] Loaded Grass Tile GLB.");
+          if (pendingPlotsData) updatePlots(pendingPlotsData);
+        },
+        undefined,
+        (err) => console.warn("[Character3D] Grass load error:", err)
+      );
+    }
+
+    // 2. Rarity Props
+    (CONFIG.PLOT_RARITIES || []).forEach((r) => {
+      if (!r.model) return;
+      loader.load(
+        r.model,
+        (gltf) => {
+          propTemplates[r.key] = { scene: gltf.scene, scale: r.scale || 1.0 };
+          console.log(`[Character3D] Loaded Prop GLB: ${r.label}`);
+          if (pendingPlotsData) updatePlots(pendingPlotsData);
+        },
+        undefined,
+        (err) => console.warn(`[Character3D] Prop ${r.key} load error:`, err)
+      );
+    });
+  }
+
+  // Update 3D Grass and Props for all claimed plots on the map
+  function updatePlots(allPlots) {
+    if (!plotsGroup) {
+      pendingPlotsData = allPlots;
+      return;
+    }
+
+    // Clear old plot meshes
+    while (plotsGroup.children.length > 0) {
+      plotsGroup.remove(plotsGroup.children[0]);
+    }
+
+    const tileSize = CONFIG.TILE_SIZE_METERS || 6.096;
+
+    for (const tid in allPlots) {
+      const p = allPlots[tid];
+      const rarityKey = p.rarity?.key || p.rarity || "common";
+
+      const px = parseInt(p.tx, 10);
+      const py = parseInt(p.ty, 10);
+
+      // Tile Centroid in Mercator
+      const centerMerc = Geo.fromMercator(
+        px * tileSize + tileSize / 2,
+        py * tileSize + tileSize / 2
+      );
+
+      const tileCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+        [centerMerc.lon, centerMerc.lat],
+        0
+      );
+      const meterScale = tileCoord.meterInMercatorCoordinateUnits();
+
+      // 1. Mount 3D Grass Tile (Upright on ground)
+      if (propTemplates["grass"]) {
+        const grass = propTemplates["grass"].scene.clone();
+        const gScale = meterScale * tileSize * (propTemplates["grass"].scale || 0.85);
+        grass.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
+        grass.scale.set(gScale, -gScale, gScale);
+        grass.rotation.set(Math.PI / 2, 0, 0);
+        plotsGroup.add(grass);
+      }
+
+      // 2. Mount 3D Rarity Prop (Tree, Crystal, World Tree)
+      if (propTemplates[rarityKey]) {
+        const prop = propTemplates[rarityKey].scene.clone();
+        const pScale = meterScale * tileSize * (propTemplates[rarityKey].scale || 1.0);
+        prop.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
+        prop.scale.set(pScale, -pScale, pScale);
+
+        // Organic random rotation per plot
+        const seed = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
+        const randomRot = (seed - Math.floor(seed)) * Math.PI * 2;
+        prop.rotation.set(Math.PI / 2, randomRot, 0);
+
+        plotsGroup.add(prop);
+      }
+    }
+
+    if (mapInstance) mapInstance.triggerRepaint();
   }
 
   function loadModel(characterId) {
@@ -154,13 +250,12 @@ const Character3D = (() => {
 
         if (idleKey && animationsMap[idleKey]) {
           currentAction = animationsMap[idleKey];
-          currentAction.setEffectiveTimeScale(0.8); // Relaxed idle pace
+          currentAction.setEffectiveTimeScale(0.8);
           currentAction.play();
         }
 
-        // Slow down walk animation so it's smooth and grounded (not running)
         if (walkKey && animationsMap[walkKey]) {
-          animationsMap[walkKey].setEffectiveTimeScale(0.55); // 55% normal speed
+          animationsMap[walkKey].setEffectiveTimeScale(0.55);
         }
 
         currentModel.userData.idleKey = idleKey;
@@ -179,17 +274,14 @@ const Character3D = (() => {
     playerCoords = { lng, lat };
 
     if (lastCoords) {
-      // Calculate speed in meters/second
       const dist = Geo.haversine(lastCoords.lat, lastCoords.lng, lat, lng);
       const elapsed = (now - lastPosTime) / 1000;
       const speed = elapsed > 0 ? dist / elapsed : 0;
 
-      // Update heading angle towards movement direction
       if (dist > 0.5) {
         modelHeading = Math.atan2(lng - lastCoords.lng, lat - lastCoords.lat);
       }
 
-      // Switch between Idle and Walk
       const walkingNow = speed > 0.45;
       if (walkingNow !== isWalking && currentModel) {
         isWalking = walkingNow;
@@ -214,99 +306,6 @@ const Character3D = (() => {
     state.player.model3d = characterId;
     Store.save();
     loadModel(characterId);
-  }
-  
-  // Pre-load all 3D GLB Prop Models into memory once
-  function preloadPropTemplates() {
-    const loader = new THREE.GLTFLoader();
-
-    // 1. Base Grass Tile
-    if (CONFIG.BASE_GRASS_MODEL) {
-      loader.load(
-        CONFIG.BASE_GRASS_MODEL.file,
-        (gltf) => {
-          propTemplates["grass"] = { scene: gltf.scene, scale: CONFIG.BASE_GRASS_MODEL.scale };
-          console.log("[Character3D] Loaded 3D Base Grass Tile.");
-          if (pendingPlotsData) updatePlots(pendingPlotsData);
-        },
-        undefined,
-        (err) => console.warn("[Character3D] Grass GLB error:", err)
-      );
-    }
-
-    // 2. Rarity Tier Props
-    (CONFIG.PLOT_RARITIES || []).forEach((r) => {
-      if (!r.model) return;
-      loader.load(
-        r.model,
-        (gltf) => {
-          propTemplates[r.key] = { scene: gltf.scene, scale: r.scale || 2.5 };
-          console.log(`[Character3D] Loaded 3D Prop: ${r.label}`);
-          if (pendingPlotsData) updatePlots(pendingPlotsData);
-        },
-        undefined,
-        (err) => console.warn(`[Character3D] Prop ${r.key} GLB error:`, err)
-      );
-    });
-  }
-
-  // Update 3D Grass and Props for all claimed plots on the map
-  function updatePlots(allPlots) {
-    if (!plotsGroup) {
-      pendingPlotsData = allPlots;
-      return;
-    }
-
-    // Clear existing 3D plot meshes
-    while (plotsGroup.children.length > 0) {
-      plotsGroup.remove(plotsGroup.children[0]);
-    }
-
-    for (const tid in allPlots) {
-      const p = allPlots[tid];
-      const rarityKey = p.rarity?.key || p.rarity || "common";
-
-      // Compute exact center of tile in real-world Mercator coordinates
-      const px = parseInt(p.tx, 10);
-      const py = parseInt(p.ty, 10);
-      const centerMerc = Geo.fromMercator(
-        px * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
-        py * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
-      );
-
-      const tileCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-        [centerMerc.lon, centerMerc.lat],
-        0
-      );
-      const meterScale = tileCoord.meterInMercatorCoordinateUnits();
-
-      // 1. Add 3D Grass Tile Mesh
-      if (propTemplates["grass"]) {
-        const grassClone = propTemplates["grass"].scene.clone();
-        const gScale = meterScale * propTemplates["grass"].scale;
-        grassClone.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
-        grassClone.scale.set(gScale, -gScale, gScale);
-        grassClone.rotation.set(Math.PI / 2, 0, 0);
-        plotsGroup.add(grassClone);
-      }
-
-      // 2. Add 3D Rarity Prop (Tree, Crystal, Obelisk, Erdtree)
-      if (propTemplates[rarityKey]) {
-        const propClone = propTemplates[rarityKey].scene.clone();
-        const pScale = meterScale * propTemplates[rarityKey].scale;
-        propClone.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
-        propClone.scale.set(pScale, -pScale, pScale);
-        
-        // Random subtle rotation variation for organic variety
-        const seed = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
-        const randomRot = (seed - Math.floor(seed)) * Math.PI * 2;
-        propClone.rotation.set(Math.PI / 2, randomRot, 0);
-
-        plotsGroup.add(propClone);
-      }
-    }
-
-    if (mapInstance) mapInstance.triggerRepaint();
   }
 
   return { init, setPlayerPosition, changeCharacter, loadModel, updatePlots };
