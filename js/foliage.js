@@ -1,5 +1,5 @@
 // ============================================================
-// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Randomized)
+// Elden Earth — 3D Parcel Foliage & Rarity Landmarks
 // ============================================================
 const Foliage = (() => {
   let mapInstance = null;
@@ -55,11 +55,15 @@ const Foliage = (() => {
     img.onload = () => callback(img);
   }
 
-  // Preload 3D Mushroom GLB
+  // Preload 3D Prop GLBs (Common Mushroom & Epic Landmark)
   let mushroomGLTF = null;
-  function preloadMushroom() {
+  let epicPropGLTF = null;
+
+  function preloadProps() {
     if (typeof THREE === "undefined" || !THREE.GLTFLoader) return;
     const loader = new THREE.GLTFLoader();
+
+    // 1. Common Mushroom
     loader.load(
       "models/mush_common.glb",
       (gltf) => {
@@ -69,9 +73,21 @@ const Foliage = (() => {
       undefined,
       (err) => console.warn("[Foliage] mush_common.glb notice:", err)
     );
+
+    // 2. Epic Landmark Prop
+    loader.load(
+      "models/prop_epic.glb",
+      (gltf) => {
+        epicPropGLTF = gltf;
+        console.log("[Foliage] 3D prop_epic.glb loaded successfully.");
+        update();
+      },
+      undefined,
+      (err) => console.warn("[Foliage] prop_epic.glb notice:", err)
+    );
   }
 
-  // Mini 3D Canvas Billboard for Mushroom
+  // Mini 3D Canvas Billboard for Common Mushroom
   function create3DMushroomElement() {
     const wrap = document.createElement("div");
     wrap.className = "parcel-prop-wrap";
@@ -119,9 +135,62 @@ const Foliage = (() => {
     return wrap;
   }
 
+  // Mini 3D Canvas Billboard for Epic Landmark Prop
+  function create3DEpicPropElement() {
+    const wrap = document.createElement("div");
+    wrap.className = "parcel-prop-wrap epic-prop-wrap";
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 96;
+    canvas.height = 96;
+    canvas.className = "parcel-prop-canvas epic-canvas";
+    wrap.appendChild(canvas);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 1.4, 2.8);
+    camera.lookAt(0, 0.6, 0);
+
+    const ambLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambLight);
+
+    const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.0);
+    dirLight.position.set(3, 6, 4);
+    scene.add(dirLight);
+
+    // Amethyst glow light accent for Epic
+    const purpleLight = new THREE.DirectionalLight(0xa86ee0, 1.5);
+    purpleLight.position.set(-3, -2, 2);
+    scene.add(purpleLight);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: true
+    });
+    renderer.setSize(44, 44);
+
+    if (epicPropGLTF) {
+      const clone = epicPropGLTF.scene.clone();
+      const box = new THREE.Box3().setFromObject(clone);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 1.4 / maxDim; // Slightly taller hero scale for Epic
+      clone.scale.set(scale, scale, scale);
+
+      box.setFromObject(clone);
+      clone.position.y = -box.min.y;
+
+      scene.add(clone);
+      renderer.render(scene, camera);
+    }
+
+    return wrap;
+  }
+
   function init(map) {
     mapInstance = map;
-    preloadMushroom();
+    preloadProps();
 
     createGrassImage((img) => {
       if (!mapInstance.hasImage("foliage-grass")) {
@@ -155,7 +224,6 @@ const Foliage = (() => {
         "icon-anchor": "bottom",
         "icon-pitch-alignment": "viewport",
         "icon-rotation-alignment": "viewport",
-        // Shorter, realistic scaling curve (50% shorter than before)
         "icon-size": [
           "interpolate",
           ["linear"],
@@ -179,7 +247,6 @@ const Foliage = (() => {
     }, labelLayerId);
   }
 
-  // Deterministic random number generator based on tile seed
   function seededRandom(seed) {
     const x = Math.sin(seed++) * 10000;
     return x - Math.floor(x);
@@ -202,7 +269,6 @@ const Foliage = (() => {
       const px = parseInt(p.tx, 10);
       const py = parseInt(p.ty, 10);
 
-      // Unique seed per tile
       let seed = Math.abs(px * 374761393 + py * 668265263);
 
       const c = Geo.fromMercator(
@@ -210,15 +276,12 @@ const Foliage = (() => {
         py * tileSize + tileSize / 2
       );
 
-      // Distribute 5 to 7 organically scattered grass tufts per tile
+      // 1. Distribute randomized grass tufts on all claimed plots
       const tuftCount = 5 + Math.floor(seededRandom(seed++) * 3);
 
       for (let i = 0; i < tuftCount; i++) {
-        // Random offset within the 10x10ft bounding box (~ +/- 0.000022 deg)
         const offsetX = (seededRandom(seed++) - 0.5) * 0.000036;
         const offsetY = (seededRandom(seed++) - 0.5) * 0.000036;
-        
-        // Random scale variation: 0.65x (small) to 1.15x (lush)
         const randomScale = 0.65 + seededRandom(seed++) * 0.5;
 
         grassFeatures.push({
@@ -233,7 +296,7 @@ const Foliage = (() => {
         });
       }
 
-      // If Common Plot, place the 3D Common Mushroom slightly offset in the grass
+      // 2. Common Plots: Render 3D Common Mushroom
       if (rarityKey === "common" && zoom >= 15.5) {
         const mushOffsetX = (seededRandom(seed++) - 0.5) * 0.000015;
         const mushOffsetY = (seededRandom(seed++) - 0.5) * 0.000015;
@@ -246,6 +309,21 @@ const Foliage = (() => {
           rotationAlignment: "viewport",
         })
           .setLngLat([c.lon + mushOffsetX, c.lat + mushOffsetY])
+          .addTo(mapInstance);
+
+        activeMarkers.push(m);
+      }
+
+      // 3. Epic Plots: Render 3D Epic Landmark Prop (prop_epic.glb)
+      if (rarityKey === "epic" && zoom >= 15.5) {
+        const epicEl = create3DEpicPropElement();
+        const m = new mapboxgl.Marker({
+          element: epicEl,
+          anchor: "bottom",
+          pitchAlignment: "viewport",
+          rotationAlignment: "viewport",
+        })
+          .setLngLat([c.lon, c.lat])
           .addTo(mapInstance);
 
         activeMarkers.push(m);
