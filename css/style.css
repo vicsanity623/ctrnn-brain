@@ -2402,3 +2402,15 @@ html,body{
   height: 32px;
   display: block;
 }
+
+/* Epic Landmark Prop Sizing */
+.epic-prop-wrap {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 8px rgba(168, 110, 224, 0.5));
+}
+
+.epic-canvas {
+  width: 44px;
+  height: 44px;
+}
