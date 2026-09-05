@@ -150,9 +150,13 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // Update 3D Standing Grass Foliage
+    // Update 3D Standing Grass Foliage (Safeguarded against WebGL context interruption)
     if (typeof Foliage !== "undefined" && Foliage.update) {
-      Foliage.update();
+      try {
+        Foliage.update();
+      } catch (err) {
+        console.warn("[Foliage] Update safely bypassed:", err);
+      }
     }
 
     // 1. RENDER CLAIMED PLOTS (Instantly)
