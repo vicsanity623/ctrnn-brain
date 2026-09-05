@@ -69,6 +69,12 @@ const Grid = (() => {
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
 
+    // Determine real-world city from tile center coordinates
+    const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+    const centerLat = (corners[0][0] + corners[2][0]) / 2;
+    const centerLon = (corners[0][1] + corners[2][1]) / 2;
+    const detectedCity = await Geo.getCityName(centerLat, centerLon);
+
     if (map) {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
       const centerLat = (corners[0][0] + corners[2][0]) / 2;
@@ -87,6 +93,7 @@ const Grid = (() => {
     const plotData = {
       tx,
       ty,
+      city: detectedCity, // Real city saved to Firestore!
       rarity: rarity.key,
       rate: rarity.rate,
       ownerId: state.player.id || "guest-" + Math.random().toString(36).slice(2, 8),
@@ -103,7 +110,8 @@ const Grid = (() => {
 
     // Trigger Mayorship 2% Dividend Payout to current city Mayor!
     if (typeof Leaderboard !== "undefined" && Leaderboard.awardMayorshipDividend) {
-      Leaderboard.awardMayorshipDividend("Phoenix, AZ", state.player.id, CONFIG.PLOT_COST_EB);
+      Leaderboard.awardMayorshipDividend(detectedCity, state.player.id, CONFIG.PLOT_COST_EB);
+    }
     }
 
     // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
