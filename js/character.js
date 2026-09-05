@@ -67,25 +67,26 @@ const Character3D = (() => {
         }
       },
       render: function (gl, matrix) {
-        if (!currentModel) return;
+        // 1. Camera uses pure Mapbox projection matrix (renders whole world correctly!)
+        camera.projectionMatrix.fromArray(matrix);
 
-        const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-          [playerCoords.lng, playerCoords.lat],
-          0
-        );
+        // 2. Position 3D Player Character at GPS Coordinates
+        if (currentModel) {
+          const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+            [playerCoords.lng, playerCoords.lat],
+            0
+          );
+          const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
 
-        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
+          currentModel.matrixAutoUpdate = false;
+          currentModel.matrix.identity()
+            .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
+            .scale(new THREE.Vector3(scale, -scale, scale))
+            .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
+            .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
+        }
 
-        const m = new THREE.Matrix4().fromArray(matrix);
-        const l = new THREE.Matrix4()
-          .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
-          .scale(new THREE.Vector3(scale, -scale, scale))
-          .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
-          .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
-
-        camera.projectionMatrix = m.multiply(l);
-
-        // CLEAR DEPTH BUFFER: Ensures character renders on top of all 3D buildings!
+        // CLEAR DEPTH BUFFER: Ensures 3D meshes render cleanly above road textures
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
         renderer.resetState();
@@ -290,12 +291,12 @@ const Character3D = (() => {
       });
 
       // Transform tile group into 3D Mapbox coordinate system
-      const l = new THREE.Matrix4()
+      tileGroup.matrixAutoUpdate = false;
+      tileGroup.matrix.identity()
         .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
         .scale(new THREE.Vector3(meterScale, -meterScale, meterScale))
         .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
 
-      tileGroup.applyMatrix4(l);
       plotsMeshGroup.add(tileGroup);
     }
 
