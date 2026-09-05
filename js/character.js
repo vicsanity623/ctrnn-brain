@@ -16,6 +16,10 @@ const Character3D = (() => {
   let isWalking = false;
   let modelHeading = 0;
 
+  // 3D Procedural Grass Container
+  let plotsMeshGroup = null;
+  let pendingPlots = null;
+
   function init(map, initialLng, initialLat) {
     mapInstance = map;
     playerCoords = { lng: initialLng, lat: initialLat };
@@ -48,10 +52,19 @@ const Character3D = (() => {
         });
         renderer.autoClear = false;
 
+        // Container for 3D Grass
+        plotsMeshGroup = new THREE.Group();
+        scene.add(plotsMeshGroup);
+
         // Load saved character model
         const state = Store.get();
         const selectedId = state?.player?.model3d || "soldier";
         loadModel(selectedId);
+
+        if (pendingPlots) {
+          updatePlots(pendingPlots);
+          pendingPlots = null;
+        }
       },
       render: function (gl, matrix) {
         if (!currentModel) return;
@@ -195,6 +208,87 @@ const Character3D = (() => {
     Store.save();
     loadModel(characterId);
   }
+  
+  // Stylized Low-Poly Grass Tuft (Small cluster of 3 soft emerald blades)
+  function createGrassTuft() {
+    const group = new THREE.Group();
+    // Low-poly cone for grass blade (height: 0.6m, width: 0.12m)
+    const bladeGeo = new THREE.ConeGeometry(0.12, 0.65, 3);
+    const bladeMat = new THREE.MeshLambertMaterial({ 
+      color: 0x4fd6c4, 
+      flatShading: true 
+    });
 
-  return { init, setPlayerPosition, changeCharacter, loadModel };
+    for (let i = 0; i < 3; i++) {
+      const blade = new THREE.Mesh(bladeGeo, bladeMat);
+      const angle = (i / 3) * Math.PI * 2;
+      blade.position.set(Math.cos(angle) * 0.18, 0.3, Math.sin(angle) * 0.18);
+      blade.rotation.set((Math.random() - 0.5) * 0.35, angle, (Math.random() - 0.5) * 0.35);
+      group.add(blade);
+    }
+    return group;
+  }
+
+  // Updates and renders procedural grass on all claimed tiles
+  function updatePlots(allPlots) {
+    if (!plotsMeshGroup) {
+      pendingPlots = allPlots;
+      return;
+    }
+
+    // Clear old grass
+    while (plotsMeshGroup.children.length > 0) {
+      plotsMeshGroup.remove(plotsMeshGroup.children[0]);
+    }
+
+    const tileSize = CONFIG.TILE_SIZE_METERS || 6.096;
+
+    for (const tid in allPlots) {
+      const p = allPlots[tid];
+      const px = parseInt(p.tx, 10);
+      const py = parseInt(p.ty, 10);
+
+      // Centroid in Mercator
+      const centerMerc = Geo.fromMercator(
+        px * tileSize + tileSize / 2,
+        py * tileSize + tileSize / 2
+      );
+
+      const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+        [centerMerc.lon, centerMerc.lat],
+        0
+      );
+      const meterScale = modelCoord.meterInMercatorCoordinateUnits();
+
+      const tileGroup = new THREE.Group();
+
+      // Place 5 tiny grass tufts across the tile surface (center + 4 corners)
+      const offsets = [
+        [0, 0],
+        [-1.4, -1.4],
+        [1.4, -1.4],
+        [-1.4, 1.4],
+        [1.4, 1.4]
+      ];
+
+      offsets.forEach(([gx, gz]) => {
+        const tuft = createGrassTuft();
+        tuft.position.set(gx, 0, gz);
+        tileGroup.add(tuft);
+      });
+
+      // Transform tile group into 3D Mapbox space (Exact same math as Character!)
+      const l = new THREE.Matrix4()
+        .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
+        .scale(new THREE.Vector3(meterScale, -meterScale, meterScale))
+        .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+
+      tileGroup.applyMatrix4(l);
+      plotsMeshGroup.add(tileGroup);
+    }
+
+    if (mapInstance) mapInstance.triggerRepaint();
+  }
+
+  return { init, setPlayerPosition, changeCharacter, loadModel, updatePlots };
 })();
