@@ -156,6 +156,11 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
+    // Update 3D Standing Grass Foliage
+    if (typeof Foliage !== "undefined" && Foliage.update) {
+      Foliage.update();
+    }
+
     // 1. RENDER CLAIMED PLOTS (Instantly)
     const claimedFeatures = [];
     for (const tid in allPlots) {
