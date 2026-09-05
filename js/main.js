@@ -176,6 +176,8 @@
     let totalDiv = isOtherPlayer ? 0 : (state.totalDividends || 0);
     if (dividendsEl) dividendsEl.textContent = `${totalDiv} EB`;
 
+    const royaltyBadge = el("info-royalty-badge") || document.querySelector(".mayorship-dividends-card .btn-royalty, .mayorship-dividends-card span:last-child");
+
     if (mayorStatusEl) {
       mayorStatusEl.textContent = "Checking realm...";
       if (typeof Leaderboard !== "undefined" && Leaderboard.fetchRankings) {
@@ -185,13 +187,23 @@
             const cityNames = myMayorships.map(m => m.city).join(", ");
             mayorStatusEl.innerHTML = `👑 Mayor of <strong>${cityNames}</strong>`;
             mayorStatusEl.className = "mayor-crown-pill active-mayor";
+            if (royaltyBadge) {
+              royaltyBadge.textContent = "2% Royalty";
+              royaltyBadge.style.display = "inline-block";
+            }
           } else {
             mayorStatusEl.innerHTML = `🛡️ Citizen of the Realm`;
             mayorStatusEl.className = "mayor-crown-pill";
+            // Hide or set to 0% for non-mayors
+            if (royaltyBadge) {
+              royaltyBadge.textContent = "0% (Citizen)";
+              royaltyBadge.style.opacity = "0.6";
+            }
           }
         });
       } else {
         mayorStatusEl.textContent = "🛡️ Citizen of the Realm";
+        if (royaltyBadge) royaltyBadge.style.display = "none";
       }
     }
   }
