@@ -619,15 +619,19 @@
       }
     }
 
-    // --- 30-Day Daily Login Calendar System ---
+    // --- 30-Day Daily Login Calendar System (Strict 1-Day per Day) ---
     function getCalendarState() {
       const state = Store.get();
       if (!state.calendar) {
         state.calendar = {
-          currentDay: 1,
-          lastClaimDate: null, // "YYYY-MM-DD"
-          totalClaimed: 0
+          claimedDays: 0,       // Exact count of days claimed (0 to 30)
+          lastClaimDate: null,  // "YYYY-MM-DD"
         };
+      }
+      // Migrate old currentDay format if present
+      if (state.calendar.currentDay !== undefined && state.calendar.claimedDays === undefined) {
+        state.calendar.claimedDays = Math.max(0, state.calendar.currentDay - 1);
+        delete state.calendar.currentDay;
       }
       return state.calendar;
     }
@@ -642,16 +646,14 @@
       const todayKey = getTodayKey();
       const isClaimedToday = cal.lastClaimDate === todayKey;
 
-      // Update HUD Calendar Card numbers
       const now = new Date();
       const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
       if (el("cal-hud-month")) el("cal-hud-month").textContent = months[now.getMonth()];
       if (el("cal-hud-day")) el("cal-hud-day").textContent = now.getDate();
 
-      // Show / hide glowing red dot
       const unreadDot = el("calendar-unread-dot");
       if (unreadDot) {
-        if (!isClaimedToday) {
+        if (!isClaimedToday && (cal.claimedDays || 0) < 30) {
           unreadDot.classList.remove("hidden");
         } else {
           unreadDot.classList.add("hidden");
@@ -667,22 +669,26 @@
       const cal = getCalendarState();
       const todayKey = getTodayKey();
       const isClaimedToday = cal.lastClaimDate === todayKey;
+      const claimedCount = cal.claimedDays || 0;
       const rewards = CONFIG.DAILY_CALENDAR_REWARDS || [];
 
       rewards.forEach((r) => {
         const dayNum = r.day;
-        const isPast = dayNum < cal.currentDay || (dayNum === cal.currentDay && isClaimedToday);
-        const isTodayActive = dayNum === cal.currentDay && !isClaimedToday;
-        const isFuture = dayNum > cal.currentDay;
+        const isAlreadyClaimed = dayNum <= claimedCount;
+        const isReadyToClaim = (dayNum === claimedCount + 1) && !isClaimedToday;
+        const isLockedTomorrow = (dayNum === claimedCount + 1) && isClaimedToday;
+        const isFutureLocked = dayNum > claimedCount + 1;
 
         const row = document.createElement("div");
-        row.className = "cal-day-row" + (isTodayActive ? " active" : "") + (isPast ? " claimed" : "") + (isFuture ? " locked" : "");
+        row.className = "cal-day-row" + (isReadyToClaim ? " active" : "") + (isAlreadyClaimed ? " claimed" : "") + (isLockedTomorrow || isFutureLocked ? " locked" : "");
 
         let actionHtml = "";
-        if (isPast) {
+        if (isAlreadyClaimed) {
           actionHtml = `<span class="cal-status-claimed">✓ Claimed</span>`;
-        } else if (isTodayActive) {
+        } else if (isReadyToClaim) {
           actionHtml = `<button class="cal-claim-btn" id="claim-day-${dayNum}">Claim +${r.eb} EB</button>`;
+        } else if (isLockedTomorrow) {
+          actionHtml = `<span class="cal-status-locked" style="color:var(--teal);opacity:0.85;">🔒 Tomorrow</span>`;
         } else {
           actionHtml = `<span class="cal-status-locked">🔒 Day ${dayNum}</span>`;
         }
@@ -699,9 +705,9 @@
 
         list.appendChild(row);
 
-        if (isTodayActive) {
+        if (isReadyToClaim) {
           const claimBtn = row.querySelector(".cal-claim-btn");
-          claimBtn?.addEventListener("click", (e) => {
+          claimBtn?.addEventListener("click", () => {
             const rect = claimBtn.getBoundingClientRect();
             claimDailyReward(r.eb, rect.left + rect.width / 2, rect.top + rect.height / 2);
           });
@@ -714,32 +720,33 @@
       const cal = getCalendarState();
       const todayKey = getTodayKey();
 
-      if (cal.lastClaimDate === todayKey) return;
+      if (cal.lastClaimDate === todayKey) return; // Prevent multiple claims in the same day
 
       cal.lastClaimDate = todayKey;
-      cal.totalClaimed = (cal.totalClaimed || 0) + 1;
-      cal.currentDay = Math.min(30, cal.currentDay + 1);
+      cal.claimedDays = Math.min(30, (cal.claimedDays || 0) + 1);
 
       state.eb = (Number(state.eb) || 0) + amount;
       Store.save();
       updateTopbar();
       updateCalendarHUD();
 
-      // Trigger flying +EB particle to HUD
+      // Trigger visual particles
       launchFlyingEBStream(clickX, clickY, amount);
       showToast(`🎉 Claimed +${amount} Elden Bucks Daily Reward!`);
 
-      // Broadcast daily login streak to live global feed!
+      // Broadcast login streak
       if (typeof Feed !== "undefined") {
-        Feed.broadcast("daily", { day: cal.totalClaimed });
+        Feed.broadcast("daily", { day: cal.claimedDays });
       }
 
-      // Auto-close calendar after claiming
+      // Re-render modal to show "✓ Claimed" and "🔒 Tomorrow"
+      renderCalendarModal();
+
       setTimeout(() => {
         closeModal("calendar-modal");
       }, 650);
     }
-
+    
     el("calendar-btn")?.addEventListener("click", () => {
       renderCalendarModal();
       openModal("calendar-modal");
