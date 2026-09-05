@@ -345,6 +345,11 @@
 
       // 3. Mount 3D Animated Character
       Character3D.init(map, currentPos.lon, currentPos.lat);
+
+      // 3.2. Initialize 3D Standing Foliage Engine
+      if (typeof Foliage !== "undefined") {
+        Foliage.init(map);
+      }
       
       // 3.5. Mount 3D Ground Sonar Layer (Locked to exact real-world meters)
       const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;

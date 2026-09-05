@@ -137,7 +137,7 @@ const Character3D = (() => {
 
         if (idleKey && animationsMap[idleKey]) {
           currentAction = animationsMap[idleKey];
-          currentAction.setEffectiveTimeScale(0.8); // Relaxed idle pace
+          currentAction.setEffectiveTimeScale(0.8);
           currentAction.play();
         }
 
