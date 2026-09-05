@@ -484,8 +484,7 @@ const Grid = (() => {
       });
     }
 
-    // Multiple render hooks to guarantee instantaneous plot display
-    map.on("idle", render);
+    // Render only on true camera movements and when Firestore broadcasts updates
     map.on("moveend zoomend", render);
     listenToGlobalPlots();
     render();
