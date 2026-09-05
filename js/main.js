@@ -182,19 +182,29 @@
       mayorStatusEl.textContent = "Checking realm...";
       if (typeof Leaderboard !== "undefined" && Leaderboard.fetchRankings) {
         Leaderboard.fetchRankings().then((data) => {
-          const myMayorships = data.mayors.filter(m => m.ownerId === targetOwnerId);
-          if (myMayorships.length > 0) {
-            const cityNames = myMayorships.map(m => m.city).join(", ");
-            mayorStatusEl.innerHTML = `👑 Mayor of <strong>${cityNames}</strong>`;
+          const myMayors = data.mayors.filter(m => m.ownerId === targetOwnerId);
+          const myGovs = data.governors.filter(g => g.ownerId === targetOwnerId);
+          const myPres = data.presidents.filter(p => p.ownerId === targetOwnerId);
+
+          const totalTitles = myMayors.length + myGovs.length + myPres.length;
+          const titlesList = [];
+
+          myMayors.forEach(m => titlesList.push(`👑 Mayor of ${m.territory}`));
+          myGovs.forEach(g => titlesList.push(`🏛️ Governor of ${g.territory}`));
+          myPres.forEach(p => titlesList.push(`🦅 President of ${p.territory}`));
+
+          if (titlesList.length > 0) {
+            mayorStatusEl.innerHTML = titlesList.join("<br>");
             mayorStatusEl.className = "mayor-crown-pill active-mayor";
+
+            const stackRate = Math.min(6, (myMayors.length ? 2 : 0) + (myGovs.length ? 2 : 0) + (myPres.length ? 2 : 0));
             if (royaltyBadge) {
-              royaltyBadge.textContent = "2% Royalty";
+              royaltyBadge.textContent = `${stackRate}% Royalty`;
               royaltyBadge.style.display = "inline-block";
             }
           } else {
             mayorStatusEl.innerHTML = `🛡️ Citizen of the Realm`;
             mayorStatusEl.className = "mayor-crown-pill";
-            // Hide or set to 0% for non-mayors
             if (royaltyBadge) {
               royaltyBadge.textContent = "0% (Citizen)";
               royaltyBadge.style.opacity = "0.6";
@@ -203,10 +213,8 @@
         });
       } else {
         mayorStatusEl.textContent = "🛡️ Citizen of the Realm";
-        if (royaltyBadge) royaltyBadge.style.display = "none";
       }
     }
-  }
 
   // ---------------- Sign-in & Sequenced Boot ----------------
   function onSignedIn(playerData) {
