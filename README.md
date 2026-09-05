@@ -185,5 +185,13 @@ All gameplay tuning parameters are centralized in **`js/config.js`**:
 ---
 
 ## 📄 License & Disclaimer
-
+(asset attribution 
+grass yellowing by Steve B [CC-BY] via Poly Pizza
+White Dandelions by Aeres Vistaas [CC-BY] via Poly Pizza
+Pine Tree by Quaternius
+Mushrooms by Jarlan Perez [CC-BY] via Poly Pizza
+Tower by Anonymous [CC-BY] via Poly Pizza
+Pine Tree Autumn by Quaternius
+Twisted Tree by Quaternius
+Bush with Flowers by Quaternius)
 This is a personal, open-source fan implementation of real-world grid collection games. Built from scratch with pure web standards for educational and entertainment purposes. For Shits and Giggles.
