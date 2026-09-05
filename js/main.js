@@ -1276,7 +1276,22 @@
       openModal("wheel-modal");
     });
     el("land-btn").addEventListener("click", () => { updateLandModal(); openModal("land-modal"); });
-    el("menu-btn").addEventListener("click", () => openModal("menu-modal"));
+
+    // --- Tutorial Unread Alert Dot Logic ---
+    const menuDot = el("menu-unread-dot");
+    const TUTORIAL_KEY = "eldenEarth.tutorialViewed.v1";
+
+    // Show glowing red dot if player hasn't opened the updated guide yet
+    if (!localStorage.getItem(TUTORIAL_KEY) && menuDot) {
+      menuDot.classList.remove("hidden");
+    }
+
+    el("menu-btn").addEventListener("click", () => {
+      // Mark viewed & remove alert dot
+      localStorage.setItem(TUTORIAL_KEY, "true");
+      if (menuDot) menuDot.classList.add("hidden");
+      openModal("menu-modal");
+    });
 
     document.querySelectorAll("[data-close]").forEach(btn => {
       btn.addEventListener("click", () => closeModal(btn.dataset.close));
