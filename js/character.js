@@ -16,10 +16,6 @@ const Character3D = (() => {
   let isWalking = false;
   let modelHeading = 0;
 
-  // 3D Procedural Grass Container
-  let plotsMeshGroup = null;
-  let pendingPlots = null;
-
   function init(map, initialLng, initialLat) {
     mapInstance = map;
     playerCoords = { lng: initialLng, lat: initialLat };
@@ -52,41 +48,31 @@ const Character3D = (() => {
         });
         renderer.autoClear = false;
 
-        // Container for 3D Grass
-        plotsMeshGroup = new THREE.Group();
-        scene.add(plotsMeshGroup);
-
         // Load saved character model
         const state = Store.get();
         const selectedId = state?.player?.model3d || "soldier";
         loadModel(selectedId);
-
-        if (pendingPlots) {
-          updatePlots(pendingPlots);
-          pendingPlots = null;
-        }
       },
       render: function (gl, matrix) {
-        // 1. Camera uses pure Mapbox projection matrix (renders whole world correctly!)
-        camera.projectionMatrix.fromArray(matrix);
+        if (!currentModel) return;
 
-        // 2. Position 3D Player Character at GPS Coordinates
-        if (currentModel) {
-          const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-            [playerCoords.lng, playerCoords.lat],
-            0
-          );
-          const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
+        const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+          [playerCoords.lng, playerCoords.lat],
+          0
+        );
 
-          currentModel.matrixAutoUpdate = false;
-          currentModel.matrix.identity()
-            .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
-            .scale(new THREE.Vector3(scale, -scale, scale))
-            .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
-            .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
-        }
+        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
 
-        // CLEAR DEPTH BUFFER: Ensures 3D meshes render cleanly above road textures
+        const m = new THREE.Matrix4().fromArray(matrix);
+        const l = new THREE.Matrix4()
+          .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
+          .scale(new THREE.Vector3(scale, -scale, scale))
+          .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
+          .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
+
+        camera.projectionMatrix = m.multiply(l);
+
+        // CLEAR DEPTH BUFFER: Ensures character renders on top of all 3D buildings!
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
         renderer.resetState();
@@ -151,7 +137,7 @@ const Character3D = (() => {
 
         if (idleKey && animationsMap[idleKey]) {
           currentAction = animationsMap[idleKey];
-          currentAction.setEffectiveTimeScale(0.8); // Relaxed idle pace
+          currentAction.setEffectiveTimeScale(0.8);
           currentAction.play();
         }
 
@@ -209,99 +195,6 @@ const Character3D = (() => {
     Store.save();
     loadModel(characterId);
   }
-  
-  // Stylized Chunky Low-Poly Grass Tuft (Vibrant, high-visibility 3D foliage)
-  function createGrassTuft(shade = 0) {
-    const group = new THREE.Group();
-    // 1.5m tall chunky stylized blades with visible angular faces
-    const bladeGeo = new THREE.ConeGeometry(0.35, 1.5, 4);
-    
-    // Rich Stylized Grass Colors (Emerald Green & Sunlit Lime)
-    const grassColors = [0x2ecc71, 0x1abc9c, 0x27ae60, 0x58d68d];
-    const bladeMat = new THREE.MeshLambertMaterial({ 
-      color: grassColors[shade % grassColors.length], 
-      flatShading: true 
-    });
 
-    for (let i = 0; i < 4; i++) {
-      const blade = new THREE.Mesh(bladeGeo, bladeMat);
-      const angle = (i / 4) * Math.PI * 2 + (Math.random() * 0.3);
-      blade.position.set(Math.cos(angle) * 0.45, 0.75, Math.sin(angle) * 0.45);
-      // Fan out gracefully from the center root
-      blade.rotation.set(
-        (Math.random() - 0.5) * 0.5, 
-        angle, 
-        (Math.random() - 0.5) * 0.5
-      );
-      blade.scale.set(0.9, 0.8 + Math.random() * 0.4, 0.9);
-      group.add(blade);
-    }
-    return group;
-  }
-
-  // Updates and renders vibrant procedural grass on all claimed tiles
-  function updatePlots(allPlots) {
-    if (!plotsMeshGroup) {
-      pendingPlots = allPlots;
-      return;
-    }
-
-    // Clear old grass
-    while (plotsMeshGroup.children.length > 0) {
-      plotsMeshGroup.remove(plotsMeshGroup.children[0]);
-    }
-
-    const tileSize = CONFIG.TILE_SIZE_METERS || 6.096;
-
-    for (const tid in allPlots) {
-      const p = allPlots[tid];
-      const px = parseInt(p.tx, 10);
-      const py = parseInt(p.ty, 10);
-
-      // Calculate centroid of tile
-      const centerMerc = Geo.fromMercator(
-        px * tileSize + tileSize / 2,
-        py * tileSize + tileSize / 2
-      );
-
-      const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-        [centerMerc.lon, centerMerc.lat],
-        0
-      );
-      const meterScale = modelCoord.meterInMercatorCoordinateUnits();
-
-      const tileGroup = new THREE.Group();
-
-      // Cluster 8 stylized grass tufts across the 10x10ft parcel surface
-      const offsets = [
-        [0, 0],
-        [-1.6, -1.6],
-        [1.6, -1.6],
-        [-1.6, 1.6],
-        [1.6, 1.6],
-        [0, -1.8],
-        [0, 1.8],
-        [-1.8, 0],
-      ];
-
-      offsets.forEach(([gx, gz], idx) => {
-        const tuft = createGrassTuft(idx);
-        tuft.position.set(gx, 0, gz);
-        tileGroup.add(tuft);
-      });
-
-      // Transform tile group into 3D Mapbox coordinate system
-      tileGroup.matrixAutoUpdate = false;
-      tileGroup.matrix.identity()
-        .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
-        .scale(new THREE.Vector3(meterScale, -meterScale, meterScale))
-        .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-
-      plotsMeshGroup.add(tileGroup);
-    }
-
-    if (mapInstance) mapInstance.triggerRepaint();
-  }
-
-  return { init, setPlayerPosition, changeCharacter, loadModel, updatePlots };
+  return { init, setPlayerPosition, changeCharacter, loadModel };
 })();
