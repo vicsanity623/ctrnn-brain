@@ -75,6 +75,33 @@ const Geo = (() => {
     coords.push(coords[0]); // Close ring
     return coords;
   }
+  
+  // Fast cached reverse-geocoding for City, State & Country Flag
+  const cityCache = {};
+  async function getCityName(lat, lon) {
+    // Round to ~2 miles to cache locally and prevent repeated API calls
+    const key = `${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    if (cityCache[key]) return cityCache[key];
 
-  return { toMercator, fromMercator, haversine, randomPointInRadius, tileForLatLon, tileBounds, createCirclePolygon };
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`);
+      const data = await res.json();
+      const addr = data.address || {};
+
+      const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "Unknown City";
+      const state = addr.state ? addr.state.slice(0, 2).toUpperCase() : "";
+      
+      // Emoji flag from country code
+      const cc = addr.country_code ? addr.country_code.toUpperCase() : "US";
+      const flag = cc.replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+
+      const formatted = `${city}${state ? ', ' + state : ''} ${flag}`;
+      cityCache[key] = formatted;
+      return formatted;
+    } catch (e) {
+      return "Phoenix, AZ 🇺🇸";
+    }
+  }
+
+  return { toMercator, fromMercator, haversine, randomPointInRadius, tileForLatLon, tileBounds, createCirclePolygon, getCityName };
 })();
