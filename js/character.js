@@ -70,11 +70,10 @@ const Character3D = (() => {
         }
       },
       render: function (gl, matrix) {
-        // Base Camera Projection Matrix from Mapbox
         const m = new THREE.Matrix4().fromArray(matrix);
         camera.projectionMatrix = m;
 
-        // Position & Orient 3D Player Character
+        // Position & Orient 3D Player Character (Upright & Right-Side Up)
         if (currentModel) {
           const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
             [playerCoords.lng, playerCoords.lat],
@@ -84,12 +83,12 @@ const Character3D = (() => {
           const pScale = meterScale * (currentModel.userData.scale || 4.8);
 
           currentModel.position.set(modelCoord.x, modelCoord.y, modelCoord.z);
+          // Upright Y-flip to match Mapbox Mercator projection
           currentModel.scale.set(pScale, -pScale, pScale);
-          // Correct Upright Rotation: X: 90 deg, Y: Heading, Z: 0
-          currentModel.rotation.set(Math.PI / 2, modelHeading, 0);
+          currentModel.rotation.set(-Math.PI / 2, 0, modelHeading);
         }
 
-        // CLEAR DEPTH BUFFER: Ensures character and 3D props render crisply on top of map terrain
+        // CLEAR DEPTH BUFFER: Ensures character and 3D props render on top of road textures
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
         renderer.resetState();
@@ -195,27 +194,27 @@ const Character3D = (() => {
       );
       const meterScale = tileCoord.meterInMercatorCoordinateUnits();
 
-      // 1. Mount 3D Grass Tile (Upright on ground)
+      // 1. Mount 3D Grass Tile (Upright on ground surface)
       if (propTemplates["grass"]) {
         const grass = propTemplates["grass"].scene.clone();
-        const gScale = meterScale * tileSize * (propTemplates["grass"].scale || 0.85);
+        const gScale = meterScale * tileSize * (propTemplates["grass"].scale || 0.08);
         grass.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
         grass.scale.set(gScale, -gScale, gScale);
-        grass.rotation.set(Math.PI / 2, 0, 0);
+        grass.rotation.set(-Math.PI / 2, 0, 0);
         plotsGroup.add(grass);
       }
 
-      // 2. Mount 3D Rarity Prop (Tree, Crystal, World Tree)
+      // 2. Mount 3D Rarity Prop (Upright tree planted in ground, trunk down, leaves up!)
       if (propTemplates[rarityKey]) {
         const prop = propTemplates[rarityKey].scene.clone();
-        const pScale = meterScale * tileSize * (propTemplates[rarityKey].scale || 1.0);
+        const pScale = meterScale * tileSize * (propTemplates[rarityKey].scale || 0.10);
         prop.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
         prop.scale.set(pScale, -pScale, pScale);
 
-        // Organic random rotation per plot
+        // Organic random Y-rotation per plot
         const seed = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
         const randomRot = (seed - Math.floor(seed)) * Math.PI * 2;
-        prop.rotation.set(Math.PI / 2, randomRot, 0);
+        prop.rotation.set(-Math.PI / 2, 0, randomRot);
 
         plotsGroup.add(prop);
       }
