@@ -1,5 +1,6 @@
 // ============================================================
-// Elden Earth — 3D WebGL Engine (Character + 3D Land Props)
+// Elden Earth — 3D Character Model (Three.js WebGL Custom Layer)
+// Renders animated .GLB models at player GPS with Idle <-> Walk blending.
 // ============================================================
 const Character3D = (() => {
   let mapInstance = null;
@@ -15,11 +16,6 @@ const Character3D = (() => {
   let isWalking = false;
   let modelHeading = 0;
 
-  // 3D Parcel Props System
-  let plotsGroup = null;
-  const propTemplates = {}; // key -> THREE.Group template
-  let pendingPlotsData = null;
-
   function init(map, initialLng, initialLat) {
     mapInstance = map;
     playerCoords = { lng: initialLng, lat: initialLat };
@@ -33,16 +29,16 @@ const Character3D = (() => {
         camera = new THREE.Camera();
         scene = new THREE.Scene();
 
-        // Balanced Lighting for Dark Fantasy Map
+        // Balanced Lighting for Dark Map
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
         scene.add(ambientLight);
 
         const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.0);
-        dirLight.position.set(30, 70, 40);
+        dirLight.position.set(20, 50, 20);
         scene.add(dirLight);
 
         const dirLight2 = new THREE.DirectionalLight(0x4fd6c4, 1.2);
-        dirLight2.position.set(-30, -50, 20);
+        dirLight2.position.set(-20, -50, 10);
         scene.add(dirLight2);
 
         renderer = new THREE.WebGLRenderer({
@@ -52,43 +48,31 @@ const Character3D = (() => {
         });
         renderer.autoClear = false;
 
-        // Container for all 3D Land Parcels
-        plotsGroup = new THREE.Group();
-        scene.add(plotsGroup);
-
-        // Preload 3D Prop Templates
-        preloadPropTemplates();
-
         // Load saved character model
         const state = Store.get();
         const selectedId = state?.player?.model3d || "soldier";
         loadModel(selectedId);
-
-        if (pendingPlotsData) {
-          updatePlots(pendingPlotsData);
-          pendingPlotsData = null;
-        }
       },
       render: function (gl, matrix) {
+        if (!currentModel) return;
+
+        const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+          [playerCoords.lng, playerCoords.lat],
+          0
+        );
+
+        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 4.8);
+
         const m = new THREE.Matrix4().fromArray(matrix);
-        camera.projectionMatrix = m;
+        const l = new THREE.Matrix4()
+          .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
+          .scale(new THREE.Vector3(scale, -scale, scale))
+          .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
+          .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
 
-        // Position & Orient 3D Player Character (Upright & Right-Side Up)
-        if (currentModel) {
-          const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-            [playerCoords.lng, playerCoords.lat],
-            0
-          );
-          const meterScale = modelCoord.meterInMercatorCoordinateUnits();
-          const pScale = meterScale * (currentModel.userData.scale || 4.8);
+        camera.projectionMatrix = m.multiply(l);
 
-          currentModel.position.set(modelCoord.x, modelCoord.y, modelCoord.z);
-          // Upright Y-flip to match Mapbox Mercator projection
-          currentModel.scale.set(pScale, -pScale, pScale);
-          currentModel.rotation.set(-Math.PI / 2, 0, modelHeading);
-        }
-
-        // CLEAR DEPTH BUFFER: Ensures character and 3D props render on top of road textures
+        // CLEAR DEPTH BUFFER: Ensures character renders on top of all 3D buildings!
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
         renderer.resetState();
@@ -127,102 +111,6 @@ const Character3D = (() => {
     });
   }
 
-  // Pre-load all GLB templates once
-  function preloadPropTemplates() {
-    const loader = new THREE.GLTFLoader();
-
-    // 1. Base Grass Tile
-    if (CONFIG.BASE_GRASS_MODEL) {
-      loader.load(
-        CONFIG.BASE_GRASS_MODEL.file,
-        (gltf) => {
-          propTemplates["grass"] = { scene: gltf.scene, scale: CONFIG.BASE_GRASS_MODEL.scale };
-          console.log("[Character3D] Loaded Grass Tile GLB.");
-          if (pendingPlotsData) updatePlots(pendingPlotsData);
-        },
-        undefined,
-        (err) => console.warn("[Character3D] Grass load error:", err)
-      );
-    }
-
-    // 2. Rarity Props
-    (CONFIG.PLOT_RARITIES || []).forEach((r) => {
-      if (!r.model) return;
-      loader.load(
-        r.model,
-        (gltf) => {
-          propTemplates[r.key] = { scene: gltf.scene, scale: r.scale || 1.0 };
-          console.log(`[Character3D] Loaded Prop GLB: ${r.label}`);
-          if (pendingPlotsData) updatePlots(pendingPlotsData);
-        },
-        undefined,
-        (err) => console.warn(`[Character3D] Prop ${r.key} load error:`, err)
-      );
-    });
-  }
-
-  // Update 3D Grass and Props for all claimed plots on the map
-  function updatePlots(allPlots) {
-    if (!plotsGroup) {
-      pendingPlotsData = allPlots;
-      return;
-    }
-
-    // Clear old plot meshes
-    while (plotsGroup.children.length > 0) {
-      plotsGroup.remove(plotsGroup.children[0]);
-    }
-
-    const tileSize = CONFIG.TILE_SIZE_METERS || 6.096;
-
-    for (const tid in allPlots) {
-      const p = allPlots[tid];
-      const rarityKey = p.rarity?.key || p.rarity || "common";
-
-      const px = parseInt(p.tx, 10);
-      const py = parseInt(p.ty, 10);
-
-      // Tile Centroid in Mercator
-      const centerMerc = Geo.fromMercator(
-        px * tileSize + tileSize / 2,
-        py * tileSize + tileSize / 2
-      );
-
-      const tileCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-        [centerMerc.lon, centerMerc.lat],
-        0
-      );
-      const meterScale = tileCoord.meterInMercatorCoordinateUnits();
-
-      // 1. Mount 3D Grass Tile (Upright on ground surface)
-      if (propTemplates["grass"]) {
-        const grass = propTemplates["grass"].scene.clone();
-        const gScale = meterScale * tileSize * (propTemplates["grass"].scale || 0.08);
-        grass.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
-        grass.scale.set(gScale, -gScale, gScale);
-        grass.rotation.set(-Math.PI / 2, 0, 0);
-        plotsGroup.add(grass);
-      }
-
-      // 2. Mount 3D Rarity Prop (Upright tree planted in ground, trunk down, leaves up!)
-      if (propTemplates[rarityKey]) {
-        const prop = propTemplates[rarityKey].scene.clone();
-        const pScale = meterScale * tileSize * (propTemplates[rarityKey].scale || 0.10);
-        prop.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
-        prop.scale.set(pScale, -pScale, pScale);
-
-        // Organic random Y-rotation per plot
-        const seed = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
-        const randomRot = (seed - Math.floor(seed)) * Math.PI * 2;
-        prop.rotation.set(-Math.PI / 2, 0, randomRot);
-
-        plotsGroup.add(prop);
-      }
-    }
-
-    if (mapInstance) mapInstance.triggerRepaint();
-  }
-
   function loadModel(characterId) {
     const config = CONFIG.AVAILABLE_CHARACTERS.find((c) => c.id === characterId) || CONFIG.AVAILABLE_CHARACTERS[0];
     const loader = new THREE.GLTFLoader();
@@ -249,10 +137,11 @@ const Character3D = (() => {
 
         if (idleKey && animationsMap[idleKey]) {
           currentAction = animationsMap[idleKey];
-          currentAction.setEffectiveTimeScale(0.8);
+          currentAction.setEffectiveTimeScale(0.8); // Relaxed idle pace
           currentAction.play();
         }
 
+        // Slow down walk animation so it's smooth and grounded
         if (walkKey && animationsMap[walkKey]) {
           animationsMap[walkKey].setEffectiveTimeScale(0.55);
         }
@@ -307,5 +196,5 @@ const Character3D = (() => {
     loadModel(characterId);
   }
 
-  return { init, setPlayerPosition, changeCharacter, loadModel, updatePlots };
+  return { init, setPlayerPosition, changeCharacter, loadModel };
 })();
