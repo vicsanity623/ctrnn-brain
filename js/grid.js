@@ -108,36 +108,17 @@ const Grid = (() => {
     onBuyAttempt(true, rarity);
     render();
 
-    // Trigger Mayorship 2% Dividend Payout to current city Mayor!
+    // 1. Trigger Mayorship 2% Dividend Payout
     if (typeof Leaderboard !== "undefined" && Leaderboard.awardMayorshipDividend) {
       Leaderboard.awardMayorshipDividend(detectedCity, state.player.id, CONFIG.PLOT_COST_EB);
     }
-    }
 
-    // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
+    // 2. Broadcast land claim to global feed with location tag
     if (typeof Feed !== "undefined") {
-      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
-      const cLat = (corners[0][0] + corners[2][0]) / 2;
-      const cLon = (corners[0][1] + corners[2][1]) / 2;
-      Feed.resolveCity(cLat, cLon).then((loc) => {
-        // Use exact tile ID to prevent duplicate callbacks
-        Feed.broadcast("land", { rarity: rarity.label, location: loc, tileId: tid });
-        if (typeof Leaderboard !== "undefined") {
-          Leaderboard.awardMayorshipDividend(loc, plotData.ownerId, CONFIG.PLOT_COST_EB);
-        }
-      });
+      Feed.broadcast("land", { rarity: rarity.label, location: detectedCity, tileId: tid });
     }
 
-    // Broadcast land claim to global feed with location tag
-    if (typeof Feed !== "undefined") {
-      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
-      const cLat = (corners[0][0] + corners[2][0]) / 2;
-      const cLon = (corners[0][1] + corners[2][1]) / 2;
-      Feed.resolveCity(cLat, cLon).then((loc) => {
-        Feed.broadcast("land", { rarity: rarity.label, location: loc });
-      });
-    }
-
+    // 3. Save to Firebase Firestore
     const db = Store.getDb();
     if (db) {
       try {
