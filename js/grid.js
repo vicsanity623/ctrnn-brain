@@ -156,11 +156,6 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // Render 3D Procedural Grass on claimed plots
-    if (typeof Character3D !== "undefined" && Character3D.updatePlots) {
-      Character3D.updatePlots(allPlots);
-    }
-
     // 1. RENDER CLAIMED PLOTS (Instantly)
     const claimedFeatures = [];
     for (const tid in allPlots) {
