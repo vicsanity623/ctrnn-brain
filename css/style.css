@@ -2385,3 +2385,20 @@ html,body{
 .lb-metric.gold { color: var(--gold-hi); }
 .lb-metric.teal { color: var(--teal); }
 .lb-unit { font-size: 9px; font-weight: 600; opacity: 0.8; }
+
+/* ================= 3D PARCEL PROPS & MUSHROOMS ================= */
+.parcel-prop-wrap {
+  width: 32px;
+  height: 32px;
+  pointer-events: none !important;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.75));
+}
+
+.parcel-prop-canvas {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
