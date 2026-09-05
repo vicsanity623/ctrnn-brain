@@ -381,6 +381,16 @@
     function setupGameLayers() {
       if (!map || !map.getStyle()) return;
 
+      // Smooth atmospheric horizon blend (eliminates dark void at 60 deg pitch)
+      if (map.setFog) {
+        map.setFog({
+          color: "#0d1420",
+          "horizon-blend": 0.08,
+          "high-color": "#080c14",
+          "space-color": "#060910"
+        });
+      }
+
       // 2. Add True 3D Extruded Buildings (if source exists)
       try {
         const layers = map.getStyle().layers || [];
@@ -512,112 +522,6 @@
 
     map.on("load", () => {
       setupGameLayers();
-
-      map.addLayer({
-        id: "3d-buildings",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["==", "extrude", "true"],
-        type: "fill-extrusion",
-        minzoom: 15,
-        paint: {
-          "fill-extrusion-color": "#182232",
-          "fill-extrusion-height": ["get", "height"],
-          "fill-extrusion-base": ["get", "min_height"],
-          "fill-extrusion-opacity": 0.85,
-        },
-      }, labelLayerId);
-
-      // 3. Mount 3D Animated Character
-      Character3D.init(map, currentPos.lon, currentPos.lat);
-
-      // 3.2. Initialize 3D Standing Foliage Engine
-      if (typeof Foliage !== "undefined") {
-        Foliage.init(map);
-      }
-      
-      // 3.5. Mount 3D Ground Sonar Layer (Locked to exact real-world meters)
-      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
-      const initialRing = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
-
-      map.addSource("player-sonar-source", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              properties: { type: "boundary" },
-              geometry: { type: "Polygon", coordinates: [initialRing] }
-            },
-            {
-              type: "Feature",
-              properties: { type: "center" },
-              geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
-            }
-          ]
-        }
-      });
-
-      // Static 100m Boundary Ring on terrain (updates ONLY when GPS moves)
-      map.addLayer({
-        id: "player-sonar-fill",
-        type: "fill",
-        source: "player-sonar-source",
-        filter: ["==", ["get", "type"], "boundary"],
-        paint: {
-          "fill-color": "#4fd6c4",
-          "fill-opacity": 0.05
-        }
-      }, labelLayerId);
-
-      map.addLayer({
-        id: "player-sonar-line",
-        type: "line",
-        source: "player-sonar-source",
-        paint: {
-          "line-color": "#4fd6c4",
-          "line-width": 2,
-          "line-dasharray": [3, 2],
-          "line-opacity": 0.85
-        }
-      }, labelLayerId);
-
-      // Zero-CPU GPU-composited expanding pulse waves (Pure CSS hardware accelerated)
-      const waveEl = document.createElement("div");
-      waveEl.className = "sonar-gpu-wave-container";
-      waveEl.innerHTML = `
-        <div class="sonar-gpu-wave wave-1"></div>
-        <div class="sonar-gpu-wave wave-2"></div>
-      `;
-
-      new mapboxgl.Marker({
-        element: waveEl,
-        pitchAlignment: "map",
-        rotationAlignment: "map"
-      })
-        .setLngLat([currentPos.lon, currentPos.lat])
-        .addTo(map);
-      
-      // 4. Initialize Core Game Subsystems
-      Grid.init(map, {
-        onBuyAttempt: (success, rarity) => {
-          if (success) {
-            showToast(`Claimed a ${rarity.label} plot!`);
-            updateTopbar();
-            updateLandModal();
-          } else {
-            showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
-          }
-        },
-      });
-      Grid.render();
-
-      Diamonds.init(map, {
-        onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
-        onDenied: () => showToast("Too far — walk closer to collect it."),
-      });
-      Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
     });
 
     Wheel.init();
