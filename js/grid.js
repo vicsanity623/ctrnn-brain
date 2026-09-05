@@ -69,11 +69,11 @@ const Grid = (() => {
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
 
-    // Determine real-world city from tile center coordinates
+    // Determine real-world City, State & Country from tile center
     const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
     const centerLat = (corners[0][0] + corners[2][0]) / 2;
     const centerLon = (corners[0][1] + corners[2][1]) / 2;
-    const detectedCity = await Geo.getCityName(centerLat, centerLon);
+    const territory = await Geo.getTerritoryInfo(centerLat, centerLon);
 
     if (map) {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
@@ -93,7 +93,9 @@ const Grid = (() => {
     const plotData = {
       tx,
       ty,
-      city: detectedCity, // Real city saved to Firestore!
+      city: territory.city,
+      state: territory.state,
+      country: territory.country,
       rarity: rarity.key,
       rate: rarity.rate,
       ownerId: state.player.id || "guest-" + Math.random().toString(36).slice(2, 8),
@@ -108,14 +110,14 @@ const Grid = (() => {
     onBuyAttempt(true, rarity);
     render();
 
-    // 1. Trigger Mayorship 2% Dividend Payout
-    if (typeof Leaderboard !== "undefined" && Leaderboard.awardMayorshipDividend) {
-      Leaderboard.awardMayorshipDividend(detectedCity, state.player.id, CONFIG.PLOT_COST_EB);
+    // 1. Trigger Multi-Tier Stackable Dividends (Mayor, Governor, President)
+    if (typeof Leaderboard !== "undefined" && Leaderboard.awardTerritoryDividends) {
+      Leaderboard.awardTerritoryDividends(territory, state.player.id, CONFIG.PLOT_COST_EB);
     }
 
-    // 2. Broadcast land claim to global feed with location tag
+    // 2. Broadcast land claim to global feed
     if (typeof Feed !== "undefined") {
-      Feed.broadcast("land", { rarity: rarity.label, location: detectedCity, tileId: tid });
+      Feed.broadcast("land", { rarity: rarity.label, location: territory.city, tileId: tid });
     }
 
     // 3. Save to Firebase Firestore
