@@ -318,7 +318,7 @@
       });
     }
 
-    // Catch tile 429 rate limit or 401/403 quota exhaustion
+    // Catch fatal errors AND silent tile HTTP 403/429 failures
     map.on("error", (e) => {
       const status = e?.error?.status;
       const msg = (e?.error?.message || "").toLowerCase();
@@ -327,6 +327,16 @@
         msg.includes("429") || msg.includes("forbidden") || msg.includes("unauthorized") || msg.includes("quota")
       ) {
         triggerMapFallback();
+      }
+    });
+
+    // Tile-Level Watcher: Detects if base tiles fail silently and triggers instant recovery
+    map.on("dataloading", (e) => {
+      if (e.dataType === "source" && e.error) {
+        const status = e.error.status;
+        if (status === 401 || status === 403 || status === 429) {
+          triggerMapFallback();
+        }
       }
     });
 
