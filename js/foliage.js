@@ -1,12 +1,13 @@
 // ============================================================
-// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Randomized)
+// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Zero-Context High-Perf)
 // ============================================================
 const Foliage = (() => {
   let mapInstance = null;
   let isImageLoaded = false;
   let activeMarkers = [];
+  let cachedMushroomImgSrc = null;
 
-  // Realistic, shorter stylized grass blade sprite
+  // Realistic stylized grass blade sprite
   function createGrassImage(callback) {
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
@@ -31,20 +32,12 @@ const Foliage = (() => {
           </radialGradient>
         </defs>
 
-        <!-- Soft Ground Contact Shadow -->
         <ellipse cx="48" cy="90" rx="32" ry="5" fill="url(#rootShadow)"/>
-
-        <!-- Shorter, Curved Organic Blades -->
         <path d="M 48 90 Q 24 65 18 38 Q 32 52 48 90" fill="url(#bladeBack)" opacity="0.9"/>
         <path d="M 48 90 Q 72 62 78 35 Q 64 50 48 90" fill="url(#bladeBack)" opacity="0.9"/>
-
         <path d="M 48 90 Q 34 50 30 20 Q 42 42 48 90" fill="url(#bladeFront)"/>
         <path d="M 48 90 Q 62 48 66 18 Q 54 40 48 90" fill="url(#bladeFront)"/>
-
-        <!-- Center Blade -->
         <path d="M 48 90 Q 45 32 48 6 Q 51 32 48 90" fill="url(#bladeFront)"/>
-
-        <!-- Front Sprouts -->
         <path d="M 48 90 Q 40 70 36 52 Q 44 64 48 90" fill="#a8f5ec"/>
         <path d="M 48 90 Q 56 70 60 52 Q 52 64 48 90" fill="#58d68d"/>
       </svg>
@@ -55,65 +48,73 @@ const Foliage = (() => {
     img.onload = () => callback(img);
   }
 
-  // Preload 3D Mushroom GLB
-  let mushroomGLTF = null;
+  // Pre-render 3D Mushroom GLB ONCE into a lightweight image sprite
   function preloadMushroom() {
     if (typeof THREE === "undefined" || !THREE.GLTFLoader) return;
     const loader = new THREE.GLTFLoader();
     loader.load(
       "models/mush_common.glb",
       (gltf) => {
-        mushroomGLTF = gltf;
-        update();
+        try {
+          const offCanvas = document.createElement("canvas");
+          offCanvas.width = 128;
+          offCanvas.height = 128;
+
+          const renderer = new THREE.WebGLRenderer({ canvas: offCanvas, alpha: true, antialias: true });
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+          camera.position.set(0, 1.2, 2.5);
+          camera.lookAt(0, 0.4, 0);
+
+          const ambLight = new THREE.AmbientLight(0xffffff, 1.8);
+          scene.add(ambLight);
+
+          const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.4);
+          dirLight.position.set(3, 5, 4);
+          scene.add(dirLight);
+
+          const clone = gltf.scene.clone();
+          const box = new THREE.Box3().setFromObject(clone);
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const scale = 1.15 / maxDim;
+          clone.scale.set(scale, scale, scale);
+
+          box.setFromObject(clone);
+          clone.position.y = -box.min.y;
+          scene.add(clone);
+
+          renderer.render(scene, camera);
+          cachedMushroomImgSrc = offCanvas.toDataURL();
+
+          // DISPOSE RENDERER IMMEDIATELY: Releases WebGL context so it never leaks!
+          renderer.dispose();
+          renderer.forceContextLoss();
+          update();
+        } catch (e) {
+          console.warn("[Foliage] Pre-render notice:", e);
+        }
       },
       undefined,
-      (err) => console.warn("[Foliage] mush_common.glb notice:", err)
+      (err) => {
+        // Fallback mushroom emoji if GLB is missing
+        cachedMushroomImgSrc = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><text y="50" font-size="48">🍄</text></svg>`
+        );
+        update();
+      }
     );
   }
 
-  // Mini 3D Canvas Billboard for Mushroom
+  // Zero-WebGL Lightweight Image Billboard
   function create3DMushroomElement() {
     const wrap = document.createElement("div");
     wrap.className = "parcel-prop-wrap";
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
-    canvas.className = "parcel-prop-canvas";
-    wrap.appendChild(canvas);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 1.2, 2.5);
-    camera.lookAt(0, 0.4, 0);
-
-    const ambLight = new THREE.AmbientLight(0xffffff, 1.6);
-    scene.add(ambLight);
-
-    const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.2);
-    dirLight.position.set(3, 5, 4);
-    scene.add(dirLight);
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-      alpha: true,
-      antialias: true
-    });
-    renderer.setSize(30, 30);
-
-    if (mushroomGLTF) {
-      const clone = mushroomGLTF.scene.clone();
-      const box = new THREE.Box3().setFromObject(clone);
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 1.05 / maxDim;
-      clone.scale.set(scale, scale, scale);
-
-      box.setFromObject(clone);
-      clone.position.y = -box.min.y;
-
-      scene.add(clone);
-      renderer.render(scene, camera);
+    if (cachedMushroomImgSrc) {
+      wrap.innerHTML = `<img src="${cachedMushroomImgSrc}" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));display:block;">`;
+    } else {
+      wrap.innerHTML = `<span style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));">🍄</span>`;
     }
 
     return wrap;
@@ -141,10 +142,9 @@ const Foliage = (() => {
       data: { type: "FeatureCollection", features: [] },
     });
 
-    const layers = mapInstance.getStyle().layers;
+    const layers = mapInstance.getStyle().layers || [];
     const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
 
-    // Upright, Shorter Stylized Grass Layer with Size Interpolation
     mapInstance.addLayer({
       id: "foliage-layer",
       type: "symbol",
@@ -155,7 +155,6 @@ const Foliage = (() => {
         "icon-anchor": "bottom",
         "icon-pitch-alignment": "viewport",
         "icon-rotation-alignment": "viewport",
-        // Shorter, realistic scaling curve (50% shorter than before)
         "icon-size": [
           "interpolate",
           ["linear"],
@@ -179,7 +178,6 @@ const Foliage = (() => {
     }, labelLayerId);
   }
 
-  // Deterministic random number generator based on tile seed
   function seededRandom(seed) {
     const x = Math.sin(seed++) * 10000;
     return x - Math.floor(x);
@@ -202,7 +200,6 @@ const Foliage = (() => {
       const px = parseInt(p.tx, 10);
       const py = parseInt(p.ty, 10);
 
-      // Unique seed per tile
       let seed = Math.abs(px * 374761393 + py * 668265263);
 
       const c = Geo.fromMercator(
@@ -210,22 +207,16 @@ const Foliage = (() => {
         py * tileSize + tileSize / 2
       );
 
-      // Distribute 5 to 7 organically scattered grass tufts per tile
       const tuftCount = 5 + Math.floor(seededRandom(seed++) * 3);
 
       for (let i = 0; i < tuftCount; i++) {
-        // Random offset within the 10x10ft bounding box (~ +/- 0.000022 deg)
         const offsetX = (seededRandom(seed++) - 0.5) * 0.000036;
         const offsetY = (seededRandom(seed++) - 0.5) * 0.000036;
-        
-        // Random scale variation: 0.65x (small) to 1.15x (lush)
         const randomScale = 0.65 + seededRandom(seed++) * 0.5;
 
         grassFeatures.push({
           type: "Feature",
-          properties: {
-            scale: randomScale
-          },
+          properties: { scale: randomScale },
           geometry: {
             type: "Point",
             coordinates: [c.lon + offsetX, c.lat + offsetY]
