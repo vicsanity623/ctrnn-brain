@@ -539,7 +539,7 @@
         }
       });
 
-      // Subtle turquoise radar aura on the terrain
+      // Static 100m Boundary Ring on terrain (updates ONLY when GPS moves)
       map.addLayer({
         id: "player-sonar-fill",
         type: "fill",
@@ -551,39 +551,6 @@
         }
       }, labelLayerId);
 
-      // Dedicated GeoJSON Source for the Expanding Shockwave
-      map.addSource("player-wave-source", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: []
-        }
-      });
-
-      // Expanding Wave Fill (soft gradient)
-      map.addLayer({
-        id: "player-wave-fill",
-        type: "fill",
-        source: "player-wave-source",
-        paint: {
-          "fill-color": "#4fd6c4",
-          "fill-opacity": 0.12
-        }
-      }, labelLayerId);
-
-      // Expanding Wave Crest (outer ripple ring)
-      map.addLayer({
-        id: "player-wave-line",
-        type: "line",
-        source: "player-wave-source",
-        paint: {
-          "line-color": "#4fd6c4",
-          "line-width": 2,
-          "line-opacity": 0.6
-        }
-      }, labelLayerId);
-
-      // Exact 100m Outer Dashed Boundary Ring
       map.addLayer({
         id: "player-sonar-line",
         type: "line",
@@ -596,61 +563,21 @@
         }
       }, labelLayerId);
 
-      // Power-Optimized Geodesic Pulse Animation (Throttled & Background-Aware)
-      const pulseDuration = 3400;
-      let pulseStart = performance.now();
-      let lastPulseUpdate = 0;
+      // Zero-CPU GPU-composited expanding pulse waves (Pure CSS hardware accelerated)
+      const waveEl = document.createElement("div");
+      waveEl.className = "sonar-gpu-wave-container";
+      waveEl.innerHTML = `
+        <div class="sonar-gpu-wave wave-1"></div>
+        <div class="sonar-gpu-wave wave-2"></div>
+      `;
 
-      function animatePulse(timestamp) {
-        if (document.hidden) {
-          pulseAnimId = null;
-          return; // Sleep completely while phone is locked or app is in background
-        }
-
-        pulseAnimId = requestAnimationFrame(animatePulse);
-
-        // Throttle coordinate re-generation to 20fps (~50ms) to reduce CPU/GPU heat by 66%
-        if (timestamp - lastPulseUpdate < 50) return;
-        lastPulseUpdate = timestamp;
-
-        if (!map || !map.getSource("player-wave-source") || !currentPos) return;
-
-        const elapsed = (timestamp - pulseStart) % pulseDuration;
-        const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
-
-        // Ease-out curve: ripples outward, slows gracefully at border
-        const easeOut = 1 - Math.pow(1 - linearProgress, 2.4);
-        const currentRadius = Math.max(2, easeOut * radiusM);
-
-        // Soft fade before resetting
-        const fadeProgress = Math.pow(1 - linearProgress, 1.6);
-        const fillOpacity = fadeProgress * 0.12;
-        const lineOpacity = fadeProgress * 0.7;
-
-        // 36 points is visually smooth on mobile while saving polygon compute
-        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 36);
-
-        map.getSource("player-wave-source").setData({
-          type: "FeatureCollection",
-          features: [{
-            type: "Feature",
-            geometry: { type: "Polygon", coordinates: [wavePoly] }
-          }]
-        });
-
-        map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
-        map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
-      }
-      pulseAnimId = requestAnimationFrame(animatePulse);
-
-      // Auto-resume pulse animation when returning to app
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden && !pulseAnimId) {
-          pulseStart = performance.now();
-          lastPulseUpdate = 0;
-          pulseAnimId = requestAnimationFrame(animatePulse);
-        }
-      });
+      new mapboxgl.Marker({
+        element: waveEl,
+        pitchAlignment: "map",
+        rotationAlignment: "map"
+      })
+        .setLngLat([currentPos.lon, currentPos.lat])
+        .addTo(map);
       
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
