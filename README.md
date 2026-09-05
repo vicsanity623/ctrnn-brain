@@ -190,12 +190,12 @@ This is a personal, open-source fan implementation of real-world grid collection
 
 ---
 ## 👥 3D Assets Attribution
-- asset attribution 
-*grass yellowing by Steve B [CC-BY] via Poly Pizza
-White Dandelions by Aeres Vistaas [CC-BY] via Poly Pizza
-Pine Tree by Quaternius
-Mushrooms by Jarlan Perez [CC-BY] via Poly Pizza
-Tower by Anonymous [CC-BY] via Poly Pizza
-Pine Tree Autumn by Quaternius
-Twisted Tree by Quaternius
-Bush with Flowers by Quaternius*
+- asset attribution,
+- **grass yellowing by Steve B [CC-BY] via Poly Pizza,**
+- **White Dandelions by Aeres Vistaas [CC-BY] via Poly Pizza,**
+- **Pine Tree by Quaternius,**
+- **Mushrooms by Jarlan Perez [CC-BY] via Poly Pizza,**
+- **Tower by Anonymous [CC-BY] via Poly Pizza,**
+- **Pine Tree Autumn by Quaternius,**
+- **Twisted Tree by Quaternius,**
+- **Bush with Flowers by Quaternius,**
