@@ -294,7 +294,7 @@
       ? (CONFIG.FALLBACK_STYLE_URL || "https://tiles.openfreemap.org/styles/dark")
       : (CONFIG.MAPBOX_STYLE_URL || "mapbox://styles/mapbox/dark-v11");
 
-    // 1. Initialize Mapbox 3D Camera (Power-Optimized & Locked to Player)
+    // 1. Initialize Mapbox 3D Camera (Full Perspective Tile Cache)
     map = new mapboxgl.Map({
       container: "map",
       style: initialStyle,
@@ -305,11 +305,9 @@
       pitch: 60,
       bearing: 0,
       antialias: true,
-      fadeDuration: 0, // Eliminates label fade CPU thrashing
       dragPan: false,  // Map stays locked to player (cannot scroll away)
       dragRotate: true,
       touchZoomRotate: true,
-      maxTileCacheSize: 30, // Prevents RAM inflation on mobile
     });
 
     // --- Automatic Rate-Limit / Quota Exhaustion Fallback Handler ---
