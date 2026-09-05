@@ -1,59 +1,61 @@
 // ============================================================
-// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Mapbox 2.5D Engine)
+// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Randomized)
 // ============================================================
 const Foliage = (() => {
   let mapInstance = null;
   let isImageLoaded = false;
-  let activeMarkers = []; // HTML billboard markers for 3D GLB props
+  let activeMarkers = [];
 
-  // Realistic stylized grass sprite generator
+  // Realistic, shorter stylized grass blade sprite
   function createGrassImage(callback) {
     const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
         <defs>
           <linearGradient id="bladeFront" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color="#a8f5ec"/>
-            <stop offset="25%" stop-color="#58d68d"/>
-            <stop offset="85%" stop-color="#1e824c"/>
+            <stop offset="30%" stop-color="#2ecc71"/>
+            <stop offset="85%" stop-color="#1b7a43"/>
             <stop offset="100%" stop-color="#0e4425"/>
           </linearGradient>
+
           <linearGradient id="bladeBack" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#52be80"/>
-            <stop offset="40%" stop-color="#229954"/>
-            <stop offset="90%" stop-color="#145a32"/>
+            <stop offset="0%" stop-color="#58d68d"/>
+            <stop offset="50%" stop-color="#229954"/>
             <stop offset="100%" stop-color="#0b301a"/>
           </linearGradient>
-          <linearGradient id="bladeGold" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#f9e79f"/>
-            <stop offset="30%" stop-color="#48c9b0"/>
-            <stop offset="85%" stop-color="#16a085"/>
-            <stop offset="100%" stop-color="#0b301a"/>
-          </linearGradient>
+
           <radialGradient id="rootShadow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="rgba(0,0,0,0.7)"/>
-            <stop offset="60%" stop-color="rgba(0,0,0,0.3)"/>
+            <stop offset="0%" stop-color="rgba(0,0,0,0.6)"/>
+            <stop offset="70%" stop-color="rgba(0,0,0,0.2)"/>
             <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
           </radialGradient>
         </defs>
-        <ellipse cx="64" cy="122" rx="42" ry="6" fill="url(#rootShadow)"/>
-        <path d="M 64 122 Q 32 85 24 45 Q 42 68 64 122" fill="url(#bladeBack)" opacity="0.9"/>
-        <path d="M 64 122 Q 96 82 106 42 Q 88 66 64 122" fill="url(#bladeBack)" opacity="0.9"/>
-        <path d="M 64 122 Q 44 70 38 28 Q 54 58 64 122" fill="url(#bladeFront)"/>
-        <path d="M 64 122 Q 84 68 92 25 Q 74 56 64 122" fill="url(#bladeGold)"/>
-        <path d="M 64 122 Q 52 50 48 12 Q 60 45 64 122" fill="url(#bladeFront)"/>
-        <path d="M 64 122 Q 76 52 80 14 Q 68 46 64 122" fill="url(#bladeBack)"/>
-        <path d="M 64 122 Q 60 40 64 4 Q 68 40 64 122" fill="url(#bladeGold)"/>
-        <path d="M 64 122 Q 54 95 48 72 Q 58 88 64 122" fill="#a8f5ec" opacity="0.85"/>
-        <path d="M 64 122 Q 74 96 80 74 Q 70 88 64 122" fill="#58d68d" opacity="0.85"/>
+
+        <!-- Soft Ground Contact Shadow -->
+        <ellipse cx="48" cy="90" rx="32" ry="5" fill="url(#rootShadow)"/>
+
+        <!-- Shorter, Curved Organic Blades -->
+        <path d="M 48 90 Q 24 65 18 38 Q 32 52 48 90" fill="url(#bladeBack)" opacity="0.9"/>
+        <path d="M 48 90 Q 72 62 78 35 Q 64 50 48 90" fill="url(#bladeBack)" opacity="0.9"/>
+
+        <path d="M 48 90 Q 34 50 30 20 Q 42 42 48 90" fill="url(#bladeFront)"/>
+        <path d="M 48 90 Q 62 48 66 18 Q 54 40 48 90" fill="url(#bladeFront)"/>
+
+        <!-- Center Blade -->
+        <path d="M 48 90 Q 45 32 48 6 Q 51 32 48 90" fill="url(#bladeFront)"/>
+
+        <!-- Front Sprouts -->
+        <path d="M 48 90 Q 40 70 36 52 Q 44 64 48 90" fill="#a8f5ec"/>
+        <path d="M 48 90 Q 56 70 60 52 Q 52 64 48 90" fill="#58d68d"/>
       </svg>
     `;
 
-    const img = new Image(128, 128);
+    const img = new Image(96, 96);
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
     img.onload = () => callback(img);
   }
 
-  // Preload and cache the 3D Mushroom model
+  // Preload 3D Mushroom GLB
   let mushroomGLTF = null;
   function preloadMushroom() {
     if (typeof THREE === "undefined" || !THREE.GLTFLoader) return;
@@ -62,15 +64,14 @@ const Foliage = (() => {
       "models/mush_common.glb",
       (gltf) => {
         mushroomGLTF = gltf;
-        console.log("[Foliage] 3D mush_common.glb loaded successfully.");
         update();
       },
       undefined,
-      (err) => console.warn("[Foliage] mush_common.glb load notice:", err)
+      (err) => console.warn("[Foliage] mush_common.glb notice:", err)
     );
   }
 
-  // Creates a clean, isolated 3D canvas for a single parcel mushroom
+  // Mini 3D Canvas Billboard for Mushroom
   function create3DMushroomElement() {
     const wrap = document.createElement("div");
     wrap.className = "parcel-prop-wrap";
@@ -81,7 +82,6 @@ const Foliage = (() => {
     canvas.className = "parcel-prop-canvas";
     wrap.appendChild(canvas);
 
-    // Mini Three.js Scene inside the marker
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.set(0, 1.2, 2.5);
@@ -99,19 +99,16 @@ const Foliage = (() => {
       alpha: true,
       antialias: true
     });
-    renderer.setSize(32, 32);
+    renderer.setSize(30, 30);
 
     if (mushroomGLTF) {
       const clone = mushroomGLTF.scene.clone();
-      
-      // Auto-fit bounding box to 10x10 cell proportion
       const box = new THREE.Box3().setFromObject(clone);
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 1.1 / maxDim; // Fits inside 32px viewport
+      const scale = 1.05 / maxDim;
       clone.scale.set(scale, scale, scale);
 
-      // Center at base
       box.setFromObject(clone);
       clone.position.y = -box.min.y;
 
@@ -147,7 +144,7 @@ const Foliage = (() => {
     const layers = mapInstance.getStyle().layers;
     const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
 
-    // Upright Standing Grass Layer
+    // Upright, Shorter Stylized Grass Layer with Size Interpolation
     mapInstance.addLayer({
       id: "foliage-layer",
       type: "symbol",
@@ -158,13 +155,14 @@ const Foliage = (() => {
         "icon-anchor": "bottom",
         "icon-pitch-alignment": "viewport",
         "icon-rotation-alignment": "viewport",
+        // Shorter, realistic scaling curve (50% shorter than before)
         "icon-size": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          16.5, 0.28,
-          18.5, 0.55,
-          20, 0.85
+          16.5, ["*", 0.16, ["get", "scale"]],
+          18.5, ["*", 0.32, ["get", "scale"]],
+          20,   ["*", 0.52, ["get", "scale"]]
         ],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
@@ -181,10 +179,15 @@ const Foliage = (() => {
     }, labelLayerId);
   }
 
+  // Deterministic random number generator based on tile seed
+  function seededRandom(seed) {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
   function update() {
     if (!mapInstance || !isImageLoaded || !mapInstance.getSource("foliage-source")) return;
 
-    // Clear old prop markers
     activeMarkers.forEach(m => m.remove());
     activeMarkers = [];
 
@@ -199,37 +202,50 @@ const Foliage = (() => {
       const px = parseInt(p.tx, 10);
       const py = parseInt(p.ty, 10);
 
-      // Centroid of the parcel
+      // Unique seed per tile
+      let seed = Math.abs(px * 374761393 + py * 668265263);
+
       const c = Geo.fromMercator(
         px * tileSize + tileSize / 2,
         py * tileSize + tileSize / 2
       );
 
-      // 1. Distribute grass tufts across every claimed parcel
-      const offsets = [
-        [-0.000018, -0.000018],
-        [0.000018, -0.000018],
-        [-0.000018, 0.000018],
-        [0.000018, 0.000018],
-      ];
+      // Distribute 5 to 7 organically scattered grass tufts per tile
+      const tuftCount = 5 + Math.floor(seededRandom(seed++) * 3);
 
-      offsets.forEach(([dLon, dLat]) => {
+      for (let i = 0; i < tuftCount; i++) {
+        // Random offset within the 10x10ft bounding box (~ +/- 0.000022 deg)
+        const offsetX = (seededRandom(seed++) - 0.5) * 0.000036;
+        const offsetY = (seededRandom(seed++) - 0.5) * 0.000036;
+        
+        // Random scale variation: 0.65x (small) to 1.15x (lush)
+        const randomScale = 0.65 + seededRandom(seed++) * 0.5;
+
         grassFeatures.push({
           type: "Feature",
-          geometry: { type: "Point", coordinates: [c.lon + dLon, c.lat + dLat] }
+          properties: {
+            scale: randomScale
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [c.lon + offsetX, c.lat + offsetY]
+          }
         });
-      });
+      }
 
-      // 2. If Common Plot, place the 3D Common Mushroom in the center of the parcel!
+      // If Common Plot, place the 3D Common Mushroom slightly offset in the grass
       if (rarityKey === "common" && zoom >= 15.5) {
+        const mushOffsetX = (seededRandom(seed++) - 0.5) * 0.000015;
+        const mushOffsetY = (seededRandom(seed++) - 0.5) * 0.000015;
+
         const mushEl = create3DMushroomElement();
         const m = new mapboxgl.Marker({
           element: mushEl,
-          anchor: "bottom",              // Grounded firmly on top of the grass
-          pitchAlignment: "viewport",    // Upright 3D billboard
-          rotationAlignment: "viewport", // Faces player camera continuously
+          anchor: "bottom",
+          pitchAlignment: "viewport",
+          rotationAlignment: "viewport",
         })
-          .setLngLat([c.lon, c.lat])
+          .setLngLat([c.lon + mushOffsetX, c.lat + mushOffsetY])
           .addTo(mapInstance);
 
         activeMarkers.push(m);
