@@ -172,23 +172,20 @@
     // --- Populate Mayorship & Dividends Card ---
     const mayorStatusEl = el("info-mayor-status");
     const dividendsEl = el("info-total-dividends");
+    const royaltyBadge = el("info-royalty-badge") || document.querySelector(".mayorship-dividends-card .btn-royalty, .mayorship-dividends-card span:last-child");
 
     let totalDiv = isOtherPlayer ? 0 : (state.totalDividends || 0);
     if (dividendsEl) dividendsEl.textContent = `${totalDiv} EB`;
-
-    const royaltyBadge = el("info-royalty-badge") || document.querySelector(".mayorship-dividends-card .btn-royalty, .mayorship-dividends-card span:last-child");
 
     if (mayorStatusEl) {
       mayorStatusEl.textContent = "Checking realm...";
       if (typeof Leaderboard !== "undefined" && Leaderboard.fetchRankings) {
         Leaderboard.fetchRankings().then((data) => {
-          const myMayors = data.mayors.filter(m => m.ownerId === targetOwnerId);
-          const myGovs = data.governors.filter(g => g.ownerId === targetOwnerId);
-          const myPres = data.presidents.filter(p => p.ownerId === targetOwnerId);
+          const myMayors = (data.mayors || []).filter(m => m.ownerId === targetOwnerId);
+          const myGovs = (data.governors || []).filter(g => g.ownerId === targetOwnerId);
+          const myPres = (data.presidents || []).filter(p => p.ownerId === targetOwnerId);
 
-          const totalTitles = myMayors.length + myGovs.length + myPres.length;
           const titlesList = [];
-
           myMayors.forEach(m => titlesList.push(`👑 Mayor of ${m.territory}`));
           myGovs.forEach(g => titlesList.push(`🏛️ Governor of ${g.territory}`));
           myPres.forEach(p => titlesList.push(`🦅 President of ${p.territory}`));
@@ -215,6 +212,7 @@
         mayorStatusEl.textContent = "🛡️ Citizen of the Realm";
       }
     }
+  }
 
   // ---------------- Sign-in & Sequenced Boot ----------------
   function onSignedIn(playerData) {
