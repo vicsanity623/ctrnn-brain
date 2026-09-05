@@ -267,7 +267,7 @@
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
   
-  // ---------------- 3D Map / Game Launch ----------------
+  // ---------------- 3D Map / Game Launch with Auto-Fallback ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     el("locate-screen")?.classList.add("hidden");
@@ -277,10 +277,15 @@
     const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
     mapboxgl.accessToken = mbToken;
 
+    // Initial style: Mapbox Dark (or OpenFreeMap if configured directly)
+    const initialStyle = CONFIG.USE_OPENFREEMAP_DIRECTLY
+      ? (CONFIG.FALLBACK_STYLE_URL || "https://tiles.openfreemap.org/styles/dark")
+      : (CONFIG.MAPBOX_STYLE_URL || "mapbox://styles/mapbox/dark-v11");
+
     // 1. Initialize Mapbox 3D Camera (Power-Optimized & Locked to Player)
     map = new mapboxgl.Map({
       container: "map",
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: initialStyle,
       center: [currentPos.lon, currentPos.lat],
       zoom: 18.5,
       minZoom: 15.2,   // 1 mile max zoom-out
@@ -293,6 +298,36 @@
       dragRotate: true,
       touchZoomRotate: true,
       maxTileCacheSize: 30, // Prevents RAM inflation on mobile
+    });
+
+    // --- Automatic Rate-Limit / Quota Exhaustion Fallback Handler ---
+    let hasSwitchedToFallback = CONFIG.USE_OPENFREEMAP_DIRECTLY || false;
+
+    function triggerMapFallback() {
+      if (hasSwitchedToFallback) return;
+      hasSwitchedToFallback = true;
+      console.warn("[MapEngine] Rate limit or quota exceeded! Hot-swapping to OpenFreeMap...");
+      showToast("⚠️ Mapbox limit reached — switched to free backup map!");
+
+      const backupStyle = CONFIG.FALLBACK_STYLE_URL || "https://tiles.openfreemap.org/styles/dark";
+      map.setStyle(backupStyle);
+
+      // Re-attach all game layers and 3D character once the backup style finishes mounting
+      map.once("style.load", () => {
+        setupGameLayers();
+      });
+    }
+
+    // Catch tile 429 rate limit or 401/403 quota exhaustion
+    map.on("error", (e) => {
+      const status = e?.error?.status;
+      const msg = (e?.error?.message || "").toLowerCase();
+      if (
+        status === 429 || status === 401 || status === 403 ||
+        msg.includes("429") || msg.includes("forbidden") || msg.includes("unauthorized") || msg.includes("quota")
+      ) {
+        triggerMapFallback();
+      }
     });
 
     // Smooth 1-finger camera orbit around player
@@ -323,10 +358,140 @@
       if (currentPos) map.setCenter([currentPos.lon, currentPos.lat]);
     });
 
+    function setupGameLayers() {
+      if (!map || !map.getStyle()) return;
+
+      // 2. Add True 3D Extruded Buildings (if source exists)
+      try {
+        const layers = map.getStyle().layers || [];
+        const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+
+        if (!map.getLayer("3d-buildings") && (map.getSource("composite") || map.getSource("openmaptiles"))) {
+          const buildingSource = map.getSource("composite") ? "composite" : "openmaptiles";
+          map.addLayer({
+            id: "3d-buildings",
+            source: buildingSource,
+            "source-layer": "building",
+            filter: ["==", "extrude", "true"],
+            type: "fill-extrusion",
+            minzoom: 15,
+            paint: {
+              "fill-extrusion-color": "#182232",
+              "fill-extrusion-height": ["get", "height"],
+              "fill-extrusion-base": ["get", "min_height"],
+              "fill-extrusion-opacity": 0.85,
+            },
+          }, labelLayerId);
+        }
+      } catch (err) {
+        console.log("[MapEngine] 3D buildings setup note:", err);
+      }
+
+      // 3. Mount 3D Animated Character
+      Character3D.init(map, currentPos.lon, currentPos.lat);
+
+      // 3.2. Initialize 3D Standing Foliage Engine
+      if (typeof Foliage !== "undefined") {
+        Foliage.init(map);
+      }
+      
+      // 3.5. Mount 3D Ground Sonar Layer (Locked to exact real-world meters)
+      const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
+      const initialRing = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
+
+      if (!map.getSource("player-sonar-source")) {
+        map.addSource("player-sonar-source", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                properties: { type: "boundary" },
+                geometry: { type: "Polygon", coordinates: [initialRing] }
+              },
+              {
+                type: "Feature",
+                properties: { type: "center" },
+                geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+              }
+            ]
+          }
+        });
+
+        map.addLayer({
+          id: "player-sonar-fill",
+          type: "fill",
+          source: "player-sonar-source",
+          filter: ["==", ["get", "type"], "boundary"],
+          paint: {
+            "fill-color": "#4fd6c4",
+            "fill-opacity": 0.05
+          }
+        });
+
+        map.addSource("player-wave-source", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] }
+        });
+
+        map.addLayer({
+          id: "player-wave-fill",
+          type: "fill",
+          source: "player-wave-source",
+          paint: {
+            "fill-color": "#4fd6c4",
+            "fill-opacity": 0.12
+          }
+        });
+
+        map.addLayer({
+          id: "player-wave-line",
+          type: "line",
+          source: "player-wave-source",
+          paint: {
+            "line-color": "#4fd6c4",
+            "line-width": 2,
+            "line-opacity": 0.6
+          }
+        });
+
+        map.addLayer({
+          id: "player-sonar-line",
+          type: "line",
+          source: "player-sonar-source",
+          paint: {
+            "line-color": "#4fd6c4",
+            "line-width": 2,
+            "line-dasharray": [3, 2],
+            "line-opacity": 0.85
+          }
+        });
+      }
+
+      // 4. Initialize Core Game Subsystems
+      Grid.init(map, {
+        onBuyAttempt: (success, rarity) => {
+          if (success) {
+            showToast(`Claimed a ${rarity.label} plot!`);
+            updateTopbar();
+            updateLandModal();
+          } else {
+            showToast(`You need ${CONFIG.PLOT_COST_EB} EB to claim this tile.`);
+          }
+        },
+      });
+      Grid.render();
+
+      Diamonds.init(map, {
+        onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
+        onDenied: () => showToast("Too far — walk closer to collect it."),
+      });
+      Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
+    }
+
     map.on("load", () => {
-      // 2. Add True 3D Extruded Buildings
-      const layers = map.getStyle().layers;
-      const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+      setupGameLayers();
 
       map.addLayer({
         id: "3d-buildings",
