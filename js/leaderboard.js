@@ -1,20 +1,29 @@
 // ============================================================
-// Elden Earth — Leaderboards & Local Mayorship System
+// Elden Earth — Leaderboards & Local Mayorship System (High-Performance)
 // Tracks Top Landlords, Rent Earners, City Mayors & 2% Dividends
 // ============================================================
 const Leaderboard = (() => {
   let modal = null;
   let currentTab = "plots"; // "plots" | "rent" | "mayors"
+  let cachedData = null;
+  let lastFetchTime = 0;
+  const CACHE_TTL_MS = 60000; // 60-second fresh in-memory cache
 
   // Helper to aggregate leaderboard data from global plots & saves
-  async function fetchRankings() {
+  async function fetchRankings(forceRefresh = false) {
+    const now = Date.now();
+    // Return instant in-memory cache if fresh
+    if (!forceRefresh && cachedData && (now - lastFetchTime < CACHE_TTL_MS)) {
+      return cachedData;
+    }
+
     const allPlots = (typeof Grid !== "undefined" && Grid.getAllPlots) ? Grid.getAllPlots() : {};
     const state = Store.get();
     const db = Store.getDb();
 
     // 1. Group plots by owner & count by city
-    const playerStats = {}; // ownerId -> { id, name, avatar, plotsCount, cities: { cityName: count } }
-    const cityMayors = {};  // cityName -> { topOwnerId, maxPlots, topPlayerName, avatar }
+    const playerStats = {};
+    const cityMayors = {};
 
     for (const tid in allPlots) {
       const p = allPlots[tid];
@@ -30,7 +39,6 @@ const Leaderboard = (() => {
       }
       playerStats[oid].plotsCount++;
 
-      // City tracking
       const city = p.city || "Phoenix, AZ";
       playerStats[oid].cities[city] = (playerStats[oid].cities[city] || 0) + 1;
     }
@@ -47,7 +55,7 @@ const Leaderboard = (() => {
     }
 
     // 2. Determine Mayors per city
-    const cityCounts = {}; // city -> { ownerId -> count }
+    const cityCounts = {};
     for (const oid in playerStats) {
       const p = playerStats[oid];
       for (const c in p.cities) {
@@ -76,7 +84,7 @@ const Leaderboard = (() => {
       }
     }
 
-    // 3. Fetch cash balances for rent rankings from Firestore if available
+    // 3. Fetch cash balances for rent rankings from Firestore
     const playerArray = Object.values(playerStats);
     if (db) {
       try {
@@ -102,11 +110,12 @@ const Leaderboard = (() => {
       }
     }
 
-    // Ensure local player cash is current
     const me = playerArray.find(p => p.id === state.player?.id);
     if (me) me.cash = state.cash || 0;
 
-    return { players: playerArray, mayors: Object.values(cityMayors) };
+    cachedData = { players: playerArray, mayors: Object.values(cityMayors) };
+    lastFetchTime = Date.now();
+    return cachedData;
   }
 
   // Check and award 2% dividend if a mayor exists for the purchased plot's city
@@ -117,11 +126,10 @@ const Leaderboard = (() => {
     const { mayors } = await fetchRankings();
     const mayor = mayors.find(m => m.city === cityName);
 
-    if (!mayor || mayor.ownerId === buyerId) return; // No self-dividend
+    if (!mayor || mayor.ownerId === buyerId) return;
 
     const dividendEB = Math.max(1, Math.round(plotCostEB * 0.02)); // 2% dividend = 2 EB
 
-    // If local player is the mayor, award directly!
     if (mayor.ownerId === state.player.id) {
       state.eb = (Number(state.eb) || 0) + dividendEB;
       state.totalDividends = (Number(state.totalDividends) || 0) + dividendEB;
@@ -131,7 +139,6 @@ const Leaderboard = (() => {
       }
     }
 
-    // Broadcast dividend event to Live Feed
     if (typeof Feed !== "undefined") {
       Feed.broadcast("dividend", {
         mayorName: mayor.name,
@@ -141,16 +148,16 @@ const Leaderboard = (() => {
     }
   }
 
+  // High-performance single-pass DOM rendering via DocumentFragment
   function render(data) {
     const listEl = document.getElementById("leaderboard-list");
-    if (!listEl) return;
-    listEl.innerHTML = "";
+    if (!listEl || !data) return;
 
+    const fragment = document.createDocumentFragment();
     const state = Store.get();
     const myId = state.player?.id;
 
     if (currentTab === "plots") {
-      // Sort by plots descending
       const sorted = [...data.players].sort((a, b) => (b.plotsCount || 0) - (a.plotsCount || 0));
       sorted.forEach((p, idx) => {
         const isSelf = p.id === myId;
@@ -166,10 +173,9 @@ const Leaderboard = (() => {
           </div>
           <div class="lb-metric">${p.plotsCount} <span class="lb-unit">Plots</span></div>
         `;
-        listEl.appendChild(row);
+        fragment.appendChild(row);
       });
     } else if (currentTab === "rent") {
-      // Sort by total cash accrued descending
       const sorted = [...data.players].sort((a, b) => (b.cash || 0) - (a.cash || 0));
       sorted.forEach((p, idx) => {
         const isSelf = p.id === myId;
@@ -185,10 +191,9 @@ const Leaderboard = (() => {
           </div>
           <div class="lb-metric gold">$${(Number(p.cash) || 0).toFixed(6)}</div>
         `;
-        listEl.appendChild(row);
+        fragment.appendChild(row);
       });
     } else if (currentTab === "mayors") {
-      // Active Mayors list
       if (data.mayors.length === 0) {
         listEl.innerHTML = `<div class="feed-empty-msg">No Mayors established yet. Claim plots to conquer a city!</div>`;
         return;
@@ -206,9 +211,13 @@ const Leaderboard = (() => {
           </div>
           <div class="lb-metric teal">2% <span class="lb-unit">Dividend</span></div>
         `;
-        listEl.appendChild(row);
+        fragment.appendChild(row);
       });
     }
+
+    // 1-Frame Instant Paint (zero layout thrashing)
+    listEl.innerHTML = "";
+    listEl.appendChild(fragment);
   }
 
   function renderAvatar(avatar) {
@@ -221,6 +230,13 @@ const Leaderboard = (() => {
   async function open() {
     if (!modal) modal = document.getElementById("leaderboard-modal");
     if (modal) modal.classList.remove("hidden");
+
+    // If cache is ready, render instantly (0ms delay)
+    if (cachedData) {
+      render(cachedData);
+    }
+
+    // Fetch fresh data in the background if stale
     const data = await fetchRankings();
     render(data);
   }
@@ -229,15 +245,20 @@ const Leaderboard = (() => {
     modal = document.getElementById("leaderboard-modal");
     document.getElementById("leaderboard-btn")?.addEventListener("click", open);
 
-    // Tab switching
+    // Instant 0ms Tab Switching from RAM cache
     const tabs = document.querySelectorAll(".lb-tab-btn");
     tabs.forEach(tab => {
-      tab.addEventListener("click", async () => {
+      tab.addEventListener("click", () => {
         tabs.forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
         currentTab = tab.dataset.tab;
-        const data = await fetchRankings();
-        render(data);
+
+        // Render from memory immediately
+        if (cachedData) {
+          render(cachedData);
+        } else {
+          fetchRankings().then(data => render(data));
+        }
       });
     });
   }
