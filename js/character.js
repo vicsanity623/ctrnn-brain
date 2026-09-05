@@ -16,6 +16,11 @@ const Character3D = (() => {
   let isWalking = false;
   let modelHeading = 0;
 
+  // 3D Parcel Props & Grass System
+  let plotsGroup = null;
+  const propTemplates = {}; // key -> THREE.Group template
+  let pendingPlotsData = null;
+
   function init(map, initialLng, initialLat) {
     mapInstance = map;
     playerCoords = { lng: initialLng, lat: initialLat };
@@ -48,33 +53,43 @@ const Character3D = (() => {
         });
         renderer.autoClear = false;
 
+        // 3D World Parcels Container
+        plotsGroup = new THREE.Group();
+        scene.add(plotsGroup);
+
+        // Pre-load all 3D prop templates
+        preloadPropTemplates();
+
         // Load saved character model
         const state = Store.get();
         const selectedId = state?.player?.model3d || "soldier";
         loadModel(selectedId);
+
+        if (pendingPlotsData) {
+          updatePlots(pendingPlotsData);
+          pendingPlotsData = null;
+        }
       },
       render: function (gl, matrix) {
-        if (!currentModel) return;
-
-        const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
-          [playerCoords.lng, playerCoords.lat],
-          0
-        );
-
-        const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
-
+        // Build base Mapbox Projection Matrix
         const m = new THREE.Matrix4().fromArray(matrix);
-        const l = new THREE.Matrix4()
-          .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
-          .scale(new THREE.Vector3(scale, -scale, scale))
-          .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
-          .multiply(new THREE.Matrix4().makeRotationY(modelHeading));
+        camera.projectionMatrix = m;
 
-        camera.projectionMatrix = m.multiply(l);
+        // Update 3D Character Transform
+        if (currentModel) {
+          const modelCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+            [playerCoords.lng, playerCoords.lat],
+            0
+          );
+          const scale = modelCoord.meterInMercatorCoordinateUnits() * (currentModel.userData.scale || 1.2);
 
-        // CLEAR DEPTH BUFFER: Ensures character renders on top of all 3D buildings!
+          currentModel.position.set(modelCoord.x, modelCoord.y, modelCoord.z);
+          currentModel.scale.set(scale, -scale, scale);
+          currentModel.rotation.set(Math.PI / 2, modelHeading, 0);
+        }
+
+        // Render entire 3D WebGL scene (Character + 3D Grass + 3D Trees/Props)
         gl.clear(gl.DEPTH_BUFFER_BIT);
-
         renderer.resetState();
         renderer.render(scene, camera);
       },
@@ -200,6 +215,99 @@ const Character3D = (() => {
     Store.save();
     loadModel(characterId);
   }
+  
+  // Pre-load all 3D GLB Prop Models into memory once
+  function preloadPropTemplates() {
+    const loader = new THREE.GLTFLoader();
 
-  return { init, setPlayerPosition, changeCharacter, loadModel };
+    // 1. Base Grass Tile
+    if (CONFIG.BASE_GRASS_MODEL) {
+      loader.load(
+        CONFIG.BASE_GRASS_MODEL.file,
+        (gltf) => {
+          propTemplates["grass"] = { scene: gltf.scene, scale: CONFIG.BASE_GRASS_MODEL.scale };
+          console.log("[Character3D] Loaded 3D Base Grass Tile.");
+          if (pendingPlotsData) updatePlots(pendingPlotsData);
+        },
+        undefined,
+        (err) => console.warn("[Character3D] Grass GLB error:", err)
+      );
+    }
+
+    // 2. Rarity Tier Props
+    (CONFIG.PLOT_RARITIES || []).forEach((r) => {
+      if (!r.model) return;
+      loader.load(
+        r.model,
+        (gltf) => {
+          propTemplates[r.key] = { scene: gltf.scene, scale: r.scale || 2.5 };
+          console.log(`[Character3D] Loaded 3D Prop: ${r.label}`);
+          if (pendingPlotsData) updatePlots(pendingPlotsData);
+        },
+        undefined,
+        (err) => console.warn(`[Character3D] Prop ${r.key} GLB error:`, err)
+      );
+    });
+  }
+
+  // Update 3D Grass and Props for all claimed plots on the map
+  function updatePlots(allPlots) {
+    if (!plotsGroup) {
+      pendingPlotsData = allPlots;
+      return;
+    }
+
+    // Clear existing 3D plot meshes
+    while (plotsGroup.children.length > 0) {
+      plotsGroup.remove(plotsGroup.children[0]);
+    }
+
+    for (const tid in allPlots) {
+      const p = allPlots[tid];
+      const rarityKey = p.rarity?.key || p.rarity || "common";
+
+      // Compute exact center of tile in real-world Mercator coordinates
+      const px = parseInt(p.tx, 10);
+      const py = parseInt(p.ty, 10);
+      const centerMerc = Geo.fromMercator(
+        px * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+        py * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+      );
+
+      const tileCoord = mapboxgl.MercatorCoordinate.fromLngLat(
+        [centerMerc.lon, centerMerc.lat],
+        0
+      );
+      const meterScale = tileCoord.meterInMercatorCoordinateUnits();
+
+      // 1. Add 3D Grass Tile Mesh
+      if (propTemplates["grass"]) {
+        const grassClone = propTemplates["grass"].scene.clone();
+        const gScale = meterScale * propTemplates["grass"].scale;
+        grassClone.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
+        grassClone.scale.set(gScale, -gScale, gScale);
+        grassClone.rotation.set(Math.PI / 2, 0, 0);
+        plotsGroup.add(grassClone);
+      }
+
+      // 2. Add 3D Rarity Prop (Tree, Crystal, Obelisk, Erdtree)
+      if (propTemplates[rarityKey]) {
+        const propClone = propTemplates[rarityKey].scene.clone();
+        const pScale = meterScale * propTemplates[rarityKey].scale;
+        propClone.position.set(tileCoord.x, tileCoord.y, tileCoord.z);
+        propClone.scale.set(pScale, -pScale, pScale);
+        
+        // Random subtle rotation variation for organic variety
+        const seed = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
+        const randomRot = (seed - Math.floor(seed)) * Math.PI * 2;
+        propClone.rotation.set(Math.PI / 2, randomRot, 0);
+
+        plotsGroup.add(propClone);
+      }
+    }
+
+    if (mapInstance) mapInstance.triggerRepaint();
+  }
+
+  return { init, setPlayerPosition, changeCharacter, loadModel, updatePlots };
 })();
