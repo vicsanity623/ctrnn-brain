@@ -209,27 +209,36 @@ const Character3D = (() => {
     loadModel(characterId);
   }
   
-  // Stylized Low-Poly Grass Tuft (Small cluster of 3 soft emerald blades)
-  function createGrassTuft() {
+  // Stylized Chunky Low-Poly Grass Tuft (Vibrant, high-visibility 3D foliage)
+  function createGrassTuft(shade = 0) {
     const group = new THREE.Group();
-    // Low-poly cone for grass blade (height: 0.6m, width: 0.12m)
-    const bladeGeo = new THREE.ConeGeometry(0.12, 0.65, 3);
+    // 1.5m tall chunky stylized blades with visible angular faces
+    const bladeGeo = new THREE.ConeGeometry(0.35, 1.5, 4);
+    
+    // Rich Stylized Grass Colors (Emerald Green & Sunlit Lime)
+    const grassColors = [0x2ecc71, 0x1abc9c, 0x27ae60, 0x58d68d];
     const bladeMat = new THREE.MeshLambertMaterial({ 
-      color: 0x4fd6c4, 
+      color: grassColors[shade % grassColors.length], 
       flatShading: true 
     });
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const blade = new THREE.Mesh(bladeGeo, bladeMat);
-      const angle = (i / 3) * Math.PI * 2;
-      blade.position.set(Math.cos(angle) * 0.18, 0.3, Math.sin(angle) * 0.18);
-      blade.rotation.set((Math.random() - 0.5) * 0.35, angle, (Math.random() - 0.5) * 0.35);
+      const angle = (i / 4) * Math.PI * 2 + (Math.random() * 0.3);
+      blade.position.set(Math.cos(angle) * 0.45, 0.75, Math.sin(angle) * 0.45);
+      // Fan out gracefully from the center root
+      blade.rotation.set(
+        (Math.random() - 0.5) * 0.5, 
+        angle, 
+        (Math.random() - 0.5) * 0.5
+      );
+      blade.scale.set(0.9, 0.8 + Math.random() * 0.4, 0.9);
       group.add(blade);
     }
     return group;
   }
 
-  // Updates and renders procedural grass on all claimed tiles
+  // Updates and renders vibrant procedural grass on all claimed tiles
   function updatePlots(allPlots) {
     if (!plotsMeshGroup) {
       pendingPlots = allPlots;
@@ -248,7 +257,7 @@ const Character3D = (() => {
       const px = parseInt(p.tx, 10);
       const py = parseInt(p.ty, 10);
 
-      // Centroid in Mercator
+      // Calculate centroid of tile
       const centerMerc = Geo.fromMercator(
         px * tileSize + tileSize / 2,
         py * tileSize + tileSize / 2
@@ -262,22 +271,25 @@ const Character3D = (() => {
 
       const tileGroup = new THREE.Group();
 
-      // Place 5 tiny grass tufts across the tile surface (center + 4 corners)
+      // Cluster 8 stylized grass tufts across the 10x10ft parcel surface
       const offsets = [
         [0, 0],
-        [-1.4, -1.4],
-        [1.4, -1.4],
-        [-1.4, 1.4],
-        [1.4, 1.4]
+        [-1.6, -1.6],
+        [1.6, -1.6],
+        [-1.6, 1.6],
+        [1.6, 1.6],
+        [0, -1.8],
+        [0, 1.8],
+        [-1.8, 0],
       ];
 
-      offsets.forEach(([gx, gz]) => {
-        const tuft = createGrassTuft();
+      offsets.forEach(([gx, gz], idx) => {
+        const tuft = createGrassTuft(idx);
         tuft.position.set(gx, 0, gz);
         tileGroup.add(tuft);
       });
 
-      // Transform tile group into 3D Mapbox space (Exact same math as Character!)
+      // Transform tile group into 3D Mapbox coordinate system
       const l = new THREE.Matrix4()
         .makeTranslation(modelCoord.x, modelCoord.y, modelCoord.z)
         .scale(new THREE.Vector3(meterScale, -meterScale, meterScale))
