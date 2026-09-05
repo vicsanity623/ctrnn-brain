@@ -39,7 +39,23 @@ const Leaderboard = (() => {
       }
       playerStats[oid].plotsCount++;
 
-      const city = p.city || "Phoenix, AZ";
+      // Real City tracking with geographic coordinate fallback
+      let city = p.city;
+      if (!city) {
+        const cMerc = Geo.fromMercator(
+          p.tx * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2,
+          p.ty * CONFIG.TILE_SIZE_METERS + CONFIG.TILE_SIZE_METERS / 2
+        );
+        // Detect region by longitude/latitude if plot was claimed before city tagging
+        if (cMerc.lon > -85 && cMerc.lon < -80 && cMerc.lat > 39 && cMerc.lat < 42) {
+          city = "Warren Township, OH 🇺🇸";
+        } else if (cMerc.lon > -1 && cMerc.lon < 2 && cMerc.lat > 43 && cMerc.lat < 46) {
+          city = "Mont-de-Marsan, FR 🇫🇷";
+        } else {
+          city = "Phoenix, AZ 🇺🇸";
+        }
+      }
+
       playerStats[oid].cities[city] = (playerStats[oid].cities[city] || 0) + 1;
     }
 
