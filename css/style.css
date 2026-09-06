@@ -320,6 +320,16 @@ html,body{
   filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 #wheel-canvas{ max-width:100%; height:auto; }
+.wheel-balance{
+  position:absolute; top:10px; left:10px; z-index:10; display:flex; gap:6px; align-items:center;
+  font-family:var(--font-display); color:var(--gold-hi);
+}
+.wheel-balance .wheel-diamonds{
+  display:flex; align-items:center; gap:2px;
+}
+.wheel-balance .wheel-eb{
+  display:flex; align-items-center; gap:2px;
+}
 .wheel-result{
   min-height:20px; font-weight:700; color:var(--teal); font-size:15px;
 }
@@ -1554,14 +1564,41 @@ html,body{
   align-items: center;
 }
 
-.loader-gem-wrap {
+/* 3D Character Stage Behind Logo */
+.loader-stage-wrap {
   position: relative;
+  width: 220px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.loader-3d-canvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 200px;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 0 16px rgba(79, 214, 196, 0.4));
+}
+
+.loader-gem-wrap {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 70px;
   height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .loader-gem {
