@@ -172,6 +172,7 @@
     // --- Populate Mayorship & Dividends Card ---
     const mayorStatusEl = el("info-mayor-status");
     const dividendsEl = el("info-total-dividends");
+    const royaltyBadge = el("info-royalty-badge") || document.querySelector(".mayorship-dividends-card .btn-royalty, .mayorship-dividends-card span:last-child");
 
     let totalDiv = isOtherPlayer ? 0 : (state.totalDividends || 0);
     if (dividendsEl) dividendsEl.textContent = `${totalDiv} EB`;
@@ -180,14 +181,31 @@
       mayorStatusEl.textContent = "Checking realm...";
       if (typeof Leaderboard !== "undefined" && Leaderboard.fetchRankings) {
         Leaderboard.fetchRankings().then((data) => {
-          const myMayorships = data.mayors.filter(m => m.ownerId === targetOwnerId);
-          if (myMayorships.length > 0) {
-            const cityNames = myMayorships.map(m => m.city).join(", ");
-            mayorStatusEl.innerHTML = `👑 Mayor of <strong>${cityNames}</strong>`;
+          const myMayors = (data.mayors || []).filter(m => m.ownerId === targetOwnerId);
+          const myGovs = (data.governors || []).filter(g => g.ownerId === targetOwnerId);
+          const myPres = (data.presidents || []).filter(p => p.ownerId === targetOwnerId);
+
+          const titlesList = [];
+          myMayors.forEach(m => titlesList.push(`👑 Mayor of ${m.territory}`));
+          myGovs.forEach(g => titlesList.push(`🏛️ Governor of ${g.territory}`));
+          myPres.forEach(p => titlesList.push(`🦅 President of ${p.territory}`));
+
+          if (titlesList.length > 0) {
+            mayorStatusEl.innerHTML = titlesList.join("<br>");
             mayorStatusEl.className = "mayor-crown-pill active-mayor";
+
+            const stackRate = Math.min(6, (myMayors.length ? 2 : 0) + (myGovs.length ? 2 : 0) + (myPres.length ? 2 : 0));
+            if (royaltyBadge) {
+              royaltyBadge.textContent = `${stackRate}% Royalty`;
+              royaltyBadge.style.display = "inline-block";
+            }
           } else {
             mayorStatusEl.innerHTML = `🛡️ Citizen of the Realm`;
             mayorStatusEl.className = "mayor-crown-pill";
+            if (royaltyBadge) {
+              royaltyBadge.textContent = "0% (Citizen)";
+              royaltyBadge.style.opacity = "0.6";
+            }
           }
         });
       } else {
@@ -267,20 +285,19 @@
     Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
   }
   
-  // ---------------- 3D Map / Game Launch ----------------
+  // ---------------- 3D Map / Game Launch with Auto-Fallback ----------------
   function launchGame(coords) {
     currentPos = { lat: coords.latitude, lon: coords.longitude };
     el("locate-screen")?.classList.add("hidden");
     el("loading-screen")?.classList.add("hidden");
     el("game-screen")?.classList.remove("hidden");
 
-    const mbToken = ["pk.eyJ1IjoiYXJ0aXN0aWNpbnRlbnRpb256Iiwi", "YSI6ImNtdGxyZ283MDAwZTMydnEzc3B4bGpwMDgifQ.8JqJCLZ--2M0UWJXeWPWqg"].join("");
-    mapboxgl.accessToken = mbToken;
+    const mapStyle = "https://tiles.openfreemap.org/styles/dark";
 
-    // 1. Initialize Mapbox 3D Camera (Power-Optimized & Locked to Player)
+    // 1. Initialize 3D Camera with Unlimited Vector Basemap
     map = new mapboxgl.Map({
       container: "map",
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: mapStyle,
       center: [currentPos.lon, currentPos.lat],
       zoom: 18.5,
       minZoom: 15.2,   // 1 mile max zoom-out
@@ -288,12 +305,28 @@
       pitch: 60,
       bearing: 0,
       antialias: true,
-      fadeDuration: 0, // Eliminates label fade CPU thrashing
       dragPan: false,  // Map stays locked to player (cannot scroll away)
       dragRotate: true,
       touchZoomRotate: true,
-      maxTileCacheSize: 30, // Prevents RAM inflation on mobile
     });
+
+    // --- Automatic Rate-Limit / Quota Exhaustion Fallback Handler ---
+    let hasSwitchedToFallback = CONFIG.USE_OPENFREEMAP_DIRECTLY || false;
+
+    function triggerMapFallback() {
+      if (hasSwitchedToFallback) return;
+      hasSwitchedToFallback = true;
+      console.warn("[MapEngine] Rate limit or quota exceeded! Hot-swapping to OpenFreeMap...");
+      showToast("⚠️ Mapbox limit reached — switched to free backup map!");
+
+      const backupStyle = CONFIG.FALLBACK_STYLE_URL || "https://tiles.openfreemap.org/styles/dark";
+      map.setStyle(backupStyle);
+
+      // Re-attach all game layers and 3D character once the backup style finishes mounting
+      map.once("style.load", () => {
+        setupGameLayers();
+      });
+    }
 
     // Smooth 1-finger camera orbit around player
     let isOrbiting = false;
@@ -323,25 +356,34 @@
       if (currentPos) map.setCenter([currentPos.lon, currentPos.lat]);
     });
 
-    map.on("load", () => {
-      // 2. Add True 3D Extruded Buildings
-      const layers = map.getStyle().layers;
-      const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+    function setupGameLayers() {
+      if (!map || !map.getStyle()) return;
 
-      map.addLayer({
-        id: "3d-buildings",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["==", "extrude", "true"],
-        type: "fill-extrusion",
-        minzoom: 15,
-        paint: {
-          "fill-extrusion-color": "#182232",
-          "fill-extrusion-height": ["get", "height"],
-          "fill-extrusion-base": ["get", "min_height"],
-          "fill-extrusion-opacity": 0.85,
-        },
-      }, labelLayerId);
+      // 2. Add True 3D Extruded Buildings (if source exists)
+      try {
+        const layers = map.getStyle().layers || [];
+        const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
+
+        if (!map.getLayer("3d-buildings") && (map.getSource("composite") || map.getSource("openmaptiles"))) {
+          const buildingSource = map.getSource("composite") ? "composite" : "openmaptiles";
+          map.addLayer({
+            id: "3d-buildings",
+            source: buildingSource,
+            "source-layer": "building",
+            filter: ["==", "extrude", "true"],
+            type: "fill-extrusion",
+            minzoom: 15,
+            paint: {
+              "fill-extrusion-color": "#182232",
+              "fill-extrusion-height": ["get", "height"],
+              "fill-extrusion-base": ["get", "min_height"],
+              "fill-extrusion-opacity": 0.85,
+            },
+          }, labelLayerId);
+        }
+      } catch (err) {
+        console.log("[MapEngine] 3D buildings setup note:", err);
+      }
 
       // 3. Mount 3D Animated Character
       Character3D.init(map, currentPos.lon, currentPos.lat);
@@ -355,138 +397,76 @@
       const radiusM = CONFIG.DIAMOND_COLLECT_RADIUS_METERS || 100;
       const initialRing = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, radiusM);
 
-      map.addSource("player-sonar-source", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              properties: { type: "boundary" },
-              geometry: { type: "Polygon", coordinates: [initialRing] }
-            },
-            {
-              type: "Feature",
-              properties: { type: "center" },
-              geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
-            }
-          ]
-        }
-      });
-
-      // Subtle turquoise radar aura on the terrain
-      map.addLayer({
-        id: "player-sonar-fill",
-        type: "fill",
-        source: "player-sonar-source",
-        filter: ["==", ["get", "type"], "boundary"],
-        paint: {
-          "fill-color": "#4fd6c4",
-          "fill-opacity": 0.05
-        }
-      }, labelLayerId);
-
-      // Dedicated GeoJSON Source for the Expanding Shockwave
-      map.addSource("player-wave-source", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: []
-        }
-      });
-
-      // Expanding Wave Fill (soft gradient)
-      map.addLayer({
-        id: "player-wave-fill",
-        type: "fill",
-        source: "player-wave-source",
-        paint: {
-          "fill-color": "#4fd6c4",
-          "fill-opacity": 0.12
-        }
-      }, labelLayerId);
-
-      // Expanding Wave Crest (outer ripple ring)
-      map.addLayer({
-        id: "player-wave-line",
-        type: "line",
-        source: "player-wave-source",
-        paint: {
-          "line-color": "#4fd6c4",
-          "line-width": 2,
-          "line-opacity": 0.6
-        }
-      }, labelLayerId);
-
-      // Exact 100m Outer Dashed Boundary Ring
-      map.addLayer({
-        id: "player-sonar-line",
-        type: "line",
-        source: "player-sonar-source",
-        paint: {
-          "line-color": "#4fd6c4",
-          "line-width": 2,
-          "line-dasharray": [3, 2],
-          "line-opacity": 0.85
-        }
-      }, labelLayerId);
-
-      // Power-Optimized Geodesic Pulse Animation (Throttled & Background-Aware)
-      const pulseDuration = 3400;
-      let pulseStart = performance.now();
-      let lastPulseUpdate = 0;
-
-      function animatePulse(timestamp) {
-        if (document.hidden) {
-          pulseAnimId = null;
-          return; // Sleep completely while phone is locked or app is in background
-        }
-
-        pulseAnimId = requestAnimationFrame(animatePulse);
-
-        // Throttle coordinate re-generation to 20fps (~50ms) to reduce CPU/GPU heat by 66%
-        if (timestamp - lastPulseUpdate < 50) return;
-        lastPulseUpdate = timestamp;
-
-        if (!map || !map.getSource("player-wave-source") || !currentPos) return;
-
-        const elapsed = (timestamp - pulseStart) % pulseDuration;
-        const linearProgress = elapsed / pulseDuration; // 0.0 -> 1.0
-
-        // Ease-out curve: ripples outward, slows gracefully at border
-        const easeOut = 1 - Math.pow(1 - linearProgress, 2.4);
-        const currentRadius = Math.max(2, easeOut * radiusM);
-
-        // Soft fade before resetting
-        const fadeProgress = Math.pow(1 - linearProgress, 1.6);
-        const fillOpacity = fadeProgress * 0.12;
-        const lineOpacity = fadeProgress * 0.7;
-
-        // 36 points is visually smooth on mobile while saving polygon compute
-        const wavePoly = Geo.createCirclePolygon(currentPos.lat, currentPos.lon, currentRadius, 36);
-
-        map.getSource("player-wave-source").setData({
-          type: "FeatureCollection",
-          features: [{
-            type: "Feature",
-            geometry: { type: "Polygon", coordinates: [wavePoly] }
-          }]
+      if (!map.getSource("player-sonar-source")) {
+        map.addSource("player-sonar-source", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                properties: { type: "boundary" },
+                geometry: { type: "Polygon", coordinates: [initialRing] }
+              },
+              {
+                type: "Feature",
+                properties: { type: "center" },
+                geometry: { type: "Point", coordinates: [currentPos.lon, currentPos.lat] }
+              }
+            ]
+          }
         });
 
-        map.setPaintProperty("player-wave-fill", "fill-opacity", fillOpacity);
-        map.setPaintProperty("player-wave-line", "line-opacity", lineOpacity);
-      }
-      pulseAnimId = requestAnimationFrame(animatePulse);
+        map.addLayer({
+          id: "player-sonar-fill",
+          type: "fill",
+          source: "player-sonar-source",
+          filter: ["==", ["get", "type"], "boundary"],
+          paint: {
+            "fill-color": "#4fd6c4",
+            "fill-opacity": 0.05
+          }
+        });
 
-      // Auto-resume pulse animation when returning to app
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden && !pulseAnimId) {
-          pulseStart = performance.now();
-          lastPulseUpdate = 0;
-          pulseAnimId = requestAnimationFrame(animatePulse);
-        }
-      });
-      
+        map.addSource("player-wave-source", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] }
+        });
+
+        map.addLayer({
+          id: "player-wave-fill",
+          type: "fill",
+          source: "player-wave-source",
+          paint: {
+            "fill-color": "#4fd6c4",
+            "fill-opacity": 0.12
+          }
+        });
+
+        map.addLayer({
+          id: "player-wave-line",
+          type: "line",
+          source: "player-wave-source",
+          paint: {
+            "line-color": "#4fd6c4",
+            "line-width": 2,
+            "line-opacity": 0.6
+          }
+        });
+
+        map.addLayer({
+          id: "player-sonar-line",
+          type: "line",
+          source: "player-sonar-source",
+          paint: {
+            "line-color": "#4fd6c4",
+            "line-width": 2,
+            "line-dasharray": [3, 2],
+            "line-opacity": 0.85
+          }
+        });
+      }
+
       // 4. Initialize Core Game Subsystems
       Grid.init(map, {
         onBuyAttempt: (success, rarity) => {
@@ -506,6 +486,10 @@
         onDenied: () => showToast("Too far — walk closer to collect it."),
       });
       Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
+    }
+
+    map.on("load", () => {
+      setupGameLayers();
     });
 
     Wheel.init();
@@ -641,15 +625,19 @@
       }
     }
 
-    // --- 30-Day Daily Login Calendar System ---
+    // --- 30-Day Daily Login Calendar System (Strict 1-Day per Day) ---
     function getCalendarState() {
       const state = Store.get();
       if (!state.calendar) {
         state.calendar = {
-          currentDay: 1,
-          lastClaimDate: null, // "YYYY-MM-DD"
-          totalClaimed: 0
+          claimedDays: 0,       // Exact count of days claimed (0 to 30)
+          lastClaimDate: null,  // "YYYY-MM-DD"
         };
+      }
+      // Migrate old currentDay format if present
+      if (state.calendar.currentDay !== undefined && state.calendar.claimedDays === undefined) {
+        state.calendar.claimedDays = Math.max(0, state.calendar.currentDay - 1);
+        delete state.calendar.currentDay;
       }
       return state.calendar;
     }
@@ -664,16 +652,14 @@
       const todayKey = getTodayKey();
       const isClaimedToday = cal.lastClaimDate === todayKey;
 
-      // Update HUD Calendar Card numbers
       const now = new Date();
       const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
       if (el("cal-hud-month")) el("cal-hud-month").textContent = months[now.getMonth()];
       if (el("cal-hud-day")) el("cal-hud-day").textContent = now.getDate();
 
-      // Show / hide glowing red dot
       const unreadDot = el("calendar-unread-dot");
       if (unreadDot) {
-        if (!isClaimedToday) {
+        if (!isClaimedToday && (cal.claimedDays || 0) < 30) {
           unreadDot.classList.remove("hidden");
         } else {
           unreadDot.classList.add("hidden");
@@ -689,22 +675,26 @@
       const cal = getCalendarState();
       const todayKey = getTodayKey();
       const isClaimedToday = cal.lastClaimDate === todayKey;
+      const claimedCount = cal.claimedDays || 0;
       const rewards = CONFIG.DAILY_CALENDAR_REWARDS || [];
 
       rewards.forEach((r) => {
         const dayNum = r.day;
-        const isPast = dayNum < cal.currentDay || (dayNum === cal.currentDay && isClaimedToday);
-        const isTodayActive = dayNum === cal.currentDay && !isClaimedToday;
-        const isFuture = dayNum > cal.currentDay;
+        const isAlreadyClaimed = dayNum <= claimedCount;
+        const isReadyToClaim = (dayNum === claimedCount + 1) && !isClaimedToday;
+        const isLockedTomorrow = (dayNum === claimedCount + 1) && isClaimedToday;
+        const isFutureLocked = dayNum > claimedCount + 1;
 
         const row = document.createElement("div");
-        row.className = "cal-day-row" + (isTodayActive ? " active" : "") + (isPast ? " claimed" : "") + (isFuture ? " locked" : "");
+        row.className = "cal-day-row" + (isReadyToClaim ? " active" : "") + (isAlreadyClaimed ? " claimed" : "") + (isLockedTomorrow || isFutureLocked ? " locked" : "");
 
         let actionHtml = "";
-        if (isPast) {
+        if (isAlreadyClaimed) {
           actionHtml = `<span class="cal-status-claimed">✓ Claimed</span>`;
-        } else if (isTodayActive) {
+        } else if (isReadyToClaim) {
           actionHtml = `<button class="cal-claim-btn" id="claim-day-${dayNum}">Claim +${r.eb} EB</button>`;
+        } else if (isLockedTomorrow) {
+          actionHtml = `<span class="cal-status-locked" style="color:var(--teal);opacity:0.85;">🔒 Tomorrow</span>`;
         } else {
           actionHtml = `<span class="cal-status-locked">🔒 Day ${dayNum}</span>`;
         }
@@ -721,9 +711,9 @@
 
         list.appendChild(row);
 
-        if (isTodayActive) {
+        if (isReadyToClaim) {
           const claimBtn = row.querySelector(".cal-claim-btn");
-          claimBtn?.addEventListener("click", (e) => {
+          claimBtn?.addEventListener("click", () => {
             const rect = claimBtn.getBoundingClientRect();
             claimDailyReward(r.eb, rect.left + rect.width / 2, rect.top + rect.height / 2);
           });
@@ -736,32 +726,33 @@
       const cal = getCalendarState();
       const todayKey = getTodayKey();
 
-      if (cal.lastClaimDate === todayKey) return;
+      if (cal.lastClaimDate === todayKey) return; // Prevent multiple claims in the same day
 
       cal.lastClaimDate = todayKey;
-      cal.totalClaimed = (cal.totalClaimed || 0) + 1;
-      cal.currentDay = Math.min(30, cal.currentDay + 1);
+      cal.claimedDays = Math.min(30, (cal.claimedDays || 0) + 1);
 
       state.eb = (Number(state.eb) || 0) + amount;
       Store.save();
       updateTopbar();
       updateCalendarHUD();
 
-      // Trigger flying +EB particle to HUD
+      // Trigger visual particles
       launchFlyingEBStream(clickX, clickY, amount);
       showToast(`🎉 Claimed +${amount} Elden Bucks Daily Reward!`);
 
-      // Broadcast daily login streak to live global feed!
+      // Broadcast login streak
       if (typeof Feed !== "undefined") {
-        Feed.broadcast("daily", { day: cal.totalClaimed });
+        Feed.broadcast("daily", { day: cal.claimedDays });
       }
 
-      // Auto-close calendar after claiming
+      // Re-render modal to show "✓ Claimed" and "🔒 Tomorrow"
+      renderCalendarModal();
+
       setTimeout(() => {
         closeModal("calendar-modal");
       }, 650);
     }
-
+    
     el("calendar-btn")?.addEventListener("click", () => {
       renderCalendarModal();
       openModal("calendar-modal");
@@ -1174,7 +1165,22 @@
       openModal("wheel-modal");
     });
     el("land-btn").addEventListener("click", () => { updateLandModal(); openModal("land-modal"); });
-    el("menu-btn").addEventListener("click", () => openModal("menu-modal"));
+
+    // --- Tutorial Unread Alert Dot Logic ---
+    const menuDot = el("menu-unread-dot");
+    const TUTORIAL_KEY = "eldenEarth.tutorialViewed.v1";
+
+    // Show glowing red dot if player hasn't opened the updated guide yet
+    if (!localStorage.getItem(TUTORIAL_KEY) && menuDot) {
+      menuDot.classList.remove("hidden");
+    }
+
+    el("menu-btn").addEventListener("click", () => {
+      // Mark viewed & remove alert dot
+      localStorage.setItem(TUTORIAL_KEY, "true");
+      if (menuDot) menuDot.classList.add("hidden");
+      openModal("menu-modal");
+    });
 
     document.querySelectorAll("[data-close]").forEach(btn => {
       btn.addEventListener("click", () => closeModal(btn.dataset.close));

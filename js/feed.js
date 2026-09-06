@@ -25,13 +25,31 @@ const Feed = (() => {
   async function resolveCity(lat, lon) {
     if (cachedCityName) return cachedCityName;
     if (!lat || !lon) return "the Realm 🌐";
+
+    const US_STATES = {
+      "Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO",
+      "Connecticut":"CT","Delaware":"DE","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID",
+      "Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA",
+      "Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN",
+      "Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV",
+      "New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC",
+      "North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA",
+      "Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX",
+      "Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV",
+      "Wisconsin":"WI","Wyoming":"WY","District of Columbia":"DC"
+    };
+
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
       const data = await res.json();
-      const city = data.address?.city || data.address?.town || data.address?.municipality || data.address?.village || "the Realm";
-      const state = data.address?.state ? `, ${data.address.state.slice(0, 2).toUpperCase()}` : "";
-      const flag = getFlagEmoji(data.address?.country_code);
-      cachedCityName = `${city}${state} ${flag}`;
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.municipality || addr.village || "Phoenix";
+      const rawState = addr.state || "";
+      const stateCode = US_STATES[rawState] || (rawState.length === 2 ? rawState.toUpperCase() : "");
+      const stateStr = stateCode ? `, ${stateCode}` : "";
+      const flag = getFlagEmoji(addr.country_code);
+
+      cachedCityName = `${city}${stateStr} ${flag}`;
       return cachedCityName;
     } catch (e) {
       return "the Realm 🌐";
@@ -68,15 +86,21 @@ const Feed = (() => {
   }
 
   function addEventLocally(ev) {
-    // Robust deduplication: prevent matching ID or exact same message within 8 seconds
+    // Deduplication: prevent matching ID or exact same message within 8 seconds
     const isDuplicate = events.some(e => 
       e.id === ev.id || 
       (e.message === ev.message && Math.abs(e.timestamp - ev.timestamp) < 8000)
     );
     if (isDuplicate) return;
 
-    events.unshift(ev);
-    if (events.length > MAX_EVENTS) events.pop();
+    events.push(ev);
+
+    // Strictly sort by timestamp descending (Newest events ALWAYS at the top!)
+    events.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if (events.length > MAX_EVENTS) {
+      events.length = MAX_EVENTS;
+    }
 
     if (isCollapsed) {
       unreadCount++;

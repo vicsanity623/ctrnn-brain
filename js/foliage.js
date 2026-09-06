@@ -1,76 +1,128 @@
 // ============================================================
-// Elden Earth — 3D Parcel Foliage & Grass (Realistic Grounded Layer)
+// Elden Earth — 3D Parcel Foliage & Mushroom Landmarks (Zero-Context High-Perf)
 // ============================================================
 const Foliage = (() => {
   let mapInstance = null;
   let isImageLoaded = false;
+  let activeMarkers = [];
+  let cachedMushroomImgSrc = null;
 
-  // Realistic, multi-layered stylized grass sprite with organic blade curvatures & lighting
+  // Realistic stylized grass blade sprite
   function createGrassImage(callback) {
     const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
         <defs>
-          <!-- Sunlit Highlights -->
           <linearGradient id="bladeFront" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color="#a8f5ec"/>
-            <stop offset="25%" stop-color="#58d68d"/>
-            <stop offset="85%" stop-color="#1e824c"/>
+            <stop offset="30%" stop-color="#2ecc71"/>
+            <stop offset="85%" stop-color="#1b7a43"/>
             <stop offset="100%" stop-color="#0e4425"/>
           </linearGradient>
 
-          <!-- Deep Forest Emerald Blade -->
           <linearGradient id="bladeBack" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#52be80"/>
-            <stop offset="40%" stop-color="#229954"/>
-            <stop offset="90%" stop-color="#145a32"/>
+            <stop offset="0%" stop-color="#58d68d"/>
+            <stop offset="50%" stop-color="#229954"/>
             <stop offset="100%" stop-color="#0b301a"/>
           </linearGradient>
 
-          <!-- Golden Sunlit Tip Blade -->
-          <linearGradient id="bladeGold" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#f9e79f"/>
-            <stop offset="30%" stop-color="#48c9b0"/>
-            <stop offset="85%" stop-color="#16a085"/>
-            <stop offset="100%" stop-color="#0b301a"/>
-          </linearGradient>
-
-          <!-- Soft Contact Ground Shadow -->
           <radialGradient id="rootShadow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="rgba(0,0,0,0.7)"/>
-            <stop offset="60%" stop-color="rgba(0,0,0,0.3)"/>
+            <stop offset="0%" stop-color="rgba(0,0,0,0.6)"/>
+            <stop offset="70%" stop-color="rgba(0,0,0,0.2)"/>
             <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
           </radialGradient>
         </defs>
 
-        <!-- 1. Ground Contact Shadow (Binds roots firmly to the parcel surface) -->
-        <ellipse cx="64" cy="122" rx="42" ry="6" fill="url(#rootShadow)"/>
-
-        <!-- 2. Back Layer Blades (Deep Shading) -->
-        <path d="M 64 122 Q 32 85 24 45 Q 42 68 64 122" fill="url(#bladeBack)" opacity="0.9"/>
-        <path d="M 64 122 Q 96 82 106 42 Q 88 66 64 122" fill="url(#bladeBack)" opacity="0.9"/>
-
-        <!-- 3. Mid Layer Blades (Natural Arching Curve) -->
-        <path d="M 64 122 Q 44 70 38 28 Q 54 58 64 122" fill="url(#bladeFront)"/>
-        <path d="M 64 122 Q 84 68 92 25 Q 74 56 64 122" fill="url(#bladeGold)"/>
-        <path d="M 64 122 Q 52 50 48 12 Q 60 45 64 122" fill="url(#bladeFront)"/>
-        <path d="M 64 122 Q 76 52 80 14 Q 68 46 64 122" fill="url(#bladeBack)"/>
-
-        <!-- 4. Tall Center Hero Blades -->
-        <path d="M 64 122 Q 60 40 64 4 Q 68 40 64 122" fill="url(#bladeGold)"/>
-
-        <!-- 5. Foreground Micro-Sprouts (Adds Density at Base) -->
-        <path d="M 64 122 Q 54 95 48 72 Q 58 88 64 122" fill="#a8f5ec" opacity="0.85"/>
-        <path d="M 64 122 Q 74 96 80 74 Q 70 88 64 122" fill="#58d68d" opacity="0.85"/>
+        <ellipse cx="48" cy="90" rx="32" ry="5" fill="url(#rootShadow)"/>
+        <path d="M 48 90 Q 24 65 18 38 Q 32 52 48 90" fill="url(#bladeBack)" opacity="0.9"/>
+        <path d="M 48 90 Q 72 62 78 35 Q 64 50 48 90" fill="url(#bladeBack)" opacity="0.9"/>
+        <path d="M 48 90 Q 34 50 30 20 Q 42 42 48 90" fill="url(#bladeFront)"/>
+        <path d="M 48 90 Q 62 48 66 18 Q 54 40 48 90" fill="url(#bladeFront)"/>
+        <path d="M 48 90 Q 45 32 48 6 Q 51 32 48 90" fill="url(#bladeFront)"/>
+        <path d="M 48 90 Q 40 70 36 52 Q 44 64 48 90" fill="#a8f5ec"/>
+        <path d="M 48 90 Q 56 70 60 52 Q 52 64 48 90" fill="#58d68d"/>
       </svg>
     `;
 
-    const img = new Image(128, 128);
+    const img = new Image(96, 96);
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
     img.onload = () => callback(img);
   }
 
+  // Pre-render 3D Mushroom GLB ONCE into a lightweight image sprite
+  function preloadMushroom() {
+    if (typeof THREE === "undefined" || !THREE.GLTFLoader) return;
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      "models/mush_common.glb",
+      (gltf) => {
+        try {
+          const offCanvas = document.createElement("canvas");
+          offCanvas.width = 128;
+          offCanvas.height = 128;
+
+          const renderer = new THREE.WebGLRenderer({ canvas: offCanvas, alpha: true, antialias: true });
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+          camera.position.set(0, 1.2, 2.5);
+          camera.lookAt(0, 0.4, 0);
+
+          const ambLight = new THREE.AmbientLight(0xffffff, 1.8);
+          scene.add(ambLight);
+
+          const dirLight = new THREE.DirectionalLight(0xf0d38a, 2.4);
+          dirLight.position.set(3, 5, 4);
+          scene.add(dirLight);
+
+          const clone = gltf.scene.clone();
+          const box = new THREE.Box3().setFromObject(clone);
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const scale = 1.15 / maxDim;
+          clone.scale.set(scale, scale, scale);
+
+          box.setFromObject(clone);
+          clone.position.y = -box.min.y;
+          scene.add(clone);
+
+          renderer.render(scene, camera);
+          cachedMushroomImgSrc = offCanvas.toDataURL();
+
+          // DISPOSE RENDERER IMMEDIATELY: Releases WebGL context so it never leaks!
+          renderer.dispose();
+          renderer.forceContextLoss();
+          update();
+        } catch (e) {
+          console.warn("[Foliage] Pre-render notice:", e);
+        }
+      },
+      undefined,
+      (err) => {
+        // Fallback mushroom emoji if GLB is missing
+        cachedMushroomImgSrc = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><text y="50" font-size="48">🍄</text></svg>`
+        );
+        update();
+      }
+    );
+  }
+
+  // Zero-WebGL Lightweight Image Billboard
+  function create3DMushroomElement() {
+    const wrap = document.createElement("div");
+    wrap.className = "parcel-prop-wrap";
+
+    if (cachedMushroomImgSrc) {
+      wrap.innerHTML = `<img src="${cachedMushroomImgSrc}" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));display:block;">`;
+    } else {
+      wrap.innerHTML = `<span style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));">🍄</span>`;
+    }
+
+    return wrap;
+  }
+
   function init(map) {
     mapInstance = map;
+    preloadMushroom();
 
     createGrassImage((img) => {
       if (!mapInstance.hasImage("foliage-grass")) {
@@ -90,10 +142,9 @@ const Foliage = (() => {
       data: { type: "FeatureCollection", features: [] },
     });
 
-    const layers = mapInstance.getStyle().layers;
+    const layers = mapInstance.getStyle().layers || [];
     const labelLayerId = layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"])?.id;
 
-    // Upright Standing Grass Layer (Grounded at the bottom root)
     mapInstance.addLayer({
       id: "foliage-layer",
       type: "symbol",
@@ -101,16 +152,16 @@ const Foliage = (() => {
       minzoom: 16.5,
       layout: {
         "icon-image": "foliage-grass",
-        "icon-anchor": "bottom",               // <--- Pins root to parcel surface!
-        "icon-pitch-alignment": "viewport",    // Stands vertically upright
-        "icon-rotation-alignment": "viewport", // Faces camera continuously
+        "icon-anchor": "bottom",
+        "icon-pitch-alignment": "viewport",
+        "icon-rotation-alignment": "viewport",
         "icon-size": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          16.5, 0.28,
-          18.5, 0.55,
-          20, 0.85
+          16.5, ["*", 0.16, ["get", "scale"]],
+          18.5, ["*", 0.32, ["get", "scale"]],
+          20,   ["*", 0.52, ["get", "scale"]]
         ],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
@@ -127,45 +178,74 @@ const Foliage = (() => {
     }, labelLayerId);
   }
 
+  function seededRandom(seed) {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
   function update() {
     if (!mapInstance || !isImageLoaded || !mapInstance.getSource("foliage-source")) return;
 
+    activeMarkers.forEach(m => m.remove());
+    activeMarkers = [];
+
     const allPlots = (typeof Grid !== "undefined" && Grid.getAllPlots) ? Grid.getAllPlots() : {};
     const tileSize = CONFIG.TILE_SIZE_METERS || 6.096;
-    const features = [];
+    const grassFeatures = [];
+    const zoom = mapInstance.getZoom();
 
     for (const tid in allPlots) {
       const p = allPlots[tid];
+      const rarityKey = p.rarity?.key || p.rarity || "common";
       const px = parseInt(p.tx, 10);
       const py = parseInt(p.ty, 10);
 
-      // Centroid of the parcel
+      let seed = Math.abs(px * 374761393 + py * 668265263);
+
       const c = Geo.fromMercator(
         px * tileSize + tileSize / 2,
         py * tileSize + tileSize / 2
       );
 
-      // Distribute 6 grass tufts across each 10x10ft parcel
-      const offsets = [
-        [0, 0],
-        [-0.000018, -0.000018],
-        [0.000018, -0.000018],
-        [-0.000018, 0.000018],
-        [0.000018, 0.000018],
-        [0, 0.000022],
-      ];
+      const tuftCount = 5 + Math.floor(seededRandom(seed++) * 3);
 
-      offsets.forEach(([dLon, dLat]) => {
-        features.push({
+      for (let i = 0; i < tuftCount; i++) {
+        const offsetX = (seededRandom(seed++) - 0.5) * 0.000036;
+        const offsetY = (seededRandom(seed++) - 0.5) * 0.000036;
+        const randomScale = 0.65 + seededRandom(seed++) * 0.5;
+
+        grassFeatures.push({
           type: "Feature",
-          geometry: { type: "Point", coordinates: [c.lon + dLon, c.lat + dLat] }
+          properties: { scale: randomScale },
+          geometry: {
+            type: "Point",
+            coordinates: [c.lon + offsetX, c.lat + offsetY]
+          }
         });
-      });
+      }
+
+      // If Common Plot, place the 3D Common Mushroom slightly offset in the grass
+      if (rarityKey === "common" && zoom >= 15.5) {
+        const mushOffsetX = (seededRandom(seed++) - 0.5) * 0.000015;
+        const mushOffsetY = (seededRandom(seed++) - 0.5) * 0.000015;
+
+        const mushEl = create3DMushroomElement();
+        const m = new mapboxgl.Marker({
+          element: mushEl,
+          anchor: "bottom",
+          pitchAlignment: "viewport",
+          rotationAlignment: "viewport",
+        })
+          .setLngLat([c.lon + mushOffsetX, c.lat + mushOffsetY])
+          .addTo(mapInstance);
+
+        activeMarkers.push(m);
+      }
     }
 
     mapInstance.getSource("foliage-source").setData({
       type: "FeatureCollection",
-      features: features,
+      features: grassFeatures,
     });
   }
 

@@ -6,9 +6,10 @@
 <title>Elden Earth</title>
 <meta name="description" content="Walk the real world, claim the tile beneath your feet." />
 
-<!-- Mapbox GL JS 3D WebGL Engine & Three.js -->
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<!-- Free Open-Source MapLibre Engine (100% Drop-In Replacement for Mapbox, No Token Lock) -->
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>window.mapboxgl = maplibregl;</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
@@ -80,7 +81,7 @@
     <div class="hero-balance-card" id="hero-balance-card">
       <div class="hero-top-line">
         <div class="hero-brand-title">
-          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v0.9.8</span>
+          <span class="hero-brand-gem">◆</span> ELDEN EARTH <span class="hero-version-tag">v1.2.1</span>
         </div>
         <div id="boost-timer-badge" class="boost-timer-badge hidden">⚡ 30X BOOST <span id="boost-countdown">00:00:00</span></div>
       </div>
@@ -111,7 +112,10 @@
         <span class="stat-value" id="stat-rate">$0.00000000/s</span>
       </div>
 
-      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
+      <button id="menu-btn" class="icon-btn menu-btn-wrap" aria-label="Menu">
+        ☰
+        <span id="menu-unread-dot" class="menu-unread-dot hidden"></span>
+      </button>
     </div>
   </div>
 
@@ -383,18 +387,97 @@
   </div>
 </div>
 
-<!-- ===================== HELP / MENU MODAL ===================== -->
+<!-- ===================== REALM GUIDE / HOW TO PLAY MODAL ===================== -->
 <div id="menu-modal" class="modal hidden">
-  <div class="modal-card">
+  <div class="modal-card guide-modal-card">
     <button class="close-btn" data-close="menu-modal">✕</button>
+    <div class="guide-header-icon">📜</div>
     <h2>How to Play</h2>
-    <ol class="howto">
-      <li>Diamonds ◆ spawn within a mile of you. Walk within 20 yards and tap one to collect it.</li>
-      <li>Spend diamonds on the Earn wheel for a chance at Elden Bucks (EB).</li>
-      <li>Zoom the map in close to reveal the 10ft tile grid. Tap an empty tile to buy it for 100 EB.</li>
-      <li>Every tile you own earns EB automatically, every second, forever.</li>
-    </ol>
-    <button id="reset-btn" class="btn btn-danger">Reset Game Data</button>
+    <p class="modal-sub">Master the Realm of Elden Earth</p>
+
+    <!-- Cash Out Teaser Banner -->
+    <div class="cashout-teaser-card">
+      <div class="cashout-icon">💵</div>
+      <div class="cashout-info">
+        <strong>Cash Out Coming Soon!</strong>
+        <span>Real PayPal / Crypto payouts self-funded by community game treasury ad revenue!</span>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Guide Cards -->
+    <div class="guide-steps-list">
+      
+      <div class="guide-card">
+        <div class="guide-card-icon">💎</div>
+        <div class="guide-card-text">
+          <strong>1. Collect 3D Diamonds</strong>
+          <span>Walk the real world. When glowing 3D crystals appear inside your collection circle, tap them to collect!</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">🎡</div>
+        <div class="guide-card-text">
+          <strong>2. Spin the Fortune Wheel</strong>
+          <span>Spend diamonds on the Earn Wheel for Elden Bucks (EB). Hit jackpots of 25 EB or 50 EB!</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">🗺️</div>
+        <div class="guide-card-text">
+          <strong>3. Claim Real 10×10 ft Parcels</strong>
+          <span>Tap <strong>BUY LAND</strong> to swoop into flat 2D view. Claim any tile within your radius for 100 EB!</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">📈</div>
+        <div class="guide-card-text">
+          <strong>4. Passive Rent ($USD) Forever</strong>
+          <span>Every tile earns real-time cash every 0.5s, ticking even when the app is completely closed.</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">⚡</div>
+        <div class="guide-card-text">
+          <strong>5. Keep 30X Boost Active</strong>
+          <span>Tap the glowing <strong>30X BOOST</strong> button to stack up to 6 hours of supercharged 30X rent earnings.</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">⛏️</div>
+        <div class="guide-card-text">
+          <strong>6. Automated Diamond Extractor</strong>
+          <span>Own <strong>5+ connected plots</strong> to construct your Extractor base! Automatically mines free diamonds while you sleep. After you reach 1.00 balance Upgrade it with your Cash Balance to mine faster!</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-icon">👑</div>
+        <div class="guide-card-text">
+          <strong>7. Become Mayor & Earn 2% Dividends</strong>
+          <span>Own the most land in any city to claim the Mayor crown and earn a 2% dividend on all land bought by other players!</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Reddit Community & Support Card -->
+    <a href="https://www.reddit.com/r/eldenEarthMobile/" target="_blank" rel="noopener noreferrer" class="community-support-card">
+      <div class="community-icon-wrap">💬</div>
+      <div class="community-content">
+        <div class="comm-badge">Official Community</div>
+        <strong>Join r/eldenEarthMobile</strong>
+        <span>Share game ideas, vote on roadmap features, get support, and talk with other landlords!</span>
+      </div>
+      <div class="community-arrow">➔</div>
+    </a>
+
+    <button class="btn btn-primary" data-close="menu-modal" style="margin-top: 14px;">Got It! Let's Play</button>
+    <button id="reset-btn" class="btn btn-danger" style="margin-top: 10px; font-size: 13px; padding: 10px;">Reset Device Save Data</button>
   </div>
 </div>
 
@@ -427,11 +510,13 @@
       <p class="modal-sub">Top Landlords, Earners & Reigning Mayors</p>
     </div>
 
-    <!-- 3 Segmented Tabs -->
+    <!-- 5 Segmented Tabs -->
     <div class="lb-tabs-row">
-      <button class="lb-tab-btn active" data-tab="plots">🏞️ Most Plots</button>
-      <button class="lb-tab-btn" data-tab="rent">💰 Top Rent</button>
+      <button class="lb-tab-btn active" data-tab="plots">🗺️ Plots</button>
+      <button class="lb-tab-btn" data-tab="rent">💰 Rent</button>
       <button class="lb-tab-btn" data-tab="mayors">👑 Mayors</button>
+      <button class="lb-tab-btn" data-tab="governors">🏛️ Governors</button>
+      <button class="lb-tab-btn" data-tab="presidents">🦅 Presidents</button>
     </div>
 
     <!-- Scrollable Leaderboard List -->

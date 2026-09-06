@@ -69,6 +69,12 @@ const Grid = (() => {
     state.eb -= CONFIG.PLOT_COST_EB;
     const rarity = pickRarity();
 
+    // Determine real-world City, State & Country from tile center
+    const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
+    const centerLat = (corners[0][0] + corners[2][0]) / 2;
+    const centerLon = (corners[0][1] + corners[2][1]) / 2;
+    const territory = await Geo.getTerritoryInfo(centerLat, centerLon);
+
     if (map) {
       const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
       const centerLat = (corners[0][0] + corners[2][0]) / 2;
@@ -87,6 +93,9 @@ const Grid = (() => {
     const plotData = {
       tx,
       ty,
+      city: territory.city,
+      state: territory.state,
+      country: territory.country,
       rarity: rarity.key,
       rate: rarity.rate,
       ownerId: state.player.id || "guest-" + Math.random().toString(36).slice(2, 8),
@@ -97,34 +106,21 @@ const Grid = (() => {
 
     state.plots[tid] = plotData;
     globalPlots[tid] = plotData;
-    Store.save(true); // Force immediate cloud sync on land purchase
+    Store.save();
     onBuyAttempt(true, rarity);
     render();
 
-    // Award 2% Mayorship Dividend & Broadcast (Once per purchase)
-    if (typeof Feed !== "undefined") {
-      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
-      const cLat = (corners[0][0] + corners[2][0]) / 2;
-      const cLon = (corners[0][1] + corners[2][1]) / 2;
-      Feed.resolveCity(cLat, cLon).then((loc) => {
-        // Use exact tile ID to prevent duplicate callbacks
-        Feed.broadcast("land", { rarity: rarity.label, location: loc, tileId: tid });
-        if (typeof Leaderboard !== "undefined") {
-          Leaderboard.awardMayorshipDividend(loc, plotData.ownerId, CONFIG.PLOT_COST_EB);
-        }
-      });
+    // 1. Trigger Multi-Tier Stackable Dividends (Mayor, Governor, President)
+    if (typeof Leaderboard !== "undefined" && Leaderboard.awardTerritoryDividends) {
+      Leaderboard.awardTerritoryDividends(territory, state.player.id, CONFIG.PLOT_COST_EB);
     }
 
-    // Broadcast land claim to global feed with location tag
+    // 2. Broadcast land claim to global feed
     if (typeof Feed !== "undefined") {
-      const corners = Geo.tileBounds(tx, ty, CONFIG.TILE_SIZE_METERS);
-      const cLat = (corners[0][0] + corners[2][0]) / 2;
-      const cLon = (corners[0][1] + corners[2][1]) / 2;
-      Feed.resolveCity(cLat, cLon).then((loc) => {
-        Feed.broadcast("land", { rarity: rarity.label, location: loc });
-      });
+      Feed.broadcast("land", { rarity: rarity.label, location: territory.city, tileId: tid });
     }
 
+    // 3. Save to Firebase Firestore
     const db = Store.getDb();
     if (db) {
       try {
@@ -156,9 +152,13 @@ const Grid = (() => {
     const allPlots = getAllPlots();
     const zoom = map.getZoom();
 
-    // Update 3D Standing Grass Foliage
+    // Update 3D Standing Grass Foliage (Safeguarded against WebGL context interruption)
     if (typeof Foliage !== "undefined" && Foliage.update) {
-      Foliage.update();
+      try {
+        Foliage.update();
+      } catch (err) {
+        console.warn("[Foliage] Update safely bypassed:", err);
+      }
     }
 
     // 1. RENDER CLAIMED PLOTS (Instantly)
@@ -187,13 +187,25 @@ const Grid = (() => {
     } else {
       map.addSource("plots-source", { type: "geojson", data: claimedGeoJSON });
 
+      // 1. Subtle Lush Green Grass Base Underlay (All Claimed Parcels)
+      map.addLayer({
+        id: "plots-grass-base",
+        type: "fill",
+        source: "plots-source",
+        paint: {
+          "fill-color": "#27ae60",
+          "fill-opacity": 0.28, // Soft meadow green tint
+        },
+      });
+
+      // 2. Rarity Tint Layer (Common, Rare, Epic, Legendary overlay)
       map.addLayer({
         id: "plots-fill",
         type: "fill",
         source: "plots-source",
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": 0.65,
+          "fill-opacity": 0.45,
         },
       });
 
@@ -472,8 +484,7 @@ const Grid = (() => {
       });
     }
 
-    // Multiple render hooks to guarantee instantaneous plot display
-    map.on("idle", render);
+    // Render only on true camera movements and when Firestore broadcasts updates
     map.on("moveend zoomend", render);
     listenToGlobalPlots();
     render();

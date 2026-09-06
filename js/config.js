@@ -3,6 +3,12 @@
 // Edit these values to tune the game or enable Google sign-in.
 // ============================================================
 const CONFIG = {
+  // --- Map Tile Engine & Rate Limit Fallback ---
+  // Set to true to bypass Mapbox completely and use unlimited 100% free OpenFreeMap
+  USE_OPENFREEMAP_DIRECTLY: true,
+  MAPBOX_STYLE_URL: "mapbox://styles/mapbox/dark-v11",
+  FALLBACK_STYLE_URL: "https://tiles.openfreemap.org/styles/dark", // 100% free, no key, no limits
+
   // Paste an OAuth 2.0 Web Client ID from https://console.cloud.google.com/apis/credentials
   // (Authorized JavaScript origin = your github.io URL) to enable "Sign in with Google".
   // Leave blank to only offer Guest (local storage) sign-in.
