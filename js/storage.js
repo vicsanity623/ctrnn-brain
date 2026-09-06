@@ -186,7 +186,7 @@ const Store = (() => {
     return isBoosted ? baseRate * (state.boostMultiplier || 30) : baseRate;
   }
 
-  // Apply offline earnings, extractor progress & One-Time Royal Backpay Audit
+  // Apply offline earnings & offline extractor progress
   function applyOfflineProgress() {
     const now = Date.now();
     const elapsedSec = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -206,31 +206,8 @@ const Store = (() => {
       }
     }
 
-    // --- ONE-TIME ROYAL TREASURY BACKPAY AUDIT ---
-    if (!state.backpayReimbursed && state.plots && Object.keys(state.plots).length > 0) {
-      const plotCount = Object.keys(state.plots).length;
-      let titleMultiplier = 2; // Base Mayor (2 EB per plot)
-
-      const playerName = (state.player?.name || "").toLowerCase();
-      // Triple Crown rulers (Mayor + Governor + President = 6 EB per plot)
-      if (playerName.includes("vic") || playerName.includes("folsom") || playerName.includes("raymond")) {
-        titleMultiplier = 6;
-      } else if (playerName.includes("cwood")) {
-        titleMultiplier = 4; // Mayor + Governor = 4 EB per plot
-      }
-
-      const backpayEB = plotCount * titleMultiplier;
-      if (backpayEB > 0) {
-        state.eb = (Number(state.eb) || 0) + backpayEB;
-        state.totalDividends = (Number(state.totalDividends) || 0) + backpayEB;
-        state.backpayReimbursed = true;
-        state.pendingBackpayNotice = backpayEB;
-        console.log(`[Treasury] Credited +${backpayEB} EB royal backpay to ${state.player.name}`);
-      }
-    }
-
     state.lastTick = now;
-    save(true); // Force cloud save
+    save();
     return earned;
   }
 
