@@ -514,6 +514,7 @@
     Wheel.init();
     if (typeof Feed !== "undefined") Feed.init();
     if (typeof Leaderboard !== "undefined") Leaderboard.init();
+    if (typeof Chat !== "undefined") Chat.init();
     startIncomeLoop();
     wireUI();
   }
