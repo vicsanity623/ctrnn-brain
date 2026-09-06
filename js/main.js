@@ -1070,47 +1070,68 @@
         showToast(`⚡ ${activeRollMultiplier}X Multiplier Activated! (+1 Hr)`);
       });
     }
-    // --- Floating +2 EB Boost Loop ---
+    // --- Floating +2 EB Boost Loop (20-Minute Cooldown & Bot Protection) ---
     const boostBtn = el("boost-btn");
     let boostHideTimer = null;
+    let boostScheduleTimer = null;
+    const BOOST_COOLDOWN_MS = 20 * 60 * 1000; // Exactly 20 Minutes (1,200,000 ms)
 
     function scheduleBoost() {
-      // Appears randomly between 55 and 115 seconds
-      const delay = 55000 + Math.random() * 60000;
-      setTimeout(() => {
+      clearTimeout(boostScheduleTimer);
+      const state = Store.get();
+      const now = Date.now();
+      const lastClaim = state?.lastBoostClaim || 0;
+      const elapsed = now - lastClaim;
+
+      // Calculate remaining wait time (prevents multi-tab and refresh exploits)
+      const waitTime = Math.max(0, BOOST_COOLDOWN_MS - elapsed);
+
+      boostScheduleTimer = setTimeout(() => {
         if (!boostBtn) return;
         boostBtn.classList.remove("hidden");
 
-        // Stays on screen for 16 seconds before vanishing
+        // Stays visible for 45 seconds so human players have plenty of time to tap
         boostHideTimer = setTimeout(() => {
           boostBtn.classList.add("hidden");
           scheduleBoost();
-        }, 16000);
-      }, delay);
+        }, 45000);
+      }, waitTime);
     }
 
     if (boostBtn) {
       boostBtn.addEventListener("click", (e) => {
+        const state = Store.get();
+        const now = Date.now();
+        const lastClaim = state?.lastBoostClaim || 0;
+
+        // Anti-Bot Guard: Rejects fraudulent clicks if 20 minutes have not elapsed
+        if (lastClaim && (now - lastClaim < BOOST_COOLDOWN_MS - 5000)) {
+          showToast("⏳ Cooldown active — boost available every 20 minutes.");
+          boostBtn.classList.add("hidden");
+          return;
+        }
+
         clearTimeout(boostHideTimer);
         const rect = boostBtn.getBoundingClientRect();
         const originX = rect.left + rect.width / 2;
         const originY = rect.top + rect.height / 2;
         boostBtn.classList.add("hidden");
 
-        const state = Store.get();
-        state.eb += 2;
+        // Save timestamp to prevent multi-tab abuse
+        state.lastBoostClaim = now;
+        state.eb = (Number(state.eb) || 0) + 2;
         Store.save();
         updateTopbar();
-        showToast("⚡ Claimed +2.00 EB Boost!");
+        showToast("⚡ Claimed +2.00 EB Boost! (Next in 20m)");
 
-        // Launch 2 flying EB sparks into the HUD!
+        // Launch flying EB particle sparks into the HUD!
         launchFlyingEBStream(originX, originY, 2);
 
-        // Schedule next appearance
+        // Schedule next 20-minute cycle
         scheduleBoost();
       });
 
-      // Start initial timer
+      // Start initial cooldown check
       scheduleBoost();
     }
 
