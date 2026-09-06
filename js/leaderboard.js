@@ -151,7 +151,7 @@ const Leaderboard = (() => {
     return cachedData;
   }
 
-  // Award Stackable Dividends: 2 EB (Mayor) + 2 EB (Governor) + 2 EB (President)
+  // Award Multi-Tier Stackable Dividends to Mayors, Governors & Presidents
   async function awardTerritoryDividends(territory, buyerId, plotCostEB = 100) {
     if (!territory) return;
     const db = Store.getDb();
@@ -162,58 +162,66 @@ const Leaderboard = (() => {
     const governor = data.governors.find(g => g.territory === territory.state);
     const president = data.presidents.find(p => p.territory === territory.country);
 
-    // Track total EB earned per player for this purchase
-    const payouts = {}; // ownerId -> { amount, titles: [] }
+    // Track payouts per ruler: ownerId -> { amount, titles: [], icons: [], name }
+    const payouts = {};
 
-    if (mayor && mayor.ownerId !== buyerId) {
-      if (!payouts[mayor.ownerId]) payouts[mayor.ownerId] = { amount: 0, titles: [], name: mayor.name };
-      payouts[mayor.ownerId].amount += 2;
-      payouts[mayor.ownerId].titles.push(`Mayor of ${mayor.territory}`);
+    function addRulerPayout(ruler, roleName, icon) {
+      if (!ruler || !ruler.ownerId) return;
+      const oid = ruler.ownerId;
+      if (!payouts[oid]) {
+        payouts[oid] = { amount: 0, titles: [], icons: [], name: ruler.name };
+      }
+      payouts[oid].amount += 2; // +2 EB per title held
+      payouts[oid].titles.push(roleName);
+      payouts[oid].icons.push(icon);
     }
 
-    if (governor && governor.ownerId !== buyerId) {
-      if (!payouts[governor.ownerId]) payouts[governor.ownerId] = { amount: 0, titles: [], name: governor.name };
-      payouts[governor.ownerId].amount += 2;
-      payouts[governor.ownerId].titles.push(`Governor of ${governor.territory}`);
-    }
+    // 1. City Mayor (+2 EB)
+    if (mayor) addRulerPayout(mayor, `Mayor of ${mayor.territory}`, "👑");
 
-    if (president && president.ownerId !== buyerId) {
-      if (!payouts[president.ownerId]) payouts[president.ownerId] = { amount: 0, titles: [], name: president.name };
-      payouts[president.ownerId].amount += 2;
-      payouts[president.ownerId].titles.push(`President of ${president.territory}`);
-    }
+    // 2. State Governor (+2 EB)
+    if (governor) addRulerPayout(governor, `Governor of ${governor.territory}`, "🏛️");
 
-    // Execute payouts
+    // 3. Country President (+2 EB)
+    if (president) addRulerPayout(president, `President of ${president.territory}`, "🦅");
+
+    // Execute payouts for each ruler
     for (const oid in payouts) {
-      const payout = payouts[oid];
+      const p = payouts[oid];
+      const isSelf = oid === state.player.id;
 
-      // If local player, update immediately
-      if (oid === state.player.id) {
-        state.eb = (Number(state.eb) || 0) + payout.amount;
-        state.totalDividends = (Number(state.totalDividends) || 0) + payout.amount;
+      // Update local storage if this client is the recipient
+      if (isSelf) {
+        state.eb = (Number(state.eb) || 0) + p.amount;
+        state.totalDividends = (Number(state.totalDividends) || 0) + p.amount;
         Store.save();
         if (typeof showToast === "function") {
-          showToast(`👑 Royalty Payout! +${payout.amount} EB collected (${payout.titles.join(", ")})!`);
+          showToast(`👑 Royalty Payout! +${p.amount} EB (${p.titles.join(" + ")})!`);
         }
       } else if (db) {
-        // Atomically deposit into cloud save
+        // Atomically deposit into cloud save for other players (e.g. FolsomPrisoner, Cwood)
         try {
           await db.collection("saves").doc(oid).set({
-            eb: firebase.firestore.FieldValue.increment(payout.amount),
-            totalDividends: firebase.firestore.FieldValue.increment(payout.amount),
+            eb: firebase.firestore.FieldValue.increment(p.amount),
+            totalDividends: firebase.firestore.FieldValue.increment(p.amount),
           }, { merge: true });
+          console.log(`[Royalty] Deposited +${p.amount} EB to ${p.name} (${p.titles.join(", ")})`);
         } catch (err) {
-          console.warn("[Dividends] Deposit error:", err);
+          console.warn("[Royalty] Cloud deposit notice:", err);
         }
       }
 
-      // Broadcast to live feed
+      // Broadcast to Live Feed with exact title badges
       if (typeof Feed !== "undefined") {
+        const titleBadge = p.titles.length === 3 ? "Triple Crown (Mayor + Gov + Pres)" : p.titles.join(" & ");
+        const titleIcon = p.icons.join("");
+
         Feed.broadcast("dividend", {
-          mayorName: payout.name,
-          city: territory.city,
-          amount: payout.amount,
-          titlesDesc: payout.titles.join(" & ")
+          rulerName: p.name,
+          territory: territory.city,
+          amount: p.amount,
+          titleBadge,
+          titleIcon
         });
       }
     }
