@@ -154,10 +154,10 @@ const Feed = (() => {
       const ruler = details.rulerName || details.mayorName || "The Ruler";
       const territory = details.territory || details.city || "the Realm";
       const amount = details.amount || 2;
-      const titleBadge = details.titleBadge || "👑 Royalty";
+      const titleBadge = details.titleBadge || "Royalty";
       const titleIcon = details.titleIcon || "👑";
 
-      message = `${titleIcon} <strong>${ruler}</strong> (${titleBadge}) collected a <strong>+${amount} EB</strong> dividend from land in <em>${territory}</em>!`;
+      message = `${titleIcon} <strong>${ruler}</strong> (<em>${titleBadge}</em>) collected <strong>+${amount} EB</strong> royalty from land in <em>${territory}</em>!`;
     }
 
     const now = Date.now();
