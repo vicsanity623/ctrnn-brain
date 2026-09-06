@@ -151,10 +151,13 @@ const Feed = (() => {
       const day = details.day || 1;
       message = `📅 <strong>${playerName}</strong> has logged in for <strong>${day} day${day > 1 ? "s" : ""} in a row!</strong> Welcome back! 🔥`;
     } else if (type === "dividend") {
-      const mayor = details.mayorName || "The Mayor";
-      const city = details.city || "the Realm";
+      const ruler = details.rulerName || details.mayorName || "The Ruler";
+      const territory = details.territory || details.city || "the Realm";
       const amount = details.amount || 2;
-      message = `👑 <strong>${mayor}</strong> collected a <strong>${amount} EB</strong> Mayorship dividend from a land sale in <em>${city}</em>!`;
+      const titleBadge = details.titleBadge || "Royalty";
+      const titleIcon = details.titleIcon || "👑";
+
+      message = `${titleIcon} <strong>${ruler}</strong> (<em>${titleBadge}</em>) collected <strong>+${amount} EB</strong> royalty from land in <em>${territory}</em>!`;
     }
 
     const now = Date.now();
