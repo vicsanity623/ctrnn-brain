@@ -151,7 +151,77 @@ const Leaderboard = (() => {
     return cachedData;
   }
 
-  // Award Multi-Tier Stacka
+  // Award Multi-Tier Stackable Dividends to Mayors, Governors & Presidents
+  async function awardTerritoryDividends(territory, buyerId, plotCostEB = 100) {
+    if (!territory) return;
+    const db = Store.getDb();
+    const state = Store.get();
+    const data = await fetchRankings();
+
+    const mayor = (data.mayors || []).find(m => m.territory === territory.city);
+    const governor = (data.governors || []).find(g => g.territory === territory.state);
+    const president = (data.presidents || []).find(p => p.territory === territory.country);
+
+    const payouts = {};
+
+    function addRulerPayout(ruler, roleName, icon) {
+      if (!ruler || !ruler.ownerId) return;
+      const oid = ruler.ownerId;
+      if (!payouts[oid]) {
+        payouts[oid] = { amount: 0, titles: [], icons: [], name: ruler.name };
+      }
+      payouts[oid].amount += 2; // +2 EB per title held
+      payouts[oid].titles.push(roleName);
+      payouts[oid].icons.push(icon);
+    }
+
+    // 1. City Mayor (+2 EB)
+    if (mayor) addRulerPayout(mayor, `Mayor of ${mayor.territory}`, "👑");
+
+    // 2. State Governor (+2 EB)
+    if (governor) addRulerPayout(governor, `Governor of ${governor.territory}`, "🏛️");
+
+    // 3. Country President (+2 EB)
+    if (president) addRulerPayout(president, `President of ${president.territory}`, "🦅");
+
+    for (const oid in payouts) {
+      const p = payouts[oid];
+      const isSelf = oid === state.player?.id;
+
+      if (isSelf) {
+        state.eb = (Number(state.eb) || 0) + p.amount;
+        state.totalDividends = (Number(state.totalDividends) || 0) + p.amount;
+        Store.save();
+        if (typeof showToast === "function") {
+          showToast(`👑 Royalty Payout! +${p.amount} EB (${p.titles.join(" + ")})!`);
+        }
+      } else if (db) {
+        try {
+          await db.collection("saves").doc(oid).set({
+            eb: firebase.firestore.FieldValue.increment(p.amount),
+            totalDividends: firebase.firestore.FieldValue.increment(p.amount),
+          }, { merge: true });
+          console.log(`[Royalty] Deposited +${p.amount} EB to ${p.name} (${p.titles.join(", ")})`);
+        } catch (err) {
+          console.warn("[Royalty] Cloud deposit notice:", err);
+        }
+      }
+
+      if (typeof Feed !== "undefined") {
+        const titleBadge = p.titles.length === 3 ? "Triple Crown" : p.titles.join(" & ");
+        const titleIcon = p.icons.join("");
+
+        Feed.broadcast("dividend", {
+          rulerName: p.name,
+          territory: territory.city,
+          amount: p.amount,
+          titleBadge,
+          titleIcon
+        });
+      }
+    }
+  }
+
   function render(data) {
     const listEl = document.getElementById("leaderboard-list");
     if (!listEl || !data) return;
