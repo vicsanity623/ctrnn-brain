@@ -48,11 +48,18 @@
     // Elden Bucks game currency in sub-row
     if (el("stat-eb")) el("stat-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
 
-    el("stat-diamonds").innerHTML = `${state.diamonds} <span class="hud-gem-icon"></span>`;
+    const currentEB = Math.floor(Number(state.eb) || 0);
+    const currentDiamonds = Number(state.diamonds) || 0;
 
-    // Update wheel balance display
-    if (el("wheel-diamonds")) el("wheel-diamonds").textContent = Math.floor(Number(state.diamonds) || 0);
-    if (el("wheel-eb")) el("wheel-eb").textContent = Math.floor(Number(state.eb) || 0) + " EB";
+    el("stat-diamonds").innerHTML = `${currentDiamonds} <span class="hud-gem-icon"></span>`;
+
+    // Live player balances inside the Diamond Wheel modal
+    if (el("wheel-eb-display")) el("wheel-eb-display").textContent = currentEB + " EB";
+    if (el("wheel-diamond-display")) el("wheel-diamond-display").innerHTML = `${currentDiamonds} <span class="hud-gem-icon"></span>`;
+
+    // Update legacy wheel balance spans (backward compatibility)
+    if (el("wheel-diamonds")) el("wheel-diamonds").textContent = currentDiamonds;
+    if (el("wheel-eb")) el("wheel-eb").textContent = currentEB + " EB";
 
     el("stat-rate").textContent = "$" + Store.totalRate().toFixed(11) + "/s";
     el("player-name").textContent = state.player.name || "Traveler";
@@ -1175,6 +1182,7 @@
         spinBtn.disabled = false;
       }
       openModal("wheel-modal");
+      updateTopbar();
     });
     el("land-btn").addEventListener("click", () => { updateLandModal(); openModal("land-modal"); });
 
@@ -1203,6 +1211,10 @@
 
     el("spin-btn").addEventListener("click", () => {
       const state = Store.get();
+      if (state.player.id && state.player.id.startsWith("guest-")) {
+        alert("YOU ARE A GUEST IN THIS REALM. Sign in with Google to spin the wheel.");
+        return;
+      }
       const cost = CONFIG.SPIN_COST_DIAMONDS || 1;
 
       if ((Number(state.diamonds) || 0) < cost) {
