@@ -113,11 +113,43 @@ const Wheel = (() => {
     draw();
   }
 
-  // Helper to pick slice based on weighted odds
+  // --- Cryptographically Secure Hardware Entropy Engine (CSPRNG) ---
+  // Generates uniform floating point [0, 1) using 53 bits of kernel entropy
+  function cryptoRandom() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const buf = new Uint32Array(2);
+      window.crypto.getRandomValues(buf);
+      const high = buf[0] >>> 5;
+      const low = buf[1] >>> 6;
+      return (high * 67108864 + low) / 9007199254740992;
+    }
+    return Math.random(); // Graceful fallback if unsupported
+  }
+
+  // Modulo-Bias-Free Rejection Sampling Integer Roll
+  function cryptoRandomInt(max) {
+    if (max <= 1) return 0;
+    if (window.crypto && window.crypto.getRandomValues) {
+      const array = new Uint32Array(1);
+      const maxUint32 = 4294967296; // 2^32
+      const limit = maxUint32 - (maxUint32 % max);
+      let val;
+      do {
+        window.crypto.getRandomValues(array);
+        val = array[0];
+      } while (val >= limit); // Discards bias at the top of the integer range
+      return val % max;
+    }
+    return Math.floor(Math.random() * max);
+  }
+
+  // Provably Fair Weighted Slice Selector (Zero Modulo Bias)
   function pickWeightedIndex() {
     const slices = CONFIG.WHEEL_SLICES;
     const totalWeight = slices.reduce((sum, s) => sum + (s.weight || 10), 0);
-    let roll = Math.random() * totalWeight;
+    
+    // Cryptographic integer roll from 0 to totalWeight - 1
+    let roll = cryptoRandomInt(totalWeight);
 
     for (let i = 0; i < slices.length; i++) {
       const w = slices[i].weight || 10;
@@ -145,11 +177,12 @@ let spinTimeoutId = null;
     const sliceDeg = 360 / n;
     const targetIndex = pickWeightedIndex();
 
-    // Add slight random offset within slice so needle doesn't always hit dead-center
-    const jitter = (Math.random() - 0.5) * (sliceDeg * 0.7);
+    // Cryptographically randomized needle landing angle within slice
+    const jitter = (cryptoRandom() - 0.5) * (sliceDeg * 0.75);
     const targetCenter = targetIndex * sliceDeg + sliceDeg / 2 + jitter;
 
-    const extraSpins = 5 + Math.floor(Math.random() * 2);
+    // Cryptographically randomized spin force (5 to 8 full rotations)
+    const extraSpins = 5 + cryptoRandomInt(4);
     const neededRotation = (360 - targetCenter) % 360;
 
     // keep rotation monotonically increasing so it always spins "forward"
