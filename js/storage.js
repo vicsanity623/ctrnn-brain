@@ -58,21 +58,6 @@ const Store = (() => {
       state = defaultState();
     }
 
-    // --- ONE-TIME VIC ACCOUNT RESTORATION PATCH ---
-    if (state && state.player && (state.player.name === "Vic" || state.cash < 0.10)) {
-      if ((Number(state.cash) || 0) < 0.40) {
-        state.cash = 0.452684910274195; // Restored to ~45 cents
-        state.eb = Math.max(Number(state.eb) || 0, 75); // Restores EB
-        console.log("[Recovery] Successfully restored Vic's balance to $0.45 and pushed to cloud!");
-        
-        // Immediately persist locally & force cloud sync
-        try {
-          localStorage.setItem(KEY, JSON.stringify(state));
-          setTimeout(() => syncToCloud(), 500);
-        } catch (e) {}
-      }
-    }
-
     return state;
   }
 
