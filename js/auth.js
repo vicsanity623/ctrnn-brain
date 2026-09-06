@@ -18,9 +18,14 @@ const Auth = (() => {
     const guestBtn = document.getElementById("guest-btn");
     const slot = document.getElementById("g_id_signin_slot");
 
-    // Note: We DO NOT auto-login here - we always show the sign-in choice
-    // so Google can merge with any existing guest progress. 
-    // Auto-login happens inside the guest click handler below.
+    // --- INSTANT AUTO-LOGIN ---
+    // If player has already signed in previously, bypass sign-in screen in 0ms!
+    const savedState = Store.get();
+    if (savedState && savedState.player && savedState.player.id) {
+      console.log(`[Auth] Existing session recognized (${savedState.player.id}). Auto-logging in...`);
+      onSignedIn(savedState.player);
+      return;
+    }
 
     guestBtn.addEventListener("click", () => {
       const s = Store.get();
