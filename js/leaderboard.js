@@ -340,5 +340,11 @@ const Leaderboard = (() => {
     });
   }
 
-  return { init, open, fetchRankings, awardTerritoryDividends };
+  return { 
+    init, 
+    open, 
+    fetchRankings, 
+    awardTerritoryDividends,
+    awardMayorshipDividend: awardTerritoryDividends 
+  };
 })();
