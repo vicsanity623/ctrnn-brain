@@ -10,190 +10,6 @@
 
   const el = (id) => document.getElementById(id);
 
-  // -------------------------------------------------------
-  // Phase 4: Web Audio SFX & Mobile Haptics
-  // -------------------------------------------------------
-  // Phase 4: Audio toggle state (persisted in localStorage)
-  let soundEnabled = localStorage.getItem("eldenEarth.soundEnabled") !== "false";
-
-  // -------------------------------------------------------
-  // Phase 5: Subtle Anti-Cheat Warning System
-  // -------------------------------------------------------
-  // Tracks if game detected and corrected tampered data in this session
-  let antiCheatWarningShown = false;
-
-  function showAntiCheatWarning(message) {
-    // Only show once per session
-    if (antiCheatWarningShown) return;
-    antiCheatWarningShown = true;
-
-    // Create subtle warning banner at top of HUD
-    const topbar = el("topbar");
-    if (!topbar) return;
-
-    const existing = document.getElementById("anti-cheat-warning");
-    if (existing) existing.remove();
-
-    const warnBanner = document.createElement("div");
-    warnBanner.id = "anti-cheat-warning";
-    warnBanner.style = `
-      position: sticky;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(240, 50, 50, 0.95);
-      color: #fff;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-align: center;
-      z-index: 1000;
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255,255,255,0.3);
-      animation: slideDown 0.3s ease;
-    `;
-    warnBanner.textContent = message;
-
-    // Add keyframes only once
-    if (!document.getElementById("anti-cheat-style")) {
-      const style = document.createElement("style");
-      style.id = "anti-cheat-style";
-      style.textContent =`
-        @keyframes slideDown {
-          from { top: -100%; opacity: 0; }
-          to { top: 0; opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    topbar.prepend(warnBanner);
-    // Auto-remove after 5 seconds
-    setTimeout(() => { if (warnBanner.parentElement) warnBanner.remove(); }, 5000);
-  }
-
-  function checkAndShowAntiCheatWarning() {
-    const state = Store.get();
-    // If the loaded state has _corrected flag, show warning
-    if (state && state._corrected && !antiCheatWarningShown) {
-      showAntiCheatWarning("⚡ Game data was corrected — some values reset to fair play.");
-    }
-    // If tampered state (shouldn't normally reach UI, but defense-in-depth)
-    if (state && state._tampered && !antiCheatWarningShown) {
-      showAntiCheatWarning("🚫 Cheat data detected — progress reset to zero.");
-    }
-  }
-
-  function setSoundEnabled(enabled) {
-    soundEnabled = enabled;
-    localStorage.setItem("eldenEarth.soundEnabled", enabled ? "true" : "false");
-  }
-
-  function toggleSound() {
-    const newState = !soundEnabled;
-    setSoundEnabled(newState);
-    return newState;
-  }
-
-  function isSoundEnabled() {
-    return soundEnabled;
-  }
-
-  function playSfx(type) {
-    if (!isSoundEnabled()) return;
-    const ctx = window.AudioContext || window.webkitAudioContext;
-    if (!ctx) return;
-    const context = new ctx();
-
-    const oscillator = context.createOscillator();
-    const gainNode = context.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-
-    gainNode.gain.value = 0.3;
-
-    const now = context.currentTime;
-
-    if (type === "crystal") {
-      // Crystal chime: quick decay sine sweep
-      oscillator.frequency.value = 880;
-      oscillator.type = "sine";
-      oscillator.start(now);
-      oscillator.stop(now + 0.5);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    } else if (type === "click") {
-      // Ticking click: short high-pitch click
-      oscillator.frequency.value = 1200;
-      oscillator.type = "sine";
-      oscillator.start(now);
-      oscillator.stop(now + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-    } else if (type === "trumpet") {
-      // Royal trumpet fanfare: multi-note call
-      // Note 1
-      const osc1 = context.createOscillator();
-      const gain1 = context.createGain();
-      osc1.connect(gain1);
-      gain1.connect(context.destination);
-      gain1.gain.value = 0.2;
-      osc1.frequency.value = 523.25; // C5
-      osc1.type = "sine";
-      osc1.start(now);
-      osc1.stop(now + 0.5);
-      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-      // Note 2
-      const osc2 = context.createOscillator();
-      const gain2 = context.createGain();
-      osc2.connect(gain2);
-      gain2.connect(context.destination);
-      gain2.gain.value = 0.2;
-      osc2.frequency.value = 659.25; // E5
-      osc2.type = "sine";
-      osc2.start(now + 0.3);
-      osc2.stop(now + 0.8);
-      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
-
-      // Note 3
-      const osc3 = context.createOscillator();
-      const gain3 = context.createGain();
-      osc3.connect(gain3);
-      gain3.connect(context.destination);
-      gain3.gain.value = 0.15;
-      osc3.frequency.value = 783.99; // G5
-      osc3.type = "sine";
-      osc3.start(now + 0.6);
-      osc3.stop(now + 1.1);
-      gain3.gain.exponentialRampToValueAtTime(0.01, now + 1.1);
-
-      // Note 4 - finale
-      const osc4 = context.createOscillator();
-      const gain4 = context.createGain();
-      osc4.connect(gain4);
-      gain4.connect(context.destination);
-      gain4.gain.value = 0.15;
-      osc4.frequency.value = 1046.50; // C6
-      osc4.type = "sine";
-      osc4.start(now + 0.9);
-      osc4.stop(now + 1.4);
-      gain4.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
-    }
-  }
-
-  function triggerHaptic(pattern) {
-    if (!navigator.vibrate) return;
-    // If pattern is a number, use it directly; if array, use Web Haptics pattern
-    if (Array.isArray(pattern)) {
-      navigator.vibrate(pattern);
-    } else if (typeof pattern === "number") {
-      navigator.vibrate(pattern);
-    } else {
-      // Default short pulse
-      navigator.vibrate([50, 30, 50]);
-    }
-  }
-
   function showToast(msg, ms = 2200) {
     const t = el("toast");
     t.textContent = msg;
@@ -420,27 +236,6 @@
   // ---------------- Sign-in & Sequenced Boot ----------------
   function onSignedIn(playerData) {
     const player = playerData || Store.get()?.player || { name: "Traveler" };
-
-    // --- Sync unique session ID to Firestore to enforce one-tab-per-account ---
-    // This prevents the same Google account from generating EB in 100+ tabs simultaneously
-    if (window._eldenSessionId) {
-      const db = Store.getDb();
-      if (db) {
-        try {
-          // Use a unique session document under the player's saves doc
-          // Firestore will automatically overwrite if same sessionId exists (idempotent)
-          // If a DIFFERENT sessionId tries to write, we can check rules to reject
-          db.collection("saves").doc(player.id).set({
-            sessionId: window._eldenSessionId,
-            lastSessionUpdate: Date.now()
-          }, { merge: true }).catch(err => {
-            console.warn("[Session] Firestore sync warning (non-critical):", err);
-          });
-        } catch (e) {
-          console.warn("[Session] Error syncing session to Firestore:", e);
-        }
-      }
-    }
 
     // Execute the professional load pipeline
     Bootloader.run(player, (coords) => {
@@ -696,8 +491,6 @@
         onBuyAttempt: (success, rarity) => {
           if (success) {
             showToast(`Claimed a ${rarity.label} plot!`);
-            playSfx("trumpet");
-            triggerHaptic([20, 10, 20]);
             updateTopbar();
             updateLandModal();
           } else {
@@ -708,12 +501,7 @@
       Grid.render();
 
       Diamonds.init(map, {
-        onCollect: () => {
-          updateTopbar();
-          showToast("Found a diamond! ◆ +1");
-          playSfx("crystal");
-          triggerHaptic([50, 30, 50]);
-        },
+        onCollect: () => { updateTopbar(); showToast("Found a diamond! ◆ +1"); },
         onDenied: () => showToast("Too far — walk closer to collect it."),
       });
       Diamonds.setPlayerPosition(currentPos.lat, currentPos.lon);
@@ -1228,10 +1016,6 @@
         showToast(`💎 Collected ${count} Diamond${count > 1 ? "s" : ""} from Extractor!`);
         checkExtractorTick();
 
-        // Phase 4: Crystal chime & haptic on collect
-        playSfx("crystal");
-        triggerHaptic([50, 30, 50]);
-
         // Launch flying diamonds straight into top HUD Diamonds counter!
         launchFlyingGemStream(originX, originY, count);
 
@@ -1314,17 +1098,6 @@
         boostBtn.classList.add("hidden");
 
         const state = Store.get();
-        // --- EB Cooldown Check: Prevent tab farming across 100+ open tabs ---
-        // Only allow +2 EB if enough time has passed since last EB gain (per user session)
-        const lastGain = Store.getLastEbGainTimestamp();
-        const now = Date.now();
-        const cooldownPassed = (now - lastGain) >= EB_COOLDOWN_MS;
-        if (!cooldownPassed) {
-          const remainingMs = EB_COOLDOWN_MS - (now - lastGain);
-          const secs = Math.ceil(remainingMs / 1000);
-          showToast(`⏳ Wait ${secs}s before claiming another +2 EB boost.`);
-          return; // Block boost click
-        }
         state.eb += 2;
         Store.save();
         updateTopbar();
@@ -1332,9 +1105,6 @@
 
         // Launch 2 flying EB sparks into the HUD!
         launchFlyingEBStream(originX, originY, 2);
-
-        // Record this EB gain so cooldown starts
-        recordEbGain();
 
         // Schedule next appearance
         scheduleBoost();
@@ -1430,25 +1200,7 @@
       localStorage.setItem(TUTORIAL_KEY, "true");
       if (menuDot) menuDot.classList.add("hidden");
       openModal("menu-modal");
-      // Sync audio toggle UI
-      const audioToggle = el("audio-toggle");
-      if (audioToggle) audioToggle.checked = isSoundEnabled();
     });
-
-    // Audio toggle change listener
-    const audioToggle = el("audio-toggle");
-    if (audioToggle) {
-      audioToggle.addEventListener("change", () => {
-        const enabled = audioToggle.checked;
-        setSoundEnabled(enabled);
-        // Provide subtle feedback
-        if (!enabled) {
-          showToast("🔇 Sound disabled");
-        } else {
-          showToast("🔊 Sound enabled");
-        }
-      });
-    }
 
     document.querySelectorAll("[data-close]").forEach(btn => {
       btn.addEventListener("click", () => closeModal(btn.dataset.close));
@@ -1475,10 +1227,6 @@
       updateTopbar();
       el("spin-btn").disabled = true;
       el("wheel-result").textContent = "Spinning...";
-
-      // Phase 4: Wheel click sound & haptic
-      playSfx("click");
-      triggerHaptic([100, 50, 100]);
 
       Wheel.spin((slice) => {
         const s = Store.get();
@@ -1531,14 +1279,6 @@
   // ---------------- Boot ----------------
   document.addEventListener("DOMContentLoaded", () => {
     Store.load();
-    checkAndShowAntiCheatWarning();
-    // --- Session Initialization: Prevent multi-tab EB farming ---
-    // Generate a unique session ID for this tab/player combination
-    // Format: "sess_timestamp_randomString" (matches storage.js generateSessionId logic)
-    const currentSessionId = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-    // Only set session if player is signed in (Google)
-    // This will be wired up in Auth.init callback
-    window._eldenSessionId = currentSessionId;
     Auth.init(onSignedIn);
     el("locate-btn")?.addEventListener("click", startLocating);
   });
