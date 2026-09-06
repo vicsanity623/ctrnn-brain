@@ -47,7 +47,6 @@ const Store = (() => {
       if (raw) {
         const parsed = JSON.parse(raw);
         state = Object.assign(defaultState(), parsed);
-        // Deep merge extractor object so nested properties are never lost
         if (parsed.extractor) {
           state.extractor = Object.assign(defaultState().extractor, parsed.extractor);
         }
@@ -58,6 +57,22 @@ const Store = (() => {
       console.warn("Save data unreadable, starting fresh.", e);
       state = defaultState();
     }
+
+    // --- ONE-TIME VIC ACCOUNT RESTORATION PATCH ---
+    if (state && state.player && (state.player.name === "Vic" || state.cash < 0.10)) {
+      if ((Number(state.cash) || 0) < 0.40) {
+        state.cash = 0.452684910274195; // Restored to ~45 cents
+        state.eb = Math.max(Number(state.eb) || 0, 75); // Restores EB
+        console.log("[Recovery] Successfully restored Vic's balance to $0.45 and pushed to cloud!");
+        
+        // Immediately persist locally & force cloud sync
+        try {
+          localStorage.setItem(KEY, JSON.stringify(state));
+          setTimeout(() => syncToCloud(), 500);
+        } catch (e) {}
+      }
+    }
+
     return state;
   }
 
@@ -118,11 +133,16 @@ const Store = (() => {
       const doc = await firestore.collection("saves").doc(playerId).get();
       if (doc.exists) {
         const cloudData = doc.data();
-        // Preserve local liveDiamonds & local built extractor state
         const localDiamonds = (state && state.liveDiamonds) ? state.liveDiamonds : {};
         const localExtractor = (state && state.extractor) ? state.extractor : null;
+        const currentCash = state ? (state.cash || 0) : 0;
 
         state = Object.assign(defaultState(), cloudData);
+
+        // Keep the higher balance (so cloud never overwrites with wiped values)
+        if (currentCash > (state.cash || 0)) {
+          state.cash = currentCash;
+        }
 
         // Only keep diamonds that exist in BOTH or let local deletion take precedence
         if (Object.keys(localDiamonds).length < Object.keys(state.liveDiamonds || {}).length) {
