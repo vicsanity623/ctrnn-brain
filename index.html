@@ -197,12 +197,16 @@
     <button id="exit-buy-mode-btn" class="btn btn-exit-buy">Done ✓</button>
   </div>
 
-  <!-- Bottom bar -->
+  <!-- Bottom bar with Community Chat Button -->
   <div id="bottombar">
-    <button id="recenter-btn" class="round-btn" aria-label="Recenter">𖤓</button>
+    <button id="recenter-btn" class="round-btn" aria-label="Reset North">🧭</button>
     <button id="buy-land-mode-btn" class="btn btn-buy-land">Buy Land</button>
     <button id="earn-btn" class="btn btn-earn">Earn</button>
     <button id="land-btn" class="round-btn" aria-label="My Land">▦</button>
+    <button id="chat-hud-btn" class="round-btn chat-hud-btn" aria-label="Community Chat">
+      💬
+      <span id="chat-unread-badge" class="chat-unread-badge hidden"></span>
+    </button>
   </div>
 </div>
 
@@ -516,6 +520,34 @@
   </div>
 </div>
 
+<!-- ===================== REALM COMMUNITY CHAT DRAWER ===================== -->
+<div id="chat-drawer" class="chat-drawer hidden">
+  <div class="chat-drawer-overlay" id="chat-drawer-overlay"></div>
+  <div class="chat-drawer-panel">
+    
+    <!-- Chat Header -->
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <span class="chat-live-pulse"></span>
+        <h3>Realm Global Chat</h3>
+      </div>
+      <button id="close-chat-btn" class="chat-close-btn">✕</button>
+    </div>
+
+    <!-- Messages Container (Last 25 Messages) -->
+    <div id="chat-messages-list" class="chat-messages-list">
+      <div class="chat-system-msg">Connecting to Realm Global Chat...</div>
+    </div>
+
+    <!-- Chat Input Footer -->
+    <div class="chat-footer">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Say something to the realm..." maxlength="120" autocomplete="off" />
+      <button id="chat-send-btn" class="chat-send-btn">➤</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- ===================== BOOSTER MODAL ===================== -->
 <div id="booster-modal" class="modal hidden">
   <div class="modal-card booster-card">
@@ -599,6 +631,7 @@
 <script src="js/feed.js"></script>
 <script src="js/leaderboard.js"></script>
 <script src="js/foliage.js"></script>
+<script src="js/chat.js"></script>
 <script src="js/main.js"></script>
 
 <!-- Service Worker Registration with Instant Auto-Update -->
