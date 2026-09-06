@@ -521,20 +521,9 @@
 
   function startIncomeLoop() {
     const earned = Store.applyOfflineProgress();
-    const state = Store.get();
-
-    // Check for Royal Treasury Backpay Toast
-    if (state && state.pendingBackpayNotice) {
-      const backpayAmount = state.pendingBackpayNotice;
-      delete state.pendingBackpayNotice;
-      Store.save(false);
-      setTimeout(() => {
-        showToast(`👑 Royal Treasury Backpay! Credited +${backpayAmount} EB in missed royalties!`, 4000);
-      }, 1200);
-    } else if (earned > 0.000000000000001) {
+    if (earned > 0.000000000000001) {
       showToast(`Welcome back — earned $${earned.toFixed(8)} while away.`);
     }
-
     updateTopbar();
 
     // High-Performance Ticker: Calculates exact delta & saves locally without network thrashing
